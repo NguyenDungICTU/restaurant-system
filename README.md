@@ -1,1126 +1,597 @@
-\# 🍽️ Restaurant Management System
+# Restaurant Management System
 
+Hệ thống quản lý nhà hàng được xây dựng phục vụ việc quản lý đặt bàn, khách hàng, món ăn, đơn hàng và các nghiệp vụ liên quan.
 
+Project sử dụng Docker Compose để chuẩn hóa môi trường phát triển. Thành viên trong nhóm không cần tự cài Python, Node.js hoặc PostgreSQL để chạy project.
 
-Hệ thống quản lý nhà hàng được phát triển theo mô hình \*\*Frontend + Backend API\*\*, phục vụ việc quản lý nhà hàng, đặt bàn, khách hàng, bàn ăn và các chức năng liên quan.
+---
 
+## 1. Công nghệ sử dụng
 
+### Backend
 
-Project được tổ chức để các thành viên trong nhóm có thể \*\*clone repository, cài đặt môi trường và bắt đầu phát triển ngay\*\*.
+- Python 3.12
+- FastAPI
+- Uvicorn
+- SQLAlchemy
+- Alembic
+- PostgreSQL
+- Pydantic
+- JWT
 
+### Frontend
 
+- React
+- Vite
+- Ant Design
+- Axios
+- React Router
 
-\---
+### Infrastructure
 
+- Docker
+- Docker Compose
+- PostgreSQL 16
+- Nginx
 
+---
 
-\## 📌 1. Tech Stack
-
-
-
-\### Backend
-
-
-
-\- Python
-
-\- FastAPI
-
-\- Uvicorn
-
-\- SQLAlchemy
-
-\- PostgreSQL
-
-\- Alembic
-
-\- Pydantic
-
-\- JWT
-
-\- WebSocket
-
-
-
-\### Frontend
-
-
-
-\- React
-
-\- Vite
-
-\- Ant Design
-
-\- Axios
-
-\- React Router
-
-
-
-\### Development Tools
-
-
-
-\- Git
-
-\- GitHub
-
-\- Visual Studio Code
-
-\- PostgreSQL
-
-
-
-\---
-
-
-
-\# 📁 2. Cấu trúc project
-
-
+## 2. Cấu trúc project
 
 ```text
-
 restaurant-system/
-
 │
-
 ├── backend/
-
 │   ├── app/
-
-│   │   ├── models/
-
-│   │   ├── schemas/
-
-│   │   ├── routers/
-
-│   │   ├── services/
-
-│   │   ├── core/
-
-│   │   │   ├── config.py
-
-│   │   │   └── security.py
-
-│   │   ├── database/
-
-│   │   │   └── session.py
-
-│   │   ├── \_\_init\_\_.py
-
-│   │   └── main.py
-
-│   │
-
 │   ├── alembic/
-
 │   ├── alembic.ini
-
 │   ├── requirements.txt
-
-│   └── .env.example
-
+│   ├── .env.example
+│   └── Dockerfile
 │
-
 ├── frontend/
-
 │   ├── src/
-
-│   │   ├── pages/
-
-│   │   ├── components/
-
-│   │   ├── layouts/
-
-│   │   ├── services/
-
-│   │   ├── hooks/
-
-│   │   └── routes/
-
-│   │
-
 │   ├── public/
-
 │   ├── package.json
-
 │   ├── package-lock.json
-
-│   └── .env.example
-
+│   ├── .env.example
+│   └── Dockerfile
 │
-
+├── .env.example
 ├── .gitignore
-
+├── docker-compose.yml
 └── README.md
-
 ```
 
+---
 
+# 3. Yêu cầu trước khi chạy
 
-\---
+Thành viên chỉ cần cài:
 
+- Git
+- Docker Desktop
 
+Không cần cài riêng:
 
-\# 💻 3. Yêu cầu môi trường
+- Python
+- Node.js
+- PostgreSQL
 
+Docker sẽ cung cấp môi trường chạy cho project.
 
+---
 
-Trước khi clone project, cần cài các phần mềm:
+# 4. Kiểm tra Docker
 
-
-
-| Công cụ | Phiên bản đề nghị |
-
-|---|---|
-
-| Python | 3.10+ |
-
-| Node.js | 18+ |
-
-| npm | Đi kèm Node.js |
-
-| Git | Phiên bản mới |
-
-| PostgreSQL | 14+ |
-
-| VS Code | Khuyến nghị |
-
-
-
-Kiểm tra sau khi cài:
-
-
+Mở PowerShell và chạy:
 
 ```powershell
-
-python --version
-
+docker --version
 ```
-
-
-
-```powershell
-
-node --version
-
-```
-
-
-
-```powershell
-
-npm --version
-
-```
-
-
-
-```powershell
-
-git --version
-
-```
-
-
-
-```powershell
-
-psql --version
-
-```
-
-
-
-\---
-
-
-
-\# 🚀 4. Clone project
-
-
-
-Clone repository:
-
-
-
-```powershell
-
-git clone <GITHUB\_REPOSITORY\_URL>
-
-```
-
-
-
-Ví dụ:
-
-
-
-```powershell
-
-git clone https://github.com/USERNAME/restaurant-system.git
-
-```
-
-
-
-Di chuyển vào project:
-
-
-
-```powershell
-
-cd restaurant-system
-
-```
-
-
-
-Kiểm tra:
-
-
-
-```powershell
-
-git status
-
-```
-
-
-
-\---
-
-
-
-\# ⚙️ 5. Cài đặt Backend
-
-
-
-Di chuyển vào Backend:
-
-
-
-```powershell
-
-cd backend
-
-```
-
-
-
-\## 5.1. Tạo Python Virtual Environment
-
-
-
-```powershell
-
-python -m venv venv
-
-```
-
-
-
-Kích hoạt môi trường ảo:
-
-
-
-```powershell
-
-.\\venv\\Scripts\\Activate.ps1
-
-```
-
-
-
-Nếu thành công, terminal sẽ hiển thị:
-
-
-
-```text
-
-(venv)
-
-```
-
-
-
-ở đầu dòng.
-
-
-
-\### Nếu PowerShell không cho phép chạy script
-
-
-
-Chạy:
-
-
-
-```powershell
-
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-
-```
-
-
-
-Sau đó kích hoạt lại:
-
-
-
-```powershell
-
-.\\venv\\Scripts\\Activate.ps1
-
-```
-
-
-
-\---
-
-
-
-\# 📦 6. Cài thư viện Backend
-
-
-
-Sau khi kích hoạt `venv`:
-
-
-
-```powershell
-
-pip install -r requirements.txt
-
-```
-
-
-
-Kiểm tra:
-
-
-
-```powershell
-
-pip list
-
-```
-
-
-
-Các thư viện chính:
-
-
-
-```text
-
-FastAPI
-
-Uvicorn
-
-SQLAlchemy
-
-Alembic
-
-PostgreSQL Driver
-
-Pydantic
-
-JWT
-
-WebSocket
-
-```
-
-
-
-\---
-
-
-
-\# 🔐 7. Cấu hình Backend
-
-
-
-Project không lưu `.env` thật trên GitHub để tránh lộ thông tin nhạy cảm.
-
-
-
-Repository chỉ chứa:
-
-
-
-```text
-
-.env.example
-
-```
-
-
-
-Tạo `.env` từ file mẫu:
-
-
-
-```powershell
-
-Copy-Item .env.example .env
-
-```
-
-
-
-Mở file:
-
-
-
-```powershell
-
-notepad .env
-
-```
-
-
-
-Cấu hình:
-
-
-
-```env
-
-PROJECT\_NAME="Restaurant Management System"
-
-
-
-DATABASE\_URL="postgresql://user:password@localhost:5432/restaurant\_db"
-
-
-
-SECRET\_KEY="change-this-secret-key"
-
-
-
-ALGORITHM="HS256"
-
-
-
-ACCESS\_TOKEN\_EXPIRE\_MINUTES=480
-
-```
-
-
-
-> Mỗi thành viên sử dụng `.env` riêng trên máy của mình.
-
-
-
-\*\*Không commit `.env` lên GitHub.\*\*
-
-
-
-\---
-
-
-
-\# 🗄️ 8. Cấu hình PostgreSQL
-
-
-
-Tạo database:
-
-
-
-```text
-
-restaurant\_db
-
-```
-
-
-
-Ví dụ thông tin kết nối:
-
-
-
-```text
-
-Host: localhost
-
-Port: 5432
-
-Database: restaurant\_db
-
-Username: postgres
-
-Password: <your-password>
-
-```
-
-
-
-Sau đó cập nhật:
-
-
-
-```env
-
-DATABASE\_URL="postgresql://postgres:<your-password>@localhost:5432/restaurant\_db"
-
-```
-
-
-
-Ví dụ:
-
-
-
-```env
-
-DATABASE\_URL="postgresql://postgres:123456@localhost:5432/restaurant\_db"
-
-```
-
-
-
-> Không sử dụng mật khẩu ví dụ này cho môi trường thật.
-
-
-
-\---
-
-
-
-\# 🧱 9. Database Migration với Alembic
-
-
-
-Nếu project đã có:
-
-
-
-```text
-
-backend/alembic/
-
-backend/alembic.ini
-
-```
-
-
-
-thì không cần chạy lại:
-
-
-
-```powershell
-
-alembic init alembic
-
-```
-
-
-
-Khi project có migration mới, chạy:
-
-
-
-```powershell
-
-alembic upgrade head
-
-```
-
-
-
-Để tạo migration mới:
-
-
-
-```powershell
-
-alembic revision --autogenerate -m "description"
-
-```
-
-
 
 Sau đó:
 
-
-
 ```powershell
-
-alembic upgrade head
-
+docker compose version
 ```
 
-
-
-\---
-
-
-
-\# ▶️ 10. Chạy Backend
-
-
-
-Đảm bảo đang ở:
-
-
+Ví dụ:
 
 ```text
-
-restaurant-system/backend
-
+Docker version 29.x.x
+Docker Compose version v5.x.x
 ```
 
-
-
-và `venv` đã được kích hoạt.
-
-
-
-Chạy:
-
-
+Kiểm tra Docker hoạt động:
 
 ```powershell
-
-uvicorn app.main:app --reload
-
+docker run --rm hello-world
 ```
 
-
-
-Backend mặc định:
-
-
+Nếu xuất hiện:
 
 ```text
-
-http://localhost:8000
-
+Hello from Docker!
 ```
 
+thì Docker đã hoạt động.
 
+---
 
-\---
+# 5. Clone project
 
-
-
-\## 🔎 10.1. Kiểm tra Backend
-
-
-
-Mở trình duyệt:
-
-
-
-```text
-
-http://localhost:8000
-
-```
-
-
-
-API Docs:
-
-
-
-```text
-
-http://localhost:8000/docs
-
-```
-
-
-
-Health check:
-
-
-
-```text
-
-http://localhost:8000/api/health
-
-```
-
-
-
-Nếu API hoạt động bình thường:
-
-
-
-```json
-
-{
-
-&#x20;   "status": "ok"
-
-}
-
-```
-
-
-
-\---
-
-
-
-\# 🎨 11. Cài đặt Frontend
-
-
-
-Mở \*\*PowerShell mới\*\*.
-
-
-
-Di chuyển đến Frontend:
-
-
+Clone repository:
 
 ```powershell
-
-cd restaurant-system\\frontend
-
+git clone https://github.com/USERNAME/restaurant-system.git
 ```
 
-
-
-Cài dependencies:
-
-
+Đi vào project:
 
 ```powershell
-
-npm install
-
+cd restaurant-system
 ```
 
+> Thay `USERNAME` bằng username GitHub thực tế của repository.
 
+---
 
-Nếu cần cài lại các thư viện chính:
+# 6. Cấu hình môi trường
 
-
+Tạo file `.env` từ `.env.example`:
 
 ```powershell
-
-npm install antd @ant-design/icons axios react-router-dom
-
+Copy-Item .\.env.example .\.env
 ```
 
+File `.env` chỉ dùng cho máy local.
 
+**Không commit `.env` lên GitHub.**
 
-\---
+---
 
+# 7. Chạy toàn bộ hệ thống bằng Docker
 
-
-\# 🔐 12. Cấu hình Frontend
-
-
-
-Tạo `.env`:
-
-
-
-```powershell
-
-Copy-Item .env.example .env
-
-```
-
-
-
-File `.env`:
-
-
-
-```env
-
-VITE\_API\_BASE\_URL=http://localhost:8000
-
-VITE\_WS\_BASE\_URL=ws://localhost:8000
-
-```
-
-
-
-Không commit `.env`.
-
-
-
-\---
-
-
-
-\# ▶️ 13. Chạy Frontend
-
-
-
-Trong thư mục:
-
-
+Từ thư mục:
 
 ```text
-
-restaurant-system/frontend
-
+restaurant-system
 ```
-
-
 
 chạy:
 
-
-
 ```powershell
-
-npm run dev
-
+docker compose up --build
 ```
 
-
-
-Frontend mặc định:
-
-
+Lần đầu Docker sẽ tải image và build:
 
 ```text
-
-http://localhost:5173
-
+PostgreSQL
+    ↓
+FastAPI Backend
+    ↓
+React Frontend + Nginx
 ```
 
+Lần đầu có thể mất vài phút.
 
+---
+
+# 8. Mở Demo
+
+Sau khi Docker chạy thành công:
+
+### Frontend
 
 Mở trình duyệt:
 
+```text
+http://localhost:5173
+```
 
+### Backend
 
 ```text
-
-http://localhost:5173
-
+http://localhost:8000
 ```
 
+### Backend API Documentation
 
+```text
+http://localhost:8000/docs
+```
 
-\---
+### Backend Health Check
 
+```text
+http://localhost:8000/api/health
+```
 
+Kết quả mong muốn:
 
-\# 🔄 14. Chạy toàn bộ hệ thống
+```json
+{
+  "status": "ok"
+}
+```
 
+---
 
+# 9. Kiểm tra container
 
-Cần mở \*\*2 terminal\*\*.
-
-
-
-\## Terminal 1 — Backend
-
-
+Mở một PowerShell khác:
 
 ```powershell
-
-cd restaurant-system\\backend
-
-
-
-.\\venv\\Scripts\\Activate.ps1
-
-
-
-uvicorn app.main:app --reload
-
+cd C:\Workspaces\restaurant-system
 ```
 
+Chạy:
 
+```powershell
+docker compose ps
+```
+
+Các service cần chạy:
+
+```text
+restaurant-db
+restaurant-backend
+restaurant-frontend
+```
+
+Database cần có trạng thái:
+
+```text
+healthy
+```
+
+---
+
+# 10. Các service
+
+Docker Compose tạo 3 service:
+
+```text
+┌─────────────────────────────┐
+│          Frontend           │
+│       React + Nginx         │
+│       localhost:5173        │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│          Backend            │
+│          FastAPI            │
+│       localhost:8000        │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│         PostgreSQL          │
+│       localhost:5432        │
+└─────────────────────────────┘
+```
+
+---
+
+# 11. Các lệnh Docker thường dùng
+
+## Khởi động
+
+```powershell
+docker compose up
+```
+
+## Build lại và khởi động
+
+Dùng khi thay đổi Dockerfile, `requirements.txt`, `package.json`, v.v.
+
+```powershell
+docker compose up --build
+```
+
+## Chạy dưới nền
+
+```powershell
+docker compose up -d
+```
+
+## Dừng hệ thống
+
+```powershell
+docker compose down
+```
+
+## Xem trạng thái
+
+```powershell
+docker compose ps
+```
+
+## Xem toàn bộ log
+
+```powershell
+docker compose logs
+```
+
+## Xem log Backend
+
+```powershell
+docker compose logs -f backend
+```
+
+## Xem log Frontend
+
+```powershell
+docker compose logs -f frontend
+```
+
+## Xem log Database
+
+```powershell
+docker compose logs -f db
+```
+
+---
+
+# 12. Database
+
+PostgreSQL được chạy trong Docker.
+
+Thông tin mặc định trong môi trường development:
+
+```text
+Database: restaurant_db
+User: postgres
+Password: postgres
+Host: db
+Port: 5432
+```
+
+Backend kết nối PostgreSQL thông qua Docker network:
+
+```text
+db:5432
+```
+
+Không sử dụng:
+
+```text
+localhost:5432
+```
+
+bên trong Backend container.
+
+---
+
+# 13. Database volume
+
+Database sử dụng Docker volume:
+
+```text
+postgres_data
+```
+
+Vì vậy khi chạy:
+
+```powershell
+docker compose down
+```
+
+database vẫn được giữ lại.
+
+Không nên chạy:
+
+```powershell
+docker compose down -v
+```
+
+trừ khi muốn xóa database development.
+
+---
+
+# 14. Làm việc với Git
+
+Trước khi bắt đầu làm việc:
+
+```powershell
+git checkout main
+git pull origin main
+```
+
+Tạo branch mới:
+
+```powershell
+git checkout -b feature/ten-chuc-nang
+```
+
+Ví dụ:
+
+```powershell
+git checkout -b feature/table-management
+```
+
+Sau khi hoàn thành:
+
+```powershell
+git add .
+git commit -m "feat: add table management"
+git push -u origin feature/table-management
+```
+
+Sau đó tạo Pull Request trên GitHub.
+
+---
+
+# 15. Quy ước commit
+
+Một số prefix thường sử dụng:
+
+```text
+feat:      thêm chức năng mới
+fix:       sửa lỗi
+refactor:  chỉnh sửa cấu trúc code
+docs:      cập nhật tài liệu
+style:     chỉnh format/code style
+test:      thêm hoặc sửa test
+chore:     cấu hình, dependency, Docker...
+```
+
+Ví dụ:
+
+```text
+feat: add reservation management
+fix: prevent duplicate reservation
+docs: update docker setup
+chore: configure postgres container
+```
+
+---
+
+# 16. Quy trình làm việc của thành viên
+
+Mỗi thành viên thực hiện:
+
+```text
+Clone repository
+       ↓
+docker compose up --build
+       ↓
+Mở localhost:5173
+       ↓
+git checkout -b feature/...
+       ↓
+Lập trình
+       ↓
+git add .
+       ↓
+git commit
+       ↓
+git push
+       ↓
+Pull Request
+       ↓
+Review
+       ↓
+Merge
+```
+
+---
+
+# 17. Không commit các file sau
+
+Không push:
+
+```text
+.env
+backend/.env
+frontend/.env
+backend/venv/
+frontend/node_modules/
+frontend/dist/
+__pycache__/
+```
+
+Các file này đã được thêm vào `.gitignore`.
+
+---
+
+# 18. Nếu Docker báo lỗi
+
+Kiểm tra container:
+
+```powershell
+docker compose ps
+```
+
+Xem log:
+
+```powershell
+docker compose logs
+```
+
+Nếu Backend lỗi:
+
+```powershell
+docker compose logs backend
+```
+
+Nếu Database lỗi:
+
+```powershell
+docker compose logs db
+```
+
+Nếu Frontend lỗi:
+
+```powershell
+docker compose logs frontend
+```
+
+Có thể thử build lại:
+
+```powershell
+docker compose down
+docker compose up --build
+```
+
+---
+
+# 19. Quick Start
+
+Thành viên mới chỉ cần:
+
+```powershell
+git clone https://github.com/USERNAME/restaurant-system.git
+
+cd restaurant-system
+
+Copy-Item .\.env.example .\.env
+
+docker compose up --build
+```
+
+Sau đó mở:
+
+```text
+http://localhost:5173
+```
 
 Backend:
 
-
-
 ```text
-
 http://localhost:8000
-
 ```
-
-
 
 Swagger:
 
-
-
 ```text
-
 http://localhost:8000/docs
-
 ```
 
+---
 
+# 20. Team
 
-\---
+| Thành viên | Vai trò |
+|---|---|
+| Thành viên 1 | Backend |
+| Thành viên 2 | Frontend |
+| Thành viên 3 | Database |
+| Thành viên 4 | Testing / Scrum |
 
+Cập nhật danh sách thành viên theo nhóm thực tế.
 
+---
 
-\## Terminal 2 — Frontend
+## Repository
 
-
-
-```powershell
-
-cd restaurant-system\\frontend
-
-
-
-npm run dev
-
-```
-
-
-
-Frontend:
-
-
+GitHub:
 
 ```text
-
-http://localhost:5173
-
+https://github.com/NguyenDungICTU/restaurant-system
 ```
 
-
-
-\---
-
-
-
-\# 🌿 15. Quy trình Git của nhóm
-
-
-
-Không nên phát triển trực tiếp trên branch `main`.
-
-
-
-Mỗi thành viên tạo branch riêng cho chức năng mình phụ trách.
-
-
-
-\---
-
-
-
-\## 15.1. Cập nhật code mới nhất
-
-
-
-Trước khi bắt đầu:
-
-
-
-```powershell
-
-git checkout main
-
-```
-
-
-
-```powershell
-
-git pull origin main
-
-```
-
-
-
-\---
-
-
-
-\## 15.2. Tạo branch mới
-
-
-
-Ví dụ làm chức năng quản lý bàn:
-
-
-
-```powershell
-
-git checkout -b feature/table-management
-
-```
-
-
-
-Ví dụ làm chức năng đặt bàn:
-
-
-
-```powershell
-
-git checkout -b feature/booking
-
-```
-
-
-
-Ví dụ sửa lỗi:
-
-
-
-```powershell
-
-git checkout -b fix/booking-validation
-
-```
-
-
-
-\---
-
-
-
-\# 💾 16. Commit code
-
-
-
-Kiểm tra file thay đổi:
-
-
-
-```powershell
-
-git status
-
-```
-
-
-
-Thêm file:
-
-
-
-```powershell
-
-git add .
-
-```
-
-
-
-Commit:
-
-
-
-```powershell
-
-git commit -m "feat
-
+Thay URL trên bằng URL repository thực tế của nhóm.
