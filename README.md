@@ -499,3 +499,4 @@ frontend/dist/
 - `docker-compose.yml`: truyền các biến seed/CORS vào Backend.
 
 Hoang gay
+Hung gay
