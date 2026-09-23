@@ -36,8 +36,8 @@ Nếu hai lệnh trên chạy được thì có thể tiếp tục.
 ## 3. Clone project
 
 ```bash
-git clone <URL-GITHUB-CUA-NHOM>
-cd <TEN-THU-MUC-PROJECT>
+git clone https://github.com/NguyenDungICTU/restaurant-system
+cd restaurant-system
 ```
 
 Nếu project đã được clone trước đó:
