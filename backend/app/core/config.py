@@ -35,7 +35,9 @@ class Settings(BaseSettings):
 
     cookie_samesite: str = "lax"
 
-    frontend_url: str = "http://localhost:5173"
+    # Comma-separated list, for example:
+    # http://localhost:5173,http://127.0.0.1:5173
+    frontend_urls: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -43,6 +45,14 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.frontend_urls.split(",")
+            if origin.strip()
+        ]
 
 
 @lru_cache

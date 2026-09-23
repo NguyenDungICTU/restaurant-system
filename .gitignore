@@ -1,41 +1,26 @@
-﻿# =========================
-# Python
-# =========================
+.env
+.env.*
+!.env.example
 
+# Python
 backend/venv/
 backend/__pycache__/
-backend/**/*.pyc
-backend/.pytest_cache/
+backend/**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
 
-# Environment
-backend/.env
-.env
-frontend/.env
-
-# =========================
-# Node / React
-# =========================
-
+# Node
 frontend/node_modules/
 frontend/dist/
 
-# Environment
-frontend/.env
-frontend/.env.local
-
-# =========================
-# IDE
-# =========================
-
+# IDE / OS
 .vscode/
+!.vscode/extensions.json
 .idea/
-
-# =========================
-# OS
-# =========================
-
 .DS_Store
-Thumbs.db
-backend.zip
-frontend.zip
-
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
