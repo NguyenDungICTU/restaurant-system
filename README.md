@@ -498,3 +498,4 @@ frontend/dist/
 - `backend/app/main.py`: sử dụng danh sách CORS origin đã cấu hình.
 - `docker-compose.yml`: truyền các biến seed/CORS vào Backend.
 
+Hoang gay
