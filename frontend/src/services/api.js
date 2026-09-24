@@ -7,3 +7,9 @@ export async function login(identifier,password){const r=await api.post('/api/au
 export async function getCurrentUser(){const r=await api.get('/api/auth/me');return r.data}
 export async function logout(){const r=await api.post('/api/auth/logout');return r.data}
 export function createOrderSocket(onMessage,onStatus){const s=new WebSocket(`${WS_BASE_URL}/ws/orders`);s.addEventListener('open',()=>onStatus?.('connected'));s.addEventListener('close',()=>onStatus?.('disconnected'));s.addEventListener('error',()=>onStatus?.('error'));s.addEventListener('message',e=>onMessage?.(e.data));return s}
+
+export async function getEmployees(){const r=await api.get('/api/employees');return r.data}
+export async function checkEmployeeUsername(username){const r=await api.get('/api/employees/availability/username',{params:{username}});return r.data}
+export async function checkEmployeePhone(phone){const r=await api.get('/api/employees/availability/phone',{params:{phone}});return r.data}
+export async function createEmployee(payload){const r=await api.post('/api/employees',payload);return r.data}
+export async function changeEmployeeStatus(employeeId,status){const r=await api.patch(`/api/employees/${employeeId}/status`,{status});return r.data}

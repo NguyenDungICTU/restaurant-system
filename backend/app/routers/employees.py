@@ -108,3 +108,11 @@ def change_employee_status(
         request=request,
     )
     return employee_to_response(employee)
+
+@router.get("", response_model=list[EmployeeResponse])
+def list_employees(
+    db: Session = Depends(get_db),
+    _: NhanVien = Depends(require_manager),
+):
+    employees = db.query(NhanVien).order_by(NhanVien.id.asc()).all()
+    return [employee_to_response(employee) for employee in employees]
