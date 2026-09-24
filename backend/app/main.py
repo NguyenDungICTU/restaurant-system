@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.routers.auth import router as auth_router
 from app.routers.employees import router as employees_router
+from app.routers.khu_vuc import router as khu_vuc_router
 
 
 app = FastAPI(
@@ -24,6 +25,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(employees_router)
+app.include_router(khu_vuc_router)
 
 
 @app.get("/")
