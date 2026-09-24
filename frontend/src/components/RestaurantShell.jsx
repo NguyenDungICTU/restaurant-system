@@ -3,6 +3,11 @@ import {
   BellOutlined,
   CalendarOutlined,
   DashboardOutlined,
+
+
+  DisconnectOutlined,
+  LogoutOutlined,
+
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
@@ -17,6 +22,9 @@ import {
 } from '@ant-design/icons'
 
 import { Button, Tooltip } from 'antd'
+} from '@ant-design/icons'
+import { Button, Tooltip } from 'antd'
+
 import {
   createOrderSocket,
   getHealth,
@@ -26,6 +34,7 @@ import {
 import Employees from '../pages/Employees'
 import KhuVuc from '../pages/KhuVuc'
 
+import Menu from '../pages/Menu'
 
 const navigation = [
   {
@@ -69,6 +78,8 @@ const navigation = [
   },
 ]
 
+
+]
 
 const secondary = [
   {
@@ -115,6 +126,11 @@ export default function RestaurantShell({
 
     try {
       connection = createOrderSocket(
+  useEffect(() => {
+    let socketConnection
+
+    try {
+      socketConnection = createOrderSocket(
         (message) => {
           setEvents((current) => [
             {
@@ -136,6 +152,10 @@ export default function RestaurantShell({
   }, [])
 
 
+      socketConnection?.close()
+    }
+  }, [])
+
   async function signout() {
     try {
       await logout()
@@ -154,6 +174,16 @@ export default function RestaurantShell({
   return (
     <div className="app-shell">
 
+  const currentPage =
+    [...navigation, ...secondary].find(
+      (item) => item.key === page,
+    )
+
+  const pageLabel =
+    currentPage?.label || 'Tổng quan'
+
+  return (
+    <div className="app-shell">
       <aside
         className={`sidebar ${
           collapsed ? 'collapsed' : ''
@@ -163,6 +193,7 @@ export default function RestaurantShell({
           <div className="brand-mark">
             R
           </div>
+          <div className="brand-mark">R</div>
 
           {!collapsed && (
             <div>
@@ -175,6 +206,7 @@ export default function RestaurantShell({
 
         <div className="nav-section">
 
+        <div className="nav-section">
           {!collapsed && (
             <p className="nav-title">
               QUẢN LÝ
@@ -214,6 +246,35 @@ export default function RestaurantShell({
 
         <div className="sidebar-bottom">
 
+          {navigation.map(
+            ({
+              key,
+              label,
+              icon: Icon,
+            }) => (
+              <button
+                key={key}
+                className={`nav-item ${
+                  page === key ? 'active' : ''
+                }`}
+                onClick={() => setPage(key)}
+                title={
+                  collapsed
+                    ? label
+                    : undefined
+                }
+              >
+                <Icon />
+
+                {!collapsed && (
+                  <span>{label}</span>
+                )}
+              </button>
+            ),
+          )}
+        </div>
+
+        <div className="sidebar-bottom">
           {!collapsed && (
             <p className="nav-title">
               HỆ THỐNG
@@ -244,10 +305,41 @@ export default function RestaurantShell({
             </button>
           ))}
 
+          {secondary.map(
+            ({
+              key,
+              label,
+              icon: Icon,
+            }) => (
+              <button
+                key={key}
+                className={`nav-item ${
+                  page === key ? 'active' : ''
+                }`}
+                onClick={() => setPage(key)}
+                title={
+                  collapsed
+                    ? label
+                    : undefined
+                }
+              >
+                <Icon />
+
+                {!collapsed && (
+                  <span>{label}</span>
+                )}
+              </button>
+            ),
+          )}
 
           <button
             className="nav-item logout-nav"
             onClick={signout}
+            title={
+              collapsed
+                ? 'Đăng xuất'
+                : undefined
+            }
           >
             <LogoutOutlined />
 
@@ -255,6 +347,7 @@ export default function RestaurantShell({
               <span>
                 Đăng xuất
               </span>
+              <span>Đăng xuất</span>
             )}
           </button>
         </div>
@@ -262,6 +355,7 @@ export default function RestaurantShell({
 
         <div className="user-card">
 
+        <div className="user-card">
           <div className="avatar">
             <UserOutlined />
           </div>
@@ -274,6 +368,13 @@ export default function RestaurantShell({
 
               <span>
                 {user?.role || 'Nhân viên'}
+                {user?.full_name ||
+                  'Nhân viên'}
+              </strong>
+
+              <span>
+                {user?.role ||
+                  'Nhân viên'}
               </span>
             </div>
           )}
@@ -285,6 +386,8 @@ export default function RestaurantShell({
 
         <header className="topbar">
 
+      <main className="main-content">
+        <header className="topbar">
           <Button
             type="text"
             className="collapse-button"
@@ -310,6 +413,27 @@ export default function RestaurantShell({
 
             <div className="connection-status">
 
+              collapsed ? (
+                <MenuUnfoldOutlined />
+              ) : (
+                <MenuFoldOutlined />
+              )
+            }
+            onClick={() =>
+              setCollapsed(
+                (current) => !current,
+              )
+            }
+          />
+
+          <div className="breadcrumb">
+            <span>Nhà hàng</span>
+            <b>/</b>
+            <strong>{pageLabel}</strong>
+          </div>
+
+          <div className="topbar-actions">
+            <div className="connection-status">
               <span
                 className={`status-dot ${
                   health === 'online'
@@ -332,6 +456,15 @@ export default function RestaurantShell({
             </div>
 
 
+                API{' '}
+                {health === 'online'
+                  ? 'Online'
+                  : health === 'offline'
+                    ? 'Offline'
+                    : 'Đang kiểm tra'}
+              </span>
+            </div>
+
             <Tooltip title="Thông báo">
               <Button
                 type="text"
@@ -342,6 +475,10 @@ export default function RestaurantShell({
 
             <div className="top-avatar">
               {(user?.full_name || 'A')
+            <div className="top-avatar">
+              {(
+                user?.full_name || 'A'
+              )
                 .slice(0, 1)
                 .toUpperCase()}
             </div>
@@ -353,6 +490,8 @@ export default function RestaurantShell({
 
           {page === 'dashboard' ? (
 
+        <div className="page-content">
+          {page === 'dashboard' ? (
             <Dashboard
               health={health}
               socket={socket}
@@ -373,6 +512,11 @@ export default function RestaurantShell({
 
           )}
 
+          ) : page === 'menu' ? (
+            <Menu />
+          ) : (
+            <ModulePage page={page} />
+          )}
         </div>
       </main>
     </div>
@@ -414,6 +558,9 @@ function Dashboard({
     <>
       <section className="page-heading">
 
+  return (
+    <>
+      <section className="page-heading">
         <div>
           <p className="eyebrow">
             RESTAURANT MANAGEMENT
@@ -432,6 +579,7 @@ function Dashboard({
 
         <div className="live-pill">
 
+        <div className="live-pill">
           <span
             className={`status-dot ${
               socket === 'connected'
@@ -480,6 +628,39 @@ function Dashboard({
 
           <div className="panel-heading">
 
+          WebSocket{' '}
+          {socket === 'connected'
+            ? 'đã kết nối'
+            : 'chưa kết nối'}
+        </div>
+      </section>
+
+      <section className="stats-grid">
+        {cards.map(
+          ([title, value, note]) => (
+            <article
+              className="stat-card"
+              key={title}
+            >
+              <div className="stat-label">
+                {title}
+              </div>
+
+              <div className="stat-value">
+                {value}
+              </div>
+
+              <div className="stat-note">
+                {note}
+              </div>
+            </article>
+          ),
+        )}
+      </section>
+
+      <section className="content-grid">
+        <article className="panel">
+          <div className="panel-heading">
             <div>
               <h2>
                 Trạng thái hệ thống
@@ -487,6 +668,8 @@ function Dashboard({
 
               <p>
                 Các kết nối hiện có trong backend.
+                Các kết nối hiện có trong
+                backend.
               </p>
             </div>
 
@@ -496,6 +679,7 @@ function Dashboard({
 
           <div className="system-list">
 
+          <div className="system-list">
             <div>
               <span>
                 <span
@@ -525,6 +709,12 @@ function Dashboard({
             </div>
 
 
+                {health === 'online'
+                  ? 'Đang hoạt động'
+                  : 'Cần kiểm tra'}
+              </strong>
+            </div>
+
             <div>
               <span>
                 <span
@@ -547,6 +737,10 @@ function Dashboard({
             <div>
               <span>
                 <span className="status-dot warning" />
+            <div>
+              <span>
+                <span className="status-dot warning" />
+
                 CRUD nghiệp vụ
               </span>
 
@@ -562,6 +756,8 @@ function Dashboard({
 
           <div className="panel-heading">
 
+        <article className="panel">
+          <div className="panel-heading">
             <div>
               <h2>
                 Order realtime
@@ -580,6 +776,8 @@ function Dashboard({
 
             <div className="event-list">
 
+          {events.length ? (
+            <div className="event-list">
               {events.map((event) => (
                 <div
                   className="event-item"
@@ -601,6 +799,9 @@ function Dashboard({
 
             <div className="empty-state">
 
+            </div>
+          ) : (
+            <div className="empty-state">
               <DisconnectOutlined />
 
               <strong>
@@ -620,6 +821,16 @@ function Dashboard({
 
       <section className="implementation-note">
 
+                Khi backend broadcast order
+                update, dữ liệu sẽ xuất hiện
+                tại đây.
+              </span>
+            </div>
+          )}
+        </article>
+      </section>
+
+      <section className="implementation-note">
         <div className="note-icon">
           i
         </div>
@@ -627,6 +838,8 @@ function Dashboard({
         <div>
           <strong>
             Frontend đang bám đúng API backend hiện có
+            Frontend đang bám đúng API backend
+            hiện có
           </strong>
 
           <p>
@@ -638,6 +851,14 @@ function Dashboard({
             <code>/api/auth/logout</code>
             {' '}và realtime order qua{' '}
             <code>/ws/orders</code>.
+            <code>/api/auth/login</code>, kiểm tra
+            phiên qua{' '}
+            <code>/api/auth/me</code>, đăng xuất
+            qua{' '}
+            <code>/api/auth/logout</code> và
+            realtime order qua{' '}
+            <code>/ws/orders</code>. Các module
+            còn lại chưa gọi API giả.
           </p>
         </div>
       </section>
@@ -662,6 +883,20 @@ function ModulePage({
 
   const labels = {
 
+function socketLabel(socket) {
+  if (socket === 'connected') {
+    return 'Đã kết nối'
+  }
+
+  if (socket === 'error') {
+    return 'Lỗi kết nối'
+  }
+
+  return 'Đang kết nối'
+}
+
+function ModulePage({ page }) {
+  const labels = {
     bookings: [
       'Đặt bàn',
       'Quản lý lịch đặt bàn, khung giờ nhận khách và trạng thái bàn.',
@@ -701,6 +936,20 @@ function ModulePage({
 
       <div className="placeholder-icon">
         <SettingOutlined />
+  const icons = {
+    bookings: CalendarOutlined,
+    customers: TeamOutlined,
+    orders: ShoppingCartOutlined,
+    settings: SettingOutlined,
+  }
+
+  const Icon =
+    icons[page] || SettingOutlined
+
+  return (
+    <section className="module-placeholder">
+      <div className="placeholder-icon">
+        <Icon />
       </div>
 
       <p className="eyebrow">
@@ -719,6 +968,14 @@ function ModulePage({
         UI đã sẵn sàng · Chờ backend cung cấp endpoint nghiệp vụ.
       </span>
 
+      <h1>{title}</h1>
+
+      <p>{description}</p>
+
+      <span>
+        UI đã sẵn sàng · Chờ backend cung cấp
+        endpoint nghiệp vụ.
+      </span>
     </section>
   )
 }
