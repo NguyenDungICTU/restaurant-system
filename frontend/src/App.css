@@ -209,7 +209,8 @@
   .area-layout {
     grid-template-columns: 1fr;
   }
-=======
+}
+
 
 :root {
   --wine: #9f2f27;

@@ -12,10 +12,18 @@ export const api = axios.create({
   withCredentials: true,
 })
 
+// ─────────────────────────────────────────────
+// System
+// ─────────────────────────────────────────────
+
 export async function getHealth() {
   const r = await api.get('/api/health')
   return r.data
 }
+
+// ─────────────────────────────────────────────
+// Authentication
+// ─────────────────────────────────────────────
 
 export async function login(identifier, password) {
   const r = await api.post('/api/auth/login', {
@@ -35,32 +43,9 @@ export async function logout() {
   return r.data
 }
 
-export function createOrderSocket(onMessage, onStatus) {
-  const s = new WebSocket(`${WS_BASE_URL}/ws/orders`)
-
-  s.addEventListener('open', () =>
-    onStatus?.('connected')
-  )
-
-  s.addEventListener('close', () =>
-    onStatus?.('disconnected')
-  )
-
-  s.addEventListener('error', () =>
-    onStatus?.('error')
-  )
-
-  s.addEventListener('message', (e) =>
-    onMessage?.(e.data)
-  )
-
-  return s
-}
-
-
-// ===============================
+// ─────────────────────────────────────────────
 // S1-02 - NHÂN VIÊN
-// ===============================
+// ─────────────────────────────────────────────
 
 export async function getEmployees() {
   const r = await api.get('/api/employees')
@@ -74,7 +59,6 @@ export async function checkEmployeeUsername(username) {
       params: { username },
     }
   )
-
   return r.data
 }
 
@@ -85,35 +69,25 @@ export async function checkEmployeePhone(phone) {
       params: { phone },
     }
   )
-
   return r.data
 }
 
 export async function createEmployee(payload) {
-  const r = await api.post(
-    '/api/employees',
-    payload
-  )
-
+  const r = await api.post('/api/employees', payload)
   return r.data
 }
 
-export async function changeEmployeeStatus(
-  employeeId,
-  status
-) {
+export async function changeEmployeeStatus(employeeId, status) {
   const r = await api.patch(
     `/api/employees/${employeeId}/status`,
     { status }
   )
-
   return r.data
 }
 
-
-// ===============================
+// ─────────────────────────────────────────────
 // KHU VỰC - NHÁNH HOANG
-// ===============================
+// ─────────────────────────────────────────────
 
 export async function getAreas() {
   const response = await api.get('/api/khu-vuc')
@@ -121,20 +95,12 @@ export async function getAreas() {
 }
 
 export async function createArea(payload) {
-  const response = await api.post(
-    '/api/khu-vuc',
-    payload
-  )
-
+  const response = await api.post('/api/khu-vuc', payload)
   return response.data
 }
 
 export async function updateArea(id, payload) {
-  const response = await api.put(
-    `/api/khu-vuc/${id}`,
-    payload
-  )
-
+  const response = await api.put(`/api/khu-vuc/${id}`, payload)
   return response.data
 }
 
@@ -142,7 +108,6 @@ export async function deactivateArea(id) {
   const response = await api.patch(
     `/api/khu-vuc/${id}/ngung-su-dung`
   )
-
   return response.data
 }
 
@@ -150,37 +115,6 @@ export async function activateArea(id) {
   const response = await api.patch(
     `/api/khu-vuc/${id}/kich-hoat`
   )
-
-  return response.data
-// ─────────────────────────────────────────────
-// System
-// ─────────────────────────────────────────────
-
-export async function getHealth() {
-  const response = await api.get('/api/health')
-  return response.data
-}
-
-// ─────────────────────────────────────────────
-// Authentication
-// ─────────────────────────────────────────────
-
-export async function login(identifier, password) {
-  const response = await api.post('/api/auth/login', {
-    identifier,
-    password,
-  })
-
-  return response.data
-}
-
-export async function getCurrentUser() {
-  const response = await api.get('/api/auth/me')
-  return response.data
-}
-
-export async function logout() {
-  const response = await api.post('/api/auth/logout')
   return response.data
 }
 
@@ -200,7 +134,6 @@ export async function getPublicCategories() {
 
 export async function createCategory(payload) {
   const response = await api.post('/api/menu/categories', payload)
-
   return response.data
 }
 
@@ -209,7 +142,6 @@ export async function updateCategory(categoryId, payload) {
     `/api/menu/categories/${categoryId}`,
     payload,
   )
-
   return response.data
 }
 
@@ -220,7 +152,6 @@ export async function updateCategoryStatus(categoryId, active) {
       dang_su_dung: active,
     },
   )
-
   return response.data
 }
 
@@ -231,14 +162,16 @@ export async function reorderCategories(items) {
       items,
     },
   )
-
   return response.data
 }
 
 export async function uploadCategoryImage(categoryId, file) {
   const formData = new FormData()
   formData.append('file', file)
-  const response = await api.post(`/api/menu/categories/${categoryId}/image`, formData)
+  const response = await api.post(
+    `/api/menu/categories/${categoryId}/image`,
+    formData,
+  )
   return response.data
 }
 
@@ -246,7 +179,6 @@ export async function deleteCategory(categoryId) {
   const response = await api.delete(
     `/api/menu/categories/${categoryId}`,
   )
-
   return response.data
 }
 
@@ -284,7 +216,10 @@ export async function updateDish(dishId, payload) {
 export async function uploadDishImage(dishId, file) {
   const formData = new FormData()
   formData.append('file', file)
-  const response = await api.post(`/api/menu/dishes/${dishId}/image`, formData)
+  const response = await api.post(
+    `/api/menu/dishes/${dishId}/image`,
+    formData,
+  )
   return response.data
 }
 
