@@ -8,10 +8,12 @@ from app.database.base import Base
 
 # Import all ORM models so that they are registered
 # in Base.metadata before Alembic runs.
-from app.models import (  # noqa: F401
+from app.models import (
     NhanVien,
     PhienDangNhap,
     NhatKyThaoTac,
+    NhomMon,
+    MonAn,
 )
 
 

@@ -1,13 +1,28 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+import shutil
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.routers.auth import router as auth_router
-
+from app.routers.nhom_mon import (
+    router as nhom_mon_router,
+)
+from app.routers.mon_an import router as mon_an_router
 
 app = FastAPI(
     title=settings.project_name,
 )
+
+Path("/app/uploads/categories").mkdir(parents=True, exist_ok=True)
+Path("/app/uploads/dishes").mkdir(parents=True, exist_ok=True)
+for default_name in ("default-category.svg", "default-dish.svg"):
+    target = Path("/app/uploads") / default_name
+    source = Path("/app/default-assets") / default_name
+    if not target.exists() and source.exists():
+        shutil.copyfile(source, target)
+app.mount("/media", StaticFiles(directory="/app/uploads"), name="media")
 
 
 app.add_middleware(
@@ -20,7 +35,8 @@ app.add_middleware(
 
 
 app.include_router(auth_router)
-
+app.include_router(nhom_mon_router)
+app.include_router(mon_an_router)
 
 @app.get("/")
 def read_root():
