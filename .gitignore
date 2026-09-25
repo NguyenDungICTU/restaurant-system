@@ -1,4 +1,4 @@
-.env
+﻿.env
 .env.*
 !.env.example
 
@@ -24,3 +24,6 @@ frontend/dist/
 *.njsproj
 *.sln
 *.sw?
+
+backend.zip
+frontend.zip
