@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   CalendarOutlined,
   ClockCircleOutlined,
@@ -17,6 +17,7 @@ import {
   Tag,
 } from 'antd'
 
+import { getOpeningSettings, saveOpeningSettings } from '../services/api'
 import './OpeningHoursSettings.css'
 
 const STORAGE_KEY = 'resto-opening-hours-settings'
@@ -79,6 +80,32 @@ function loadInitialData() {
   }
 }
 
+function serverToSettings(data) {
+  const byDay = new Map((data.ngay || []).map((item) => [item.thu, item]))
+  return {
+    week: DEFAULT_WEEK.map((day, index) => {
+      const row = byDay.get(index)
+      return row ? {
+        ...day,
+        closed: row.la_ngay_nghi,
+        open: row.gio_mo_cua?.slice(0, 5) || day.open,
+        close: row.gio_dong_cua?.slice(0, 5) || day.close,
+      } : day
+    }),
+    duration: data.thoi_luong_giu_ban ?? 90,
+    holidays: (data.ngay_nghi || []).map((item) => ({
+      id: item.ngay, date: item.ngay, name: item.ten_ngay_nghi,
+    })),
+  }
+}
+
+function apiError(error) {
+  const detail = error?.response?.data?.detail
+  if (typeof detail === 'string') return detail
+  if (typeof detail?.message === 'string') return detail.message
+  return error?.message || 'Không kết nối được máy chủ.'
+}
+
 export default function OpeningHoursSettings() {
   const initial = useMemo(loadInitialData, [])
   const [week, setWeek] = useState(initial.week)
@@ -88,6 +115,36 @@ export default function OpeningHoursSettings() {
   const [holidayName, setHolidayName] = useState('')
   const [errors, setErrors] = useState({})
   const [savedAt, setSavedAt] = useState('')
+  const [serverReady, setServerReady] = useState(false)
+  const [serverError, setServerError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [hasLocalDraft] = useState(() => Boolean(localStorage.getItem(STORAGE_KEY)))
+
+  useEffect(() => {
+    let mounted = true
+    getOpeningSettings()
+      .then((data) => {
+        if (!mounted) return
+        const next = serverToSettings(data)
+        setWeek(next.week)
+        setDuration(next.duration)
+        setHolidays(next.holidays)
+        setServerReady(true)
+      })
+      .catch((error) => {
+        if (mounted) setServerError(apiError(error))
+      })
+    return () => { mounted = false }
+  }, [])
+
+  function restoreBrowserSettings() {
+    const local = loadInitialData()
+    setWeek(local.week)
+    setDuration(local.duration)
+    setHolidays(local.holidays)
+    setSavedAt('')
+    message.info('Đã nạp bản lưu trên máy. Nhấn Lưu cấu hình để đồng bộ lên PostgreSQL.')
+  }
 
   const totalSlots = useMemo(
     () => week.reduce((sum, day) => {
@@ -133,35 +190,56 @@ export default function OpeningHoursSettings() {
     return Object.keys(nextErrors).length === 0
   }
 
-  function saveSettings() {
+  async function saveSettings() {
     if (!validateWeek()) {
       message.error('Không thể lưu vì lịch tuần còn dữ liệu chưa hợp lệ.')
       return
     }
 
-    if (!Number.isInteger(duration) || duration <= 0) {
-      message.error('Thời lượng giữ bàn phải lớn hơn 0 phút.')
+    if (!Number.isInteger(duration) || duration < 30 || duration > 720 || duration % 30 !== 0) {
+      message.error('Thời lượng giữ bàn phải từ 30 đến 720 phút, bội số của 30.')
       return
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      week,
-      duration,
-      holidays,
-      timezone: 'Asia/Ho_Chi_Minh',
-    }))
+    if (!serverReady || saving) {
+      message.error('Chưa kết nối được máy chủ. Chưa có thay đổi nào được lưu.')
+      return
+    }
 
-    const now = new Intl.DateTimeFormat('vi-VN', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-      hour: '2-digit',
-      minute: '2-digit',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(new Date())
-
-    setSavedAt(now)
-    message.success('Đã lưu cấu hình giờ hoạt động.')
+    setSaving(true)
+    try {
+      await saveOpeningSettings({
+        ngay: week.map((day, thu) => ({
+          thu,
+          la_ngay_nghi: day.closed,
+          gio_mo_cua: day.closed ? null : day.open,
+          gio_dong_cua: day.closed ? null : day.close,
+        })),
+        thoi_luong_giu_ban: duration,
+        ngay_nghi: holidays.map((holiday) => ({
+          ngay: holiday.date,
+          ten_ngay_nghi: holiday.name,
+        })),
+      })
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          week, duration, holidays, timezone: 'Asia/Ho_Chi_Minh',
+        }))
+      } catch {
+        // PostgreSQL already saved successfully; browser cache is optional.
+      }
+      const now = new Intl.DateTimeFormat('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        hour: '2-digit', minute: '2-digit', day: '2-digit',
+        month: '2-digit', year: 'numeric',
+      }).format(new Date())
+      setSavedAt(now)
+      message.success('Đã lưu cấu hình vào PostgreSQL.')
+    } catch (error) {
+      message.error(`Lưu thất bại: ${apiError(error)}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
   function addHoliday() {
@@ -209,12 +287,28 @@ export default function OpeningHoursSettings() {
             type="primary"
             icon={<SaveOutlined />}
             onClick={saveSettings}
+            loading={saving}
+            disabled={!serverReady}
           >
             Lưu cấu hình
           </Button>
         </div>
       </div>
 
+      {serverError && (
+        <Alert className="timezone-alert" showIcon type="error"
+          message="Không tải được cấu hình từ máy chủ"
+          description={serverError} />
+      )}
+      {!serverReady && !serverError && (
+        <Alert className="timezone-alert" showIcon type="info"
+          message="Đang tải cấu hình từ PostgreSQL..." />
+      )}
+      {serverReady && hasLocalDraft && (
+        <Alert className="timezone-alert" showIcon type="info"
+          message="Bạn có cấu hình cũ lưu trên trình duyệt"
+          description={<Button size="small" onClick={restoreBrowserSettings}>Nạp cấu hình cũ từ máy</Button>} />
+      )}
       <Alert
         className="timezone-alert"
         type="info"

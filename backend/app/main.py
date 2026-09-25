@@ -14,6 +14,9 @@ from app.routers.nhom_mon import (
     router as nhom_mon_router,
 )
 from app.routers.mon_an import router as mon_an_router
+from app.routers.dat_ban import router as dat_ban_router
+from app.routers.ban import router as ban_router
+from app.routers.lich_hoat_dong import router as lich_hoat_dong_router
 
 app = FastAPI(
     title=settings.project_name,
@@ -47,6 +50,9 @@ app.include_router(khu_vuc_router)
 
 app.include_router(nhom_mon_router)
 app.include_router(mon_an_router)
+app.include_router(dat_ban_router)
+app.include_router(ban_router)
+app.include_router(lich_hoat_dong_router)
 
 
 @app.get("/")

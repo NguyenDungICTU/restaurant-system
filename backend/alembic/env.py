@@ -14,6 +14,11 @@ from app.models import (
     NhatKyThaoTac,
     NhomMon,
     MonAn,
+    DatBan,
+    Ban,
+    LichHoatDong,
+    NgayNghiDacBiet,
+    CauHinhDatBan,
 )
 
 

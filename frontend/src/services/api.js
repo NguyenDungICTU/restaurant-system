@@ -253,3 +253,65 @@ export function createOrderSocket(onMessage, onStatus) {
 
   return socket
 }
+// ===============================
+// GIỜ MỞ CỬA & ĐẶT BÀN
+// ===============================
+
+export async function getOpeningSettings() {
+  const response = await api.get('/api/lich-hoat-dong/toan-bo')
+  return response.data
+}
+
+export async function saveOpeningSettings(payload) {
+  const response = await api.put('/api/lich-hoat-dong/toan-bo', payload)
+  return response.data
+}
+
+export async function getBookings() {
+  const response = await api.get('/api/dat-ban')
+  return response.data
+}
+
+export async function createBooking(payload) {
+  const response = await api.post('/api/dat-ban', payload)
+  return response.data
+}
+
+export async function cancelBooking(id) {
+  const response = await api.patch(`/api/dat-ban/${id}/huy`)
+  return response.data
+}
+
+// Quản lý bàn vật lý
+export async function getRestaurantTables() {
+  const response = await api.get('/api/ban')
+  return response.data
+}
+
+export async function createRestaurantTable(payload) {
+  const response = await api.post('/api/ban', payload)
+  return response.data
+}
+
+export async function updateRestaurantTableStatus(id, hoat_dong) {
+  const response = await api.patch(`/api/ban/${id}/trang-thai`, {
+    hoat_dong,
+  })
+  return response.data
+}
+
+// Kiểm tra bàn trống và xác nhận đặt bàn
+export async function getAvailableTables(bookingId) {
+  const response = await api.get(
+    `/api/dat-ban/${bookingId}/ban-trong`
+  )
+  return response.data
+}
+
+export async function confirmBooking(bookingId, tableId) {
+  const response = await api.post(
+    `/api/dat-ban/${bookingId}/xac-nhan`,
+    { ban_id: tableId }
+  )
+  return response.data
+}
