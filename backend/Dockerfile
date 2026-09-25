@@ -13,7 +13,8 @@ COPY app ./app
 COPY uploads ./default-assets
 COPY alembic.ini .
 COPY alembic ./alembic
+COPY entrypoint.py .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "entrypoint.py"]
