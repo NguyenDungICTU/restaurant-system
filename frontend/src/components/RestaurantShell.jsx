@@ -33,6 +33,7 @@ import {
 import Employees from '../pages/Employees'
 import Forbidden from '../pages/Forbidden'
 import KhuVuc from '../pages/KhuVuc'
+import OpeningHoursSettings from '../pages/OpeningHoursSettings'
 import RoleWorkspace from '../pages/RoleWorkspace'
 
 
@@ -486,6 +487,9 @@ function PageContent({
 
   if (page === 'areas') {
     return <KhuVuc />
+  }
+  if (page === 'settings') {
+  return <OpeningHoursSettings />
   }
 
   if (
