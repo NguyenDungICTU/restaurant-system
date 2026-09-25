@@ -14,6 +14,7 @@ from app.routers.nhom_mon import (
     router as nhom_mon_router,
 )
 from app.routers.mon_an import router as mon_an_router
+from app.routers.audit import router as audit_router
 
 app = FastAPI(
     title=settings.project_name,
@@ -47,6 +48,7 @@ app.include_router(khu_vuc_router)
 
 app.include_router(nhom_mon_router)
 app.include_router(mon_an_router)
+app.include_router(audit_router)
 
 
 @app.get("/")

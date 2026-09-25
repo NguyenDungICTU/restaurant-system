@@ -37,6 +37,7 @@ def create_dish(db: Session, payload: MonAnCreate) -> MonAn:
     dish = MonAn(
         ten_mon=name,
         nhom_mon_id=payload.nhom_mon_id,
+        gia=payload.gia,
         trang_thai=payload.trang_thai,
         anh_url=payload.anh_url or "/media/default-dish.svg",
     )
@@ -56,6 +57,8 @@ def update_dish(db: Session, dish_id: int, payload: MonAnUpdate) -> MonAn:
     if payload.nhom_mon_id is not None:
         get_category(db, payload.nhom_mon_id)
         dish.nhom_mon_id = payload.nhom_mon_id
+    if payload.gia is not None:
+        dish.gia = payload.gia
     if payload.trang_thai is not None:
         dish.trang_thai = payload.trang_thai
     if payload.anh_url is not None:

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Request, Response
-from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -7,28 +6,15 @@ from app.core.security import hash_session_token
 from app.database.session import get_db
 from app.dependencies.auth import get_current_user
 from app.models.nhan_vien import NhanVien
+from app.models.nhat_ky_thao_tac import NhatKyThaoTac
 from app.models.phien_dang_nhap import PhienDangNhap
-from app.schemas.auth import (
-    LoginRequest,
-    LoginResponse,
-    UserResponse,
-)
-from app.services.auth_service import (
-    authenticate_employee,
-    create_login_session,
-)
+from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
+from app.services.auth_service import authenticate_employee, create_login_session
+
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
-router = APIRouter(
-    prefix="/api/auth",
-    tags=["Authentication"],
-)
-
-
-def user_to_response(
-    user: NhanVien,
-) -> UserResponse:
-
+def user_to_response(user: NhanVien) -> UserResponse:
     return UserResponse(
         id=user.id,
         username=user.ten_dang_nhap,
@@ -37,29 +23,30 @@ def user_to_response(
     )
 
 
-@router.post(
-    "/login",
-    response_model=LoginResponse,
-)
+@router.post("/login", response_model=LoginResponse)
 def login(
     payload: LoginRequest,
     request: Request,
     response: Response,
     db: Session = Depends(get_db),
 ):
-
     employee = authenticate_employee(
         db=db,
         identifier=payload.identifier.strip(),
         password=payload.password,
     )
-
-    session_token = create_login_session(
-        db=db,
-        employee=employee,
-        request=request,
+    session_token = create_login_session(db=db, employee=employee, request=request)
+    db.add(
+        NhatKyThaoTac(
+            nhan_vien_id=employee.id,
+            hanh_dong="DANG_NHAP",
+            doi_tuong="PHIEN_DANG_NHAP",
+            du_lieu_moi={"ket_qua": "THANH_CONG"},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
     )
-
+    db.commit()
     response.set_cookie(
         key=settings.session_cookie_name,
         value=session_token,
@@ -69,60 +56,47 @@ def login(
         max_age=settings.session_idle_minutes * 60,
         path="/",
     )
-
-    return LoginResponse(
-        message="Đăng nhập thành công.",
-        user=user_to_response(employee),
-    )
+    return LoginResponse(message="Đăng nhập thành công.", user=user_to_response(employee))
 
 
 @router.post("/logout")
 def logout(
     response: Response,
     request: Request,
-    current_user: NhanVien = Depends(
-        get_current_user
-    ),
+    current_user: NhanVien = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-
-    token = request.cookies.get(
-        settings.session_cookie_name
-    )
-
+    token = request.cookies.get(settings.session_cookie_name)
     if token:
         token_hash = hash_session_token(token)
-
-        session = db.query(
-            PhienDangNhap
-        ).filter(
-            PhienDangNhap.token_hash == token_hash,
-            PhienDangNhap.nhan_vien_id == current_user.id,
-        ).first()
-
+        session = (
+            db.query(PhienDangNhap)
+            .filter(
+                PhienDangNhap.token_hash == token_hash,
+                PhienDangNhap.nhan_vien_id == current_user.id,
+            )
+            .first()
+        )
         if session:
             from app.services.auth_service import utc_now
 
             session.revoked_at = utc_now()
+            db.add(
+                NhatKyThaoTac(
+                    nhan_vien_id=current_user.id,
+                    hanh_dong="DANG_XUAT",
+                    doi_tuong="PHIEN_DANG_NHAP",
+                    doi_tuong_id=session.id,
+                    du_lieu_moi={"ket_qua": "THANH_CONG"},
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                )
+            )
             db.commit()
-
-    response.delete_cookie(
-        key=settings.session_cookie_name,
-        path="/",
-    )
-
-    return {
-        "message": "Đăng xuất thành công."
-    }
+    response.delete_cookie(key=settings.session_cookie_name, path="/")
+    return {"message": "Đăng xuất thành công."}
 
 
-@router.get(
-    "/me",
-    response_model=UserResponse,
-)
-def me(
-    current_user: NhanVien = Depends(
-        get_current_user
-    ),
-):
+@router.get("/me", response_model=UserResponse)
+def me(current_user: NhanVien = Depends(get_current_user)):
     return user_to_response(current_user)

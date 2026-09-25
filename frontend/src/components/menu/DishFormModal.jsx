@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Input, Modal, Select, Typography } from 'antd'
+import { Input, InputNumber, Modal, Select, Typography } from 'antd'
 import ImageField from './ImageField'
 
 const STATUS_OPTIONS = [
@@ -11,16 +11,18 @@ export default function DishFormModal({ open, mode = 'create', dish = null, cate
   const [name, setName] = useState('')
   const [categoryId, setCategoryId] = useState()
   const [status, setStatus] = useState('DANG_BAN')
+  const [price, setPrice] = useState(0)
   const [image, setImage] = useState(null)
   const [clearImage, setClearImage] = useState(false)
 
   useEffect(() => {
     if (!open) {
-      setName(''); setCategoryId(undefined); setStatus('DANG_BAN'); setImage(null); return
+      setName(''); setCategoryId(undefined); setStatus('DANG_BAN'); setPrice(0); setImage(null); return
     }
     setName(dish?.ten_mon || '')
     setCategoryId(dish?.nhom_mon_id)
     setStatus(dish?.trang_thai || 'DANG_BAN')
+    setPrice(Number(dish?.gia || 0))
     setImage(dish?.anh_url || null)
     setClearImage(false)
   }, [open, dish])
@@ -28,7 +30,8 @@ export default function DishFormModal({ open, mode = 'create', dish = null, cate
   const handleSubmit = () => {
     const normalizedName = name.trim().replace(/\s+/g, ' ')
     if (!normalizedName || !categoryId) return
-    onSubmit({ ten_mon: normalizedName, nhom_mon_id: categoryId, trang_thai: status, imageFile: image instanceof File ? image : null, clearImage })
+    if (price < 0) return
+    onSubmit({ ten_mon: normalizedName, nhom_mon_id: categoryId, gia: price, trang_thai: status, imageFile: image instanceof File ? image : null, clearImage })
   }
 
   return (
@@ -40,6 +43,8 @@ export default function DishFormModal({ open, mode = 'create', dish = null, cate
         <Select value={categoryId} placeholder="Chọn nhóm món" options={categories.map((category) => ({ value: category.id, label: category.ten_nhom }))} onChange={setCategoryId} style={{ width: '100%' }} />
         <Typography.Text strong>Trạng thái</Typography.Text>
         <Select value={status} options={STATUS_OPTIONS} onChange={setStatus} style={{ width: '100%' }} />
+        <Typography.Text strong>Giá niêm yết (VNĐ)</Typography.Text>
+        <InputNumber min={0} precision={2} value={price} onChange={(value) => setPrice(value ?? 0)} style={{ width: '100%' }} />
         <ImageField value={image} onChange={(next) => { setImage(next); setClearImage(next === null) }} />
       </div>
     </Modal>

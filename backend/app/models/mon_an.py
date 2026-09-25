@@ -1,9 +1,11 @@
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     func,
 )
@@ -40,6 +42,13 @@ class MonAn(Base):
         ),
         nullable=False,
         index=True,
+    )
+
+    gia: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2),
+        nullable=False,
+        default=0,
+        server_default="0",
     )
 
     trang_thai: Mapped[str] = mapped_column(

@@ -22,6 +22,7 @@ def dish_to_dict(dish: MonAn) -> dict:
         "nhom_mon_ten": dish.nhom_mon.ten_nhom,
         "trang_thai": dish.trang_thai,
         "anh_url": dish.anh_url,
+        "gia": dish.gia,
     }
 
 
@@ -71,7 +72,22 @@ def update_dish_endpoint(
     db: Session = Depends(get_db),
     current_user: NhanVien = Depends(require_manager),
 ):
+    existing = get_dish(db, dish_id)
+    old_price = existing.gia
     dish = update_dish(db, dish_id, payload)
+    if payload.gia is not None and payload.gia != old_price:
+        db.add(
+            NhatKyThaoTac(
+                nhan_vien_id=current_user.id,
+                hanh_dong="CAP_NHAT_GIA_MON",
+                doi_tuong="MON_AN",
+                doi_tuong_id=dish.id,
+                du_lieu_cu={"gia": str(old_price)},
+                du_lieu_moi={"gia": str(payload.gia)},
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+            )
+        )
     db.commit()
     db.refresh(dish)
     return dish_to_dict(dish)

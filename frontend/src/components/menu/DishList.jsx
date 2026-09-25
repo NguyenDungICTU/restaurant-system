@@ -13,6 +13,7 @@ export default function DishList({ dishes, loading, categories, onEdit, onDelete
       <div className="category-image-thumb"><Image src={getMediaUrl(dish.anh_url)} alt={dish.ten_mon} preview /></div>
       <div className="category-order">{String(dish.id).padStart(2, '0')}</div>
       <div className="category-main"><strong>{dish.ten_mon}</strong><span>{dish.nhom_mon_ten || categoryName(dish.nhom_mon_id)}</span></div>
+      <div className="category-status"><strong>{Number(dish.gia || 0).toLocaleString('vi-VN')} đ</strong></div>
       <div className="category-status"><Tag color={dish.trang_thai === 'DANG_BAN' ? 'green' : 'default'}>{STATUS_LABELS[dish.trang_thai] || dish.trang_thai}</Tag></div>
       <Dropdown menu={{ items: [{ key: 'edit', label: 'Chỉnh sửa', icon: <EditOutlined /> }, { type: 'divider' }, { key: 'delete', label: 'Xóa món ăn', icon: <DeleteOutlined />, danger: true }], onClick: ({ key }) => { if (key === 'edit') onEdit(dish); if (key === 'delete') onDelete(dish) } }} trigger={['click']}>
         <Button type="text" icon={<MoreOutlined />} />
