@@ -1,0 +1,367 @@
+.opening-hours-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.opening-hours-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.opening-hours-eyebrow {
+  margin: 0 0 6px;
+  color: #1677ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.opening-hours-header h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+.opening-hours-description {
+  margin: 8px 0 0;
+  color: #667085;
+  font-size: 14px;
+}
+
+.opening-hours-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.saved-at {
+  color: #667085;
+  font-size: 12px;
+}
+
+.timezone-alert {
+  border-radius: 10px;
+}
+
+.opening-hours-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.opening-hours-summary .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary-label {
+  color: #667085;
+  font-size: 12px;
+}
+
+.opening-hours-summary strong {
+  color: #172033;
+  font-size: 22px;
+}
+
+.settings-card {
+  border-radius: 14px;
+}
+
+.card-title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weekly-schedule {
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: 150px 105px 120px 22px 120px minmax(240px, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 86px;
+  padding: 14px 0;
+  border-bottom: 1px solid #eef1f5;
+  position: relative;
+}
+
+.schedule-row:last-child {
+  border-bottom: 0;
+}
+
+.schedule-row.is-closed {
+  opacity: 0.72;
+}
+
+.schedule-day {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.schedule-day strong {
+  color: #172033;
+}
+
+.schedule-day span {
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.schedule-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #475467;
+  font-size: 13px;
+}
+
+.time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.time-field label,
+.holiday-field label {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.time-field input,
+.holiday-field input[type='date'] {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
+  color: #172033;
+  outline: none;
+}
+
+.time-field input:focus,
+.holiday-field input[type='date']:focus {
+  border-color: #4096ff;
+  box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1);
+}
+
+.time-field input:disabled {
+  background: #f5f5f5;
+  color: #98a2b3;
+}
+
+.time-divider {
+  margin-top: 16px;
+  color: #98a2b3;
+  text-align: center;
+}
+
+.slot-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.schedule-error {
+  grid-column: 3 / -1;
+  margin-top: -8px;
+  color: #d92d20;
+  font-size: 12px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 20px;
+}
+
+.booking-rule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.booking-rule strong {
+  color: #172033;
+}
+
+.booking-rule p {
+  margin: 5px 0 0;
+  color: #667085;
+  font-size: 13px;
+}
+
+.duration-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.duration-control .ant-input-number {
+  width: 105px;
+}
+
+.duration-control span {
+  color: #475467;
+  font-size: 13px;
+}
+
+.rule-note {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f7f9fc;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.holiday-form {
+  display: grid;
+  grid-template-columns: 150px minmax(180px, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.holiday-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.holiday-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.holiday-empty {
+  padding: 20px;
+  border: 1px dashed #d0d5dd;
+  border-radius: 10px;
+  color: #98a2b3;
+  text-align: center;
+  font-size: 13px;
+}
+
+.holiday-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #eaecf0;
+  border-radius: 10px;
+}
+
+.holiday-item > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.holiday-item strong {
+  color: #172033;
+  font-size: 13px;
+}
+
+.holiday-item span {
+  color: #667085;
+  font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .schedule-row {
+    grid-template-columns: 130px 100px 110px 18px 110px;
+  }
+
+  .slot-preview {
+    grid-column: 1 / -1;
+  }
+
+  .schedule-error {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .opening-hours-header,
+  .booking-rule {
+    flex-direction: column;
+  }
+
+  .opening-hours-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .opening-hours-summary,
+  .settings-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .schedule-day,
+  .slot-preview,
+  .schedule-error {
+    grid-column: 1 / -1;
+  }
+
+  .time-divider {
+    display: none;
+  }
+
+  .holiday-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .holiday-form > button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .opening-hours-summary,
+  .schedule-row,
+  .holiday-form {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-day,
+  .slot-preview,
+  .schedule-error,
+  .holiday-form > button {
+    grid-column: auto;
+  }
+
+  .opening-hours-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+

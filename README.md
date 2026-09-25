@@ -1,76 +1,245 @@
-# Restaurant Management System
+# Restaurant Management System — Docker Demo (bản đã sửa)
 
-Hệ thống quản lý nhà hàng gồm **Frontend (React/Vite)**, **Backend (FastAPI)** và **PostgreSQL**, được đóng gói bằng **Docker Compose** để các thành viên trong nhóm có thể clone repository và chạy trên máy mới mà không phải tự cài Python, Node.js hoặc PostgreSQL.
+Bản này tập trung xử lý 3 vấn đề:
 
-## 1. Công nghệ
+1. **Màn hình Login bị mất/bể CSS** khi chạy frontend bằng Docker.
+2. **Có nhóm món nhưng chưa có chức năng quản lý món ăn thuộc nhóm**.
+3. **Clone từ GitHub phải có thể dựng demo bằng Docker Compose**, không phụ thuộc máy của người tạo project.
 
-- **Frontend:** React + Vite + Axios + React Router + Ant Design
-- **Backend:** Python 3.12 + FastAPI + SQLAlchemy + Alembic
-- **Database:** PostgreSQL 16
-- **Web server frontend:** Nginx
-- **Container:** Docker Compose
-- **Authentication:** Session cookie HttpOnly + bcrypt password hash
+## 1. Những gì đã sửa
 
-## 2. Yêu cầu trước khi chạy
+### 1.1 Login CSS
 
-Chỉ cần cài:
+`frontend/src/pages/Login.jsx` sử dụng các class như `login-page`, `login-form-side`, `field`, `login-submit` nhưng source trước đó chưa có bộ CSS tương ứng trong `frontend/src/App.css`.
 
-1. **Git**
-2. **Docker Desktop** trên Windows/macOS hoặc **Docker Engine + Compose plugin** trên Linux
+Bản này đã bổ sung đầy đủ:
 
-Không cần cài riêng:
+- layout 2 cột trên màn hình lớn;
+- layout 1 cột trên màn hình nhỏ;
+- form input;
+- trạng thái focus;
+- nút đăng nhập;
+- thông báo lỗi;
+- security note;
+- nút quay lại trang chủ.
+
+Docker build sẽ lấy chính source CSS này để tạo `frontend/dist`.
+
+### 1.2 Món ăn thuộc nhóm món
+
+Backend đã có bảng `mon_an` với khóa ngoại:
+
+```text
+mon_an.nhom_mon_id -> nhom_mon.id
+```
+
+Bản này bổ sung API CRUD món ăn:
+
+```text
+GET    /api/menu/dishes
+GET    /api/menu/dishes/public
+POST   /api/menu/dishes
+PATCH  /api/menu/dishes/{dish_id}
+DELETE /api/menu/dishes/{dish_id}
+```
+
+Frontend trang **Thực đơn** có 2 chế độ:
+
+```text
+Nhóm món
+Món ăn
+```
+
+Khi thêm món ăn, bắt buộc chọn một nhóm món.
+
+### 1.3 Demo data
+
+Khi backend khởi động trong Docker:
+
+- Alembic tự chạy migration.
+- Tài khoản demo tự tạo nếu chưa tồn tại.
+- Menu demo tự tạo nếu chưa tồn tại.
+
+Tài khoản demo:
+
+```text
+Username: manager
+Password: demo12345
+```
+
+Hoặc đăng nhập bằng:
+
+```text
+Phone: 0963217400
+Password: demo12345
+```
+
+Menu demo gồm 3 nhóm và 6 món mẫu.
+
+Seed có tính idempotent: restart container không tạo bản sao mới.
+
+---
+
+# 2. Kiến trúc Docker
+
+```text
+Browser
+   |
+   | http://localhost:5173
+   v
+frontend (Nginx)
+   |
+   | browser gọi API http://localhost:8000
+   v
+backend (FastAPI)
+   |
+   | Docker network
+   v
+db (PostgreSQL 16)
+```
+
+Port:
+
+| Thành phần | Port máy host |
+|---|---:|
+| Frontend | `5173` |
+| Backend | `8000` |
+| PostgreSQL | `5433` |
+
+Quan trọng: frontend chạy trong Nginx nhưng API được gọi **từ browser**, vì vậy `VITE_API_BASE_URL` mặc định là:
+
+```text
+http://localhost:8000
+```
+
+Không đổi thành `http://backend:8000` trong frontend.
+
+---
+
+# 3. Cách chạy sau khi clone GitHub
+
+## Yêu cầu
+
+Chỉ cần:
+
+- Git
+- Docker Desktop
+- Docker Compose
+
+Không cần cài:
 
 - Python
-- Node.js/npm
+- Node.js
+- npm
 - PostgreSQL
 
-Kiểm tra Docker:
+## Clone
 
-```bash
-docker --version
-docker compose version
+```powershell
+git clone <URL_GITHUB_CUA_BAN>
+cd <TEN_PROJECT>
 ```
 
-Nếu hai lệnh trên chạy được thì có thể tiếp tục.
+## Build và chạy
 
-## 3. Clone project
+Lần đầu nên dùng:
 
-```bash
-git clone https://github.com/NguyenDungICTU/restaurant-system
-cd restaurant-system
-```
-
-Nếu project đã được clone trước đó:
-
-```bash
-git pull
-```
-
-## 4. Chạy project lần đầu
-
-Từ **thư mục gốc**, nơi có file `docker-compose.yml`, chạy:
-
-```bash
+```powershell
 docker compose up -d --build
 ```
 
-Lần đầu có thể mất vài phút vì Docker phải tải image và build Frontend/Backend.
+Kiểm tra:
 
-Kiểm tra trạng thái:
-
-```bash
+```powershell
 docker compose ps
 ```
 
-Mong muốn thấy 3 service:
+Mục tiêu:
 
-- `restaurant-db` — healthy
-- `restaurant-backend` — healthy
-- `restaurant-frontend` — running
+```text
+restaurant-db         Up (healthy)
+restaurant-backend    Up (healthy)
+restaurant-frontend   Up
+```
 
-Kiểm tra Backend:
+Nếu frontend hoặc backend chưa ready ngay lập tức, chờ khoảng 10–30 giây rồi kiểm tra lại:
 
-```bash
+```powershell
+docker compose ps
+```
+
+## Mở demo
+
+Frontend:
+
+```text
+http://localhost:5173
+```
+
+Backend health:
+
+```text
+http://localhost:8000/api/health
+```
+
+Backend API docs:
+
+```text
+http://localhost:8000/docs
+```
+
+Đăng nhập:
+
+```text
+Username: manager
+Password: demo12345
+```
+
+---
+
+# 4. Nếu Docker đã từng chạy project cũ
+
+Để build lại toàn bộ image:
+
+```powershell
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+Hoặc nhanh hơn:
+
+```powershell
+docker compose up -d --build
+```
+
+### Nếu muốn giữ database hiện tại
+
+Không dùng `docker compose down -v`.
+
+Chỉ:
+
+```powershell
+docker compose down
+docker compose up -d --build
+```
+
+### Nếu muốn reset database demo hoàn toàn
+
+Chỉ làm khi chấp nhận mất dữ liệu PostgreSQL của project:
+
+```powershell
+docker compose down -v
+docker compose up -d --build
+```
+
+Sau đó database được tạo lại và seed demo lại.
+
+---
+
+# 5. Kiểm tra backend
+
+```powershell
 curl http://localhost:8000/api/health
 ```
 
@@ -80,423 +249,375 @@ Kết quả mong muốn:
 {"status":"ok"}
 ```
 
-Trên Windows PowerShell có thể mở trực tiếp trình duyệt:
+Xem log:
 
 ```powershell
-start http://localhost:5173
+docker compose logs backend --tail=200
 ```
 
-Hoặc truy cập thủ công:
-
-**Frontend:** http://localhost:5173
-
-**Backend:** http://localhost:8000
-
-## 5. Tài khoản demo
-
-Project đã được cấu hình để **tự động chạy migration và tạo tài khoản demo khi Backend khởi động**.
-
-Thông tin đăng nhập mặc định:
-
-| Trường | Giá trị |
-|---|---|
-| Tên đăng nhập | `manager` |
-| Số điện thoại | `0963217400` |
-| Mật khẩu | `demo12345` |
-| Vai trò | `QUAN_LY` |
-
-Có thể đăng nhập bằng **`manager` hoặc `0963217400`**.
-
-### Tại sao không cần tự tạo tài khoản?
-
-Khi Backend container khởi động, quy trình là:
+Phải thấy các bước tương tự:
 
 ```text
-PostgreSQL healthy
-        ↓
-alembic upgrade head
-        ↓
-Tạo/cập nhật cấu trúc database
-        ↓
-Seed demo account nếu chưa tồn tại
-        ↓
-FastAPI khởi động
+Running database migrations ...
+Database migrations completed.
+Seeding development demo account...
+Seeding demo menu...
 ```
 
-Script seed có tính **idempotent**: nếu tài khoản demo đã tồn tại thì không tạo bản ghi thứ hai và không ghi đè mật khẩu hiện tại.
+Nếu muốn kiểm tra nhanh:
 
-## 6. Vì sao trước đây máy người khác không đăng nhập được?
+```powershell
+docker compose logs backend | Select-String "migration|Demo account|Demo menu|error"
+```
 
-Docker volume của PostgreSQL không được lưu trong GitHub.
+---
 
-Máy của bạn có thể đã có database:
+# 6. Kiểm tra frontend
+
+Xem log:
+
+```powershell
+docker compose logs frontend --tail=100
+```
+
+Nếu trang Login vẫn hiển thị CSS cũ sau khi build lại, hãy:
+
+1. Đóng tab `http://localhost:5173`.
+2. Mở lại.
+3. Nhấn `Ctrl + Shift + R`.
+
+Nếu vẫn bị cache:
+
+- Chrome DevTools → Network → tick `Disable cache`
+- reload trang.
+
+Không nên chỉ reload bình thường sau khi thay đổi file CSS trong Docker vì browser có thể đang giữ asset cũ.
+
+---
+
+# 7. Kiểm tra chức năng nhóm món và món ăn
+
+Sau khi đăng nhập:
 
 ```text
-postgres_data
-    └── nhan_vien
-          └── 0963217400 / manager
+Thực đơn
+  |
+  +-- Nhóm món
+  |     +-- Tạo nhóm
+  |     +-- Sửa
+  |     +-- Bật/tắt
+  |     +-- Sắp xếp
+  |     +-- Xóa
+  |
+  +-- Món ăn
+        +-- Tạo món
+        +-- Chọn nhóm món
+        +-- Chọn trạng thái
+        +-- Sửa
+        +-- Xóa
 ```
 
-Trong khi máy thành viên mới clone repository sẽ có volume PostgreSQL mới và ban đầu không có dữ liệu nhân viên.
-
-Code đăng nhập khi không tìm thấy tài khoản cũng trả về:
+Ví dụ:
 
 ```text
-Tên đăng nhập/số điện thoại hoặc mật khẩu không đúng.
+Khai vị
+  ├── Gỏi cuốn
+  └── Chả giò
+
+Món chính
+  ├── Cơm chiên
+  └── Bò lúc lắc
+
+Đồ uống
+  ├── Trà đào
+  └── Nước suối
 ```
 
-Do đó thông báo này **không nhất thiết có nghĩa là mật khẩu sai**; tài khoản có thể chưa tồn tại trong database.
+Mỗi món có `nhom_mon_id`, nên món luôn thuộc một nhóm.
 
-Project hiện đã khắc phục bằng migration + automatic seed khi Backend container khởi động.
+---
 
-## 7. Cấu trúc Docker
+# 8. Tạo backup trước khi ghi đè source cũ
+
+## Windows PowerShell
+
+Đứng tại thư mục project hiện tại:
+
+```powershell
+cd C:\Users\FPT\Documents\GitHub\<TEN_PROJECT>
+```
+
+Tạo thư mục backup:
+
+```powershell
+$stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+New-Item -ItemType Directory -Path ".\backup\$stamp" -Force
+```
+
+Backup các phần quan trọng:
+
+```powershell
+Copy-Item ".\backend" ".\backup\$stamp\backend" -Recurse
+Copy-Item ".\frontend" ".\backup\$stamp\frontend" -Recurse
+Copy-Item ".\docker-compose.yml" ".\backup\$stamp\docker-compose.yml"
+Copy-Item ".\README.md" ".\backup\$stamp\README.md" -ErrorAction SilentlyContinue
+```
+
+Kiểm tra:
+
+```powershell
+Get-ChildItem ".\backup\$stamp"
+```
+
+**Không backup database bằng cách copy thư mục `postgres_data` trong source.**
+
+Nếu database đang chứa dữ liệu quan trọng, backup database riêng bằng `pg_dump`.
+
+---
+
+# 9. Ghi đè source cũ bằng bản đã sửa
+
+Giả sử bạn đã giải nén file bản sửa vào:
 
 ```text
-Browser
-   │
-   ├── http://localhost:5173
-   ▼
-Frontend container
-React/Vite build → Nginx
-   │
-   │ API: http://localhost:8000
-   ▼
-Backend container
-FastAPI
-   │
-   │ PostgreSQL: db:5432
-   ▼
-PostgreSQL container
-restaurant-db
-   │
-   ▼
-Docker volume: postgres_data
+C:\Users\FPT\Downloads\restaurant-management-fixed
 ```
 
-Lưu ý:
+Đứng tại root project cũ.
 
-- **Frontend → Backend** dùng `localhost:8000` vì request được gửi từ trình duyệt của người dùng.
-- **Backend → PostgreSQL** dùng `db:5432` vì Backend và PostgreSQL nằm trong cùng Docker Compose network.
-- Không đổi Backend database host thành `localhost` khi chạy trong Docker.
+### Bước 1 — dừng container
 
-## 8. CORS
-
-Backend mặc định cho phép cả:
-
-```text
-http://localhost:5173
-http://127.0.0.1:5173
-```
-
-Vì vậy nếu mở frontend bằng một trong hai địa chỉ trên thì không cần sửa code.
-
-Nếu nhóm thay đổi port/domain frontend, có thể cấu hình:
-
-```env
-FRONTEND_URLS=http://localhost:5173,http://127.0.0.1:5173
-```
-
-Sau đó rebuild Backend:
-
-```bash
-docker compose up -d --build
-```
-
-## 9. Các lệnh Docker thường dùng
-
-### Xem trạng thái
-
-```bash
-docker compose ps
-```
-
-### Xem log toàn bộ hệ thống
-
-```bash
-docker compose logs -f
-```
-
-### Xem log Backend
-
-```bash
-docker compose logs -f backend
-```
-
-### Xem log Database
-
-```bash
-docker compose logs -f db
-```
-
-### Xem log Frontend
-
-```bash
-docker compose logs -f frontend
-```
-
-### Dừng project nhưng giữ database
-
-```bash
+```powershell
 docker compose down
 ```
 
-### Chạy lại
+### Bước 2 — ghi đè backend
 
-```bash
+```powershell
+Remove-Item ".\backend" -Recurse -Force
+Copy-Item "C:\Users\FPT\Downloads\restaurant-management-fixed\backend" ".\backend" -Recurse
+```
+
+### Bước 3 — ghi đè frontend
+
+```powershell
+Remove-Item ".\frontend" -Recurse -Force
+Copy-Item "C:\Users\FPT\Downloads\restaurant-management-fixed\frontend" ".\frontend" -Recurse
+```
+
+### Bước 4 — ghi đè docker-compose
+
+```powershell
+Copy-Item "C:\Users\FPT\Downloads\restaurant-management-fixed\docker-compose.yml" ".\docker-compose.yml" -Force
+```
+
+### Bước 5 — copy README
+
+```powershell
+Copy-Item "C:\Users\FPT\Downloads\restaurant-management-fixed\README.md" ".\README.md" -Force
+```
+
+Sau đó kiểm tra Git:
+
+```powershell
+git status
+```
+
+---
+
+# 10. Build Docker sạch sau khi ghi đè
+
+Chạy:
+
+```powershell
+docker compose down
+docker compose build --no-cache
 docker compose up -d
 ```
 
-### Rebuild sau khi sửa code/Dockerfile
+Kiểm tra:
 
-```bash
-docker compose up -d --build
-```
-
-## 10. Nếu đăng nhập vẫn báo sai mật khẩu
-
-Đầu tiên kiểm tra Backend:
-
-```bash
-docker compose logs backend
-```
-
-Tìm các dòng gần:
-
-```text
-Database migrations completed.
-Demo account created: ...
-```
-
-Hoặc:
-
-```text
-Demo account already exists; keeping the existing password.
-```
-
-Kiểm tra trực tiếp database:
-
-```bash
-docker compose exec db psql -U postgres -d restaurant_db
-```
-
-Sau đó chạy:
-
-```sql
-SELECT id, ten_dang_nhap, so_dien_thoai, ho_ten, vai_tro, trang_thai
-FROM nhan_vien;
-```
-
-Phải có tài khoản `manager` hoặc số điện thoại `0963217400`.
-
-Thoát PostgreSQL:
-
-```text
-\q
-```
-
-### Trường hợp database đã có tài khoản cũ
-
-Seed mặc định **không ghi đè mật khẩu của tài khoản đã tồn tại**.
-
-Nếu bạn đang dùng database cũ và quên mật khẩu, có thể reset bằng:
-
-```bash
-docker compose exec backend python reset_manager_password.py
-```
-
-Nhập mật khẩu mới ít nhất 8 ký tự và xác nhận lại.
-
-## 11. Nếu muốn làm lại database từ đầu
-
-⚠️ Lệnh dưới đây **xóa toàn bộ dữ liệu PostgreSQL trong Docker volume**.
-
-Chỉ dùng trong môi trường phát triển/test khi không cần giữ dữ liệu.
-
-```bash
-docker compose down -v
+```powershell
+docker compose ps
 ```
 
 Sau đó:
 
-```bash
-docker compose up -d --build
+```powershell
+docker compose logs backend --tail=200
 ```
 
-Docker sẽ tạo database mới, chạy migration và tạo lại tài khoản demo.
+và:
 
-## 12. Nếu clone project nhưng Docker báo container cũ/conflict
+```powershell
+docker compose logs frontend --tail=100
+```
+
+Mở:
+
+```text
+http://localhost:5173
+```
+
+---
+
+# 11. Nếu muốn kiểm tra toàn bộ từ đầu như một người bạn clone GitHub
+
+Đây là quy trình nên dùng để test trước khi push:
+
+```powershell
+git clone <URL_GITHUB_CUA_BAN> restaurant-demo-test
+cd restaurant-demo-test
+docker compose up -d --build
+docker compose ps
+```
+
+Chờ backend healthy.
+
+Sau đó mở:
+
+```text
+http://localhost:5173
+```
+
+Đăng nhập:
+
+```text
+manager
+demo12345
+```
 
 Kiểm tra:
 
-```bash
-docker compose ps -a
+```text
+Dashboard
+→ Thực đơn
+→ Nhóm món
+→ Món ăn
+→ Thêm món ăn
+→ Chọn nhóm món
 ```
 
-Nếu đây là project dev và không cần giữ container cũ, có thể chạy:
+Nếu quy trình này chạy trên một thư mục clone mới thì project không phụ thuộc vào database cũ trên máy của bạn.
 
-```bash
-docker compose down
-```
+---
 
-rồi:
+# 12. GitHub: những gì KHÔNG nên push
 
-```bash
-docker compose up -d --build
-```
-
-Không dùng `down -v` nếu muốn giữ database.
-
-## 13. Nếu port đã bị sử dụng
-
-Project sử dụng:
-
-| Thành phần | Host port | Container port |
-|---|---:|---:|
-| PostgreSQL | `5433` | `5432` |
-| Backend | `8000` | `8000` |
-| Frontend | `5173` | `80` |
-
-Nếu một ứng dụng khác đang dùng `5173`, `8000` hoặc `5433`, Docker có thể không start được.
-
-Có thể kiểm tra container:
-
-```bash
-docker compose ps
-```
-
-Trên Windows PowerShell có thể kiểm tra port:
-
-```powershell
-netstat -ano | findstr :5173
-netstat -ano | findstr :8000
-netstat -ano | findstr :5433
-```
-
-## 14. Nếu thay đổi biến môi trường
-
-Docker Compose đọc biến từ file `.env` ở **thư mục gốc của project**.
-
-Có thể tạo `.env` từ `.env.example`:
-
-### Windows PowerShell
-
-```powershell
-Copy-Item .env.example .env
-```
-
-### Linux/macOS
-
-```bash
-cp .env.example .env
-```
-
-Sau khi thay đổi các biến build/runtime, chạy:
-
-```bash
-docker compose up -d --build
-```
-
-## 15. Lưu ý về tài khoản demo
-
-Tài khoản `manager / demo12345` chỉ dành cho **môi trường development/demo**.
-
-Không sử dụng mật khẩu này cho môi trường production.
-
-Mật khẩu được lưu trong database dưới dạng **bcrypt hash**, không lưu plaintext.
-
-## 16. Quy trình dành cho thành viên nhóm
-
-Nếu chỉ muốn chạy project, hãy làm đúng 5 bước này:
-
-```bash
-# 1. Clone
-git clone <URL-GITHUB-CUA-NHOM>
-cd <TEN-THU-MUC-PROJECT>
-
-# 2. Build + start
-docker compose up -d --build
-
-# 3. Kiểm tra
-docker compose ps
-
-# 4. Mở web
-# http://localhost:5173
-
-# 5. Đăng nhập
-# manager / demo12345
-# hoặc 0963217400 / demo12345
-```
-
-Nếu bước 3 cho thấy `restaurant-db` healthy và `restaurant-backend` healthy nhưng đăng nhập vẫn thất bại, xem phần **10. Nếu đăng nhập vẫn báo sai mật khẩu**.
-
-## 17. Quy trình dành cho người phát triển code
-
-Sau khi sửa Backend:
-
-```bash
-docker compose up -d --build backend
-```
-
-Sau khi sửa Frontend:
-
-```bash
-docker compose up -d --build frontend
-```
-
-Sau khi sửa `docker-compose.yml` hoặc Dockerfile:
-
-```bash
-docker compose down
-docker compose up -d --build
-```
-
-Không commit các file/thư mục local như:
+Không push:
 
 ```text
-.env
+backend/.env
 backend/venv/
-backend/__pycache__/
 frontend/node_modules/
 frontend/dist/
+__pycache__/
+*.pyc
 ```
 
-## 18. Những file quan trọng liên quan đến khởi tạo
+Các file cần có trong GitHub:
 
 ```text
-.
-├── docker-compose.yml
-├── .env.example
-├── README.md
-│
-├── backend/
-│   ├── Dockerfile
-│   ├── entrypoint.py
-│   ├── alembic/
-│   │   └── versions/
-│   │       └── 001_add_authentication.py
-│   └── app/
-│       ├── seed_demo.py
-│       ├── core/
-│       ├── database/
-│       ├── models/
-│       ├── routers/
-│       └── services/
-│
-└── frontend/
-    ├── Dockerfile
-    └── src/
-        └── services/
-            └── api.js
+docker-compose.yml
+README.md
+.env.example
+
+backend/
+  Dockerfile
+  entrypoint.py
+  requirements.txt
+  alembic/
+  app/
+
+frontend/
+  Dockerfile
+  package.json
+  package-lock.json
+  vite.config.js
+  index.html
+  src/
 ```
 
-### Vai trò của các file mới/sửa
+---
 
-- `backend/entrypoint.py`: tự chạy migration, seed demo account rồi mới start FastAPI.
-- `backend/app/seed_demo.py`: tạo tài khoản demo nếu tài khoản chưa tồn tại.
-- `backend/Dockerfile`: gọi `entrypoint.py` thay vì chạy Uvicorn trực tiếp.
-- `backend/app/core/config.py`: hỗ trợ nhiều CORS origin thông qua `FRONTEND_URLS`.
-- `backend/app/main.py`: sử dụng danh sách CORS origin đã cấu hình.
-- `docker-compose.yml`: truyền các biến seed/CORS vào Backend.
+# 13. Quy trình làm việc chuẩn sau này
 
 Hoang gay
 Hung gay
+
+Mỗi khi sửa code:
+
+```powershell
+docker compose up -d --build
+```
+
+Nếu nghi ngờ cache frontend:
+
+```powershell
+docker compose build --no-cache frontend
+docker compose up -d
+```
+
+Nếu sửa backend:
+
+```powershell
+docker compose build --no-cache backend
+docker compose up -d
+```
+
+Nếu thay đổi migration:
+
+```powershell
+docker compose up -d --build
+docker compose logs backend --tail=200
+```
+
+Nếu muốn test như người clone mới:
+
+```powershell
+git clone <URL_GITHUB_CUA_BAN> test-clone
+cd test-clone
+docker compose up -d --build
+```
+
+---
+
+# 14. Kết quả mong muốn của bản này
+
+```text
+[OK] Login có CSS đầy đủ khi build Docker
+[OK] Backend tự migrate PostgreSQL
+[OK] Backend tự tạo tài khoản demo
+[OK] Backend tự tạo menu demo
+[OK] Có nhóm món
+[OK] Có món ăn thuộc nhóm
+[OK] Không thể tạo món không có nhóm
+[OK] Clone GitHub -> docker compose up -d --build -> chạy demo
+[OK] Không cần Python/Node/PostgreSQL cài trên máy bạn bè
+```
+
+## Menu category & dish rules
+
+The menu management feature follows this user story:
+
+> Là Quản lý quán, tôi muốn sắp xếp thực đơn thành các nhóm món như khai vị, món chính, lẩu, tráng miệng và đồ uống, để khách và phục vụ tìm món nhanh thay vì cuộn qua toàn bộ danh sách.
+
+Acceptance criteria implemented:
+
+- Thêm, sửa, đổi thứ tự hiển thị và ngừng sử dụng nhóm món.
+- Tên nhóm món bắt buộc 1–50 ký tự và không phân biệt hoa/thường khi kiểm tra trùng.
+- Nhóm món đang chứa món không thể xoá; phải chuyển món sang nhóm khác trước.
+- API public và API món ăn public đều sắp xếp theo `nhom_mon.thu_tu`, bảo đảm cùng một nguồn thứ tự cho thực đơn công khai và màn hình gọi món.
+- Bấm vào một nhóm món trong màn hình quản lý sẽ mở rộng danh sách các món thuộc nhóm đó.
+- Nhóm món và món ăn đều có ảnh mô tả tùy chọn. Nếu không tải ảnh, hệ thống dùng ảnh mặc định.
+- Có thể tải ảnh JPG/PNG/WEBP/GIF tối đa 5 MB.
+- Dữ liệu demo có sẵn 6 món và ảnh tham khảo từ Internet cho các món mẫu.
+
+### Demo menu
+
+`manager / demo12345`
+
+Các món mẫu gồm Gỏi cuốn, Chả giò, Cơm chiên, Bò lúc lắc, Trà đào và Nước suối.
+
+> Ảnh Internet trong dữ liệu demo chỉ dùng để minh họa giao diện. Khi dùng cho sản phẩm thật, nên thay bằng ảnh mà nhà hàng có quyền sử dụng.
+

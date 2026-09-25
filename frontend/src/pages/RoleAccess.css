@@ -1,0 +1,209 @@
+.role-workspace {
+  padding: 12px 0 34px;
+}
+
+.role-workspace-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 28px;
+}
+
+.role-workspace-heading h1 {
+  margin: 6px 0 8px;
+  font-size: 30px;
+}
+
+.role-workspace-heading > div > p:not(.role-eyebrow) {
+  margin: 0;
+  color: #8e837c;
+  font-size: 12px;
+}
+
+.role-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #e85a4f;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.server-guard-pill {
+  border: 1px solid rgba(82, 196, 119, .25);
+  background: rgba(82, 196, 119, .08);
+  color: #69d28c;
+  border-radius: 999px;
+  padding: 9px 13px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 10px;
+}
+
+.role-workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.role-workspace-card {
+  min-height: 155px;
+  border-radius: 14px;
+  border: 1px solid #37312d;
+  background: #191613;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.role-workspace-card-number {
+  color: #e85a4f;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.role-workspace-card strong {
+  font-size: 17px;
+}
+
+.role-workspace-card span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #786e67;
+  font-size: 10px;
+}
+
+.role-access-info {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border: 1px solid #35302c;
+  border-radius: 12px;
+  background: #1b1815;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #8c8179;
+}
+
+.role-access-info > svg {
+  margin-top: 2px;
+  color: #e85a4f;
+}
+
+.role-access-info strong {
+  color: #eee7e1;
+  font-size: 11px;
+}
+
+.role-access-info p {
+  margin: 5px 0 0;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.role-access-info code {
+  color: #d5a398;
+}
+
+.forbidden-page {
+  min-height: calc(100vh - 90px);
+  display: grid;
+  place-items: center;
+  padding: 30px;
+}
+
+.forbidden-card {
+  width: min(100%, 560px);
+  border: 1px solid #413731;
+  border-radius: 18px;
+  background: #191613;
+  padding: 34px;
+  text-align: center;
+  box-shadow: 0 22px 55px rgba(0,0,0,.2);
+}
+
+.forbidden-code {
+  color: rgba(232, 90, 79, .10);
+  font-size: 96px;
+  line-height: .8;
+  font-weight: 900;
+  letter-spacing: -7px;
+}
+
+.forbidden-icon {
+  width: 58px;
+  height: 58px;
+  margin: -10px auto 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(232, 90, 79, .12);
+  color: #ef6559;
+  font-size: 24px;
+}
+
+.forbidden-card .role-eyebrow {
+  justify-content: center;
+}
+
+.forbidden-card h1 {
+  margin: 9px 0;
+  font-size: 25px;
+}
+
+.forbidden-message {
+  margin: 0 auto;
+  color: #9a8f87;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.forbidden-note {
+  margin-top: 20px;
+  padding: 13px;
+  border-radius: 10px;
+  background: #221e1b;
+  color: #776e68;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.forbidden-back {
+  margin-top: 22px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0 18px;
+  background: #d84a3f;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.forbidden-back svg {
+  margin-right: 7px;
+}
+
+.role-access-loading {
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  color: #8d827a;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .role-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-workspace-heading {
+    flex-direction: column;
+  }
+}

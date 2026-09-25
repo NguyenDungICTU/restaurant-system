@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -49,6 +49,13 @@ class NhanVien(Base):
         String(30),
         nullable=False,
         default="HOAT_DONG",
+    )
+
+    su_dung_mat_khau_tam: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
     )
 
     so_lan_dang_nhap_sai: Mapped[int] = mapped_column(
