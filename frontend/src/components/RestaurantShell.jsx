@@ -27,6 +27,7 @@ import {
 import Employees from '../pages/Employees'
 import KhuVuc from '../pages/KhuVuc'
 import Menu from '../pages/Menu'
+import OpeningHoursSettings from '../pages/OpeningHoursSettings'
 
 const navigation = [
   {
@@ -268,6 +269,8 @@ export default function RestaurantShell({ user, onLogout }) {
             <KhuVuc />
           ) : page === 'menu' ? (
             <Menu />
+          ) : page === 'settings' ? (
+            <OpeningHoursSettings />
           ) : (
             <ModulePage page={page} />
           )}
