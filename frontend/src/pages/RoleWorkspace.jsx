@@ -5,6 +5,7 @@ import {
 } from '@ant-design/icons'
 
 import './RoleAccess.css'
+import BookingDemo from './BookingDemo'
 
 
 const CONTENT = {
@@ -77,6 +78,9 @@ export default function RoleWorkspace({
   page,
 }) {
   const data = CONTENT[page]
+  if (page === 'bookings') {
+  return <BookingDemo />
+}
 
   if (!data) {
     return null

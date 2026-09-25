@@ -6,6 +6,13 @@ from app.models.khu_vuc import KhuVuc
 
 from app.models.nhom_mon import NhomMon
 from app.models.mon_an import MonAn
+from app.models.dat_ban import DatBan
+from app.models.ban import Ban
+from app.models.lich_hoat_dong import (
+    LichHoatDong,
+    NgayNghiDacBiet,
+    CauHinhDatBan,
+)
 
 
 
@@ -18,5 +25,9 @@ __all__ = [
 
     "NhomMon",
     "MonAn",
-
+    "DatBan",
+    "Ban",
+    "LichHoatDong",
+    "NgayNghiDacBiet",
+    "CauHinhDatBan",
 ]
