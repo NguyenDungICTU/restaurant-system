@@ -12,6 +12,13 @@ from app.models.phien_dang_nhap import PhienDangNhap
 from app.services.auth_service import utc_now
 
 
+TEMP_PASSWORD_ALLOWED_PATHS = {
+    "/api/auth/me",
+    "/api/auth/change-password",
+    "/api/auth/logout",
+}
+
+
 def get_current_user(
     request: Request,
     session_token: str | None = Cookie(
@@ -90,7 +97,23 @@ def get_current_user(
             detail="SESSION_EXPIRED",
         )
 
-    # Rolling 30-minute inactivity timeout.
+    # Lát 2: a temporary-password account may only read its own
+    # session state, change the password, or log out.
+    if (
+        employee.su_dung_mat_khau_tam
+        and request.url.path not in TEMP_PASSWORD_ALLOWED_PATHS
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "PASSWORD_CHANGE_REQUIRED",
+                "message": (
+                    "Bạn phải đổi mật khẩu tạm trước khi "
+                    "sử dụng chức năng khác."
+                ),
+            },
+        )
+
     session.last_activity_at = now
     session.expires_at = now + idle_limit
 

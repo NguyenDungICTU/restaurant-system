@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Request, Response
-from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -9,12 +8,15 @@ from app.dependencies.auth import get_current_user
 from app.models.nhan_vien import NhanVien
 from app.models.phien_dang_nhap import PhienDangNhap
 from app.schemas.auth import (
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     LoginRequest,
     LoginResponse,
     UserResponse,
 )
 from app.services.auth_service import (
     authenticate_employee,
+    change_employee_password,
     create_login_session,
 )
 
@@ -34,6 +36,7 @@ def user_to_response(
         username=user.ten_dang_nhap,
         full_name=user.ho_ten,
         role=user.vai_tro,
+        must_change_password=user.su_dung_mat_khau_tam,
     )
 
 
@@ -73,6 +76,40 @@ def login(
     return LoginResponse(
         message="Đăng nhập thành công.",
         user=user_to_response(employee),
+    )
+
+
+@router.post(
+    "/change-password",
+    response_model=ChangePasswordResponse,
+)
+def change_password(
+    payload: ChangePasswordRequest,
+    response: Response,
+    current_user: NhanVien = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(get_db),
+):
+    change_employee_password(
+        db,
+        employee=current_user,
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+        confirm_password=payload.confirm_password,
+    )
+
+    response.delete_cookie(
+        key=settings.session_cookie_name,
+        path="/",
+    )
+
+    return ChangePasswordResponse(
+        message=(
+            "Đổi mật khẩu thành công. "
+            "Các phiên đăng nhập cũ đã bị vô hiệu."
+        ),
+        logout_required=True,
     )
 
 

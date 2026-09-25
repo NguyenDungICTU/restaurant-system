@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, Request
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -112,8 +112,6 @@ def authenticate_employee(
         for_update=True,
     )
 
-    # Dummy hash prevents a simple timing difference
-    # from revealing whether an account exists.
     dummy_hash = (
         "$2b$12$"
         "LQv3c1yqBWJZQfXQzj3F7."
@@ -231,3 +229,84 @@ def create_login_session(
 
 def hash_password_for_storage(password: str) -> str:
     return hash_password(password)
+
+
+def validate_new_password(
+    current_password: str,
+    new_password: str,
+    confirm_password: str,
+) -> None:
+    if new_password != confirm_password:
+        raise HTTPException(
+            status_code=422,
+            detail="Xác nhận mật khẩu không khớp.",
+        )
+
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=422,
+            detail="Mật khẩu mới phải có ít nhất 8 ký tự.",
+        )
+
+    if not any(character.isalpha() for character in new_password):
+        raise HTTPException(
+            status_code=422,
+            detail="Mật khẩu mới phải có ít nhất một chữ cái.",
+        )
+
+    if not any(character.isdigit() for character in new_password):
+        raise HTTPException(
+            status_code=422,
+            detail="Mật khẩu mới phải có ít nhất một chữ số.",
+        )
+
+    if new_password == current_password:
+        raise HTTPException(
+            status_code=422,
+            detail="Mật khẩu mới không được trùng mật khẩu hiện tại.",
+        )
+
+
+def change_employee_password(
+    db: Session,
+    *,
+    employee: NhanVien,
+    current_password: str,
+    new_password: str,
+    confirm_password: str,
+) -> None:
+    # This check is deliberately separate from authenticate_employee().
+    # Therefore a wrong current password here NEVER increments the
+    # login-failure counter and NEVER locks the account.
+    if not verify_password(
+        current_password,
+        employee.mat_khau,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Mật khẩu hiện tại không đúng.",
+        )
+
+    validate_new_password(
+        current_password=current_password,
+        new_password=new_password,
+        confirm_password=confirm_password,
+    )
+
+    now = utc_now()
+
+    employee.mat_khau = hash_password(new_password)
+    employee.su_dung_mat_khau_tam = False
+
+    # AC: after changing password, every old login session is invalid.
+    # This includes the session that performed the password change.
+    db.execute(
+        update(PhienDangNhap)
+        .where(
+            PhienDangNhap.nhan_vien_id == employee.id,
+            PhienDangNhap.revoked_at.is_(None),
+        )
+        .values(revoked_at=now)
+    )
+
+    db.commit()
