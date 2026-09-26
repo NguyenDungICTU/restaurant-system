@@ -72,6 +72,11 @@ def create_dish_endpoint(
     return dish_to_dict(dish)
 
 
+@router.put(
+    "/{dish_id}",
+    response_model=MonAnResponse,
+    include_in_schema=False,
+)
 @router.patch("/{dish_id}", response_model=MonAnResponse)
 def update_dish_endpoint(
     dish_id: int,

@@ -3,7 +3,7 @@ import { Button, Dropdown, Empty, Image, Skeleton, Tag } from 'antd'
 import { getMediaUrl } from '../../services/api'
 
 const STATUS_LABELS = { DANG_BAN: 'Đang bán', TAM_NGUNG: 'Tạm ngừng' }
-const formatVnd = (value) => value == null
+const formatVnd = (value) => !Number.isSafeInteger(value) || value <= 0
   ? 'Chưa thiết lập giá'
   : `${new Intl.NumberFormat('vi-VN').format(value)} ₫`
 

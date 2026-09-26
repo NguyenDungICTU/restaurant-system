@@ -107,7 +107,12 @@ export async function changeEmployeeStatus(employeeId, status) {
 }
 
 export async function getAuditLogs(params = {}) {
-  const response = await api.get('/api/audit-logs', { params })
+  const response = await api.get('/api/audit-logs/actions', { params })
+  return response.data
+}
+
+export async function getAuditSessions(params = {}) {
+  const response = await api.get('/api/audit-logs/sessions', { params })
   return response.data
 }
 
