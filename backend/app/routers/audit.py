@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.dependencies.auth import require_manager
+from app.models.mon_an import MonAn
 from app.models.nhan_vien import NhanVien
 from app.models.nhat_ky_thao_tac import NhatKyThaoTac
 from app.models.phien_dang_nhap import PhienDangNhap
@@ -20,13 +21,22 @@ def list_actions(
     _: NhanVien = Depends(require_manager),
 ):
     statement = (
-        select(NhatKyThaoTac, NhanVien)
+        select(NhatKyThaoTac, NhanVien, MonAn)
         .join(NhanVien, NhanVien.id == NhatKyThaoTac.nhan_vien_id)
-        .order_by(NhatKyThaoTac.created_at.desc(), NhatKyThaoTac.id.desc())
+        .outerjoin(
+            MonAn,
+            (MonAn.id == NhatKyThaoTac.doi_tuong_id)
+            & (NhatKyThaoTac.doi_tuong == "MON_AN"),
+        )
+        .order_by(
+            NhatKyThaoTac.created_at.desc(),
+            NhatKyThaoTac.id.desc(),
+        )
         .limit(limit)
     )
     if action:
         statement = statement.where(NhatKyThaoTac.hanh_dong == action)
+
     return [
         AuditActionResponse(
             id=log.id,
@@ -35,13 +45,14 @@ def list_actions(
             action=log.hanh_dong,
             object_type=log.doi_tuong,
             object_id=log.doi_tuong_id,
+            object_name=dish.ten_mon if dish else None,
             old_data=log.du_lieu_cu,
             new_data=log.du_lieu_moi,
             ip_address=log.ip_address,
             user_agent=log.user_agent,
             created_at=log.created_at,
         )
-        for log, employee in db.execute(statement).all()
+        for log, employee, dish in db.execute(statement).all()
     ]
 
 

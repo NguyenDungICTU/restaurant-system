@@ -10,6 +10,7 @@ class AuditActionResponse(BaseModel):
     action: str
     object_type: str
     object_id: int | None
+    object_name: str | None
     old_data: dict | None
     new_data: dict | None
     ip_address: str | None

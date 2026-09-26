@@ -7,6 +7,7 @@ from app.dependencies.auth import require_manager
 from app.models.mon_an import MonAn
 from app.models.nhan_vien import NhanVien
 from app.models.nhom_mon import NhomMon
+from app.models.nhat_ky_thao_tac import NhatKyThaoTac
 from app.schemas.mon_an import MonAnCreate, MonAnResponse, MonAnUpdate
 from app.services.image_service import save_image
 from app.services.mon_an_service import create_dish, delete_dish, get_dish, update_dish
