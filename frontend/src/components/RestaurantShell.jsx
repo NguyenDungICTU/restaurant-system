@@ -14,6 +14,7 @@ import {
   UserOutlined,
   WifiOutlined,
   ApartmentOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons'
 
 import { Button, Tooltip } from 'antd'
@@ -27,6 +28,7 @@ import {
 import Employees from '../pages/Employees'
 import KhuVuc from '../pages/KhuVuc'
 import Menu from '../pages/Menu'
+import AuditLogs from '../pages/AuditLogs'
 
 const navigation = [
   {
@@ -63,6 +65,11 @@ const navigation = [
     key: 'areas',
     label: 'Khu vực',
     icon: ApartmentOutlined,
+  },
+  {
+    key: 'audit',
+    label: 'Nhật ký hệ thống',
+    icon: SafetyOutlined,
   },
 ]
 
@@ -155,7 +162,7 @@ export default function RestaurantShell({ user, onLogout }) {
         <div className="nav-section">
           {!collapsed && <p className="nav-title">QUẢN LÝ</p>}
 
-          {navigation.map(({ key, label, icon: Icon }) => (
+          {navigation.filter((item) => item.key !== 'audit' || user?.role === 'QUAN_LY').map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               className={`nav-item ${page === key ? 'active' : ''}`}
@@ -268,6 +275,8 @@ export default function RestaurantShell({ user, onLogout }) {
             <KhuVuc />
           ) : page === 'menu' ? (
             <Menu />
+          ) : page === 'audit' ? (
+            <AuditLogs />
           ) : (
             <ModulePage page={page} />
           )}
