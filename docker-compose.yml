@@ -53,6 +53,10 @@ services:
     ports:
       - "8000:8000"
 
+    volumes:
+      - uploads_data:/app/uploads
+      - ./backend/uploads:/app/upload
+
     healthcheck:
       test:
         [
@@ -91,3 +95,4 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:

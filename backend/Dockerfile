@@ -12,6 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+COPY uploads ./default-assets
 COPY alembic.ini .
 COPY alembic ./alembic
 COPY entrypoint.py .
