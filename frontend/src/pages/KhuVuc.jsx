@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   CheckCircleOutlined,
+  DeleteOutlined,
   EditOutlined,
   PlusOutlined,
   StopOutlined,
@@ -9,6 +10,7 @@ import {
   activateArea,
   createArea,
   deactivateArea,
+  deleteArea,
   getAreas,
   updateArea,
 } from '../services/api'
@@ -25,6 +27,7 @@ export default function KhuVuc() {
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [notice, setNotice] = useState(null)
 
   async function loadAreas() {
@@ -128,6 +131,28 @@ export default function KhuVuc() {
     }
   }
 
+  async function removeArea(area) {
+    if (!window.confirm(`Xóa vĩnh viễn khu vực "${area.ten_khu_vuc}"? Chỉ xóa được khu vực không có bàn.`)) return
+    setDeleting(true)
+    setNotice(null)
+    try {
+      await deleteArea(area.id)
+      setAreas(current => current.filter(item => item.id !== area.id))
+      if (editing?.id === area.id) {
+        setEditing(null)
+        setForm(emptyForm)
+      }
+      setNotice({ type: 'success', text: `Đã xóa khu vực ${area.ten_khu_vuc}.` })
+    } catch (error) {
+      setNotice({
+        type: 'error',
+        text: error.response?.data?.detail || 'Không thể xóa khu vực. Vui lòng thử lại.',
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const activeCount = areas.filter(
     area => area.trang_thai === 'HOAT_DONG'
   ).length
@@ -189,7 +214,7 @@ export default function KhuVuc() {
           />
 
           <div className="area-form-actions">
-            <button className="area-primary" disabled={saving}>
+            <button className="area-primary" disabled={saving || deleting}>
               <PlusOutlined />
               {saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Thêm khu vực'}
             </button>
@@ -250,7 +275,7 @@ export default function KhuVuc() {
                   </span>
 
                   <div className="area-actions">
-                    <button title="Sửa" onClick={() => startEdit(area)}>
+                    <button title="Sửa" disabled={deleting} onClick={() => startEdit(area)}>
                       <EditOutlined />
                     </button>
 
@@ -258,6 +283,7 @@ export default function KhuVuc() {
                       <button
                         className="stop"
                         title="Ngừng sử dụng"
+                        disabled={deleting}
                         onClick={() => stopUsing(area)}
                       >
                         <StopOutlined />
@@ -266,11 +292,21 @@ export default function KhuVuc() {
                       <button
                         className="activate"
                         title="Kích hoạt lại"
+                        disabled={deleting}
                         onClick={() => activate(area)}
                       >
                         <CheckCircleOutlined />
                       </button>
                     )}
+                    <button
+                      className="stop"
+                      title="Xóa"
+                      aria-label={`Xóa khu vực ${area.ten_khu_vuc}`}
+                      disabled={saving || deleting}
+                      onClick={() => removeArea(area)}
+                    >
+                      <DeleteOutlined />
+                    </button>
                   </div>
                 </div>
               ))}

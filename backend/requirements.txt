@@ -12,3 +12,5 @@ bcrypt
 
 python-multipart
 websockets
+qrcode[pil]>=8.2,<9
+reportlab>=4.4,<5

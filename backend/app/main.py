@@ -9,6 +9,7 @@ from app.routers.auth import router as auth_router
 
 from app.routers.employees import router as employees_router
 from app.routers.khu_vuc import router as khu_vuc_router
+from app.routers.ban import router as ban_router
 
 from app.routers.nhom_mon import (
     router as nhom_mon_router,
@@ -45,6 +46,7 @@ app.include_router(auth_router)
 
 app.include_router(employees_router)
 app.include_router(khu_vuc_router)
+app.include_router(ban_router)
 
 app.include_router(nhom_mon_router)
 app.include_router(mon_an_router)

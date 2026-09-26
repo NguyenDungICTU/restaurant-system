@@ -1,11 +1,13 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     project_name: str = "Restaurant Management System"
+    qr_frontend_url: HttpUrl = "http://localhost:5173"
+    qr_pdf_font_path: str = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
     database_url: str
 

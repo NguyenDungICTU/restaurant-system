@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.dependencies.auth import get_current_user, require_manager
 from app.models.khu_vuc import KhuVuc
+from app.models.ban import Ban
 from app.models.nhan_vien import NhanVien
 from app.schemas.khu_vuc import (
     KhuVucCreate,
@@ -17,6 +19,29 @@ router = APIRouter(
     prefix="/api/khu-vuc",
     tags=["Khu vực"],
 )
+
+
+@router.delete("/{area_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_area(
+    area_id: int,
+    _: NhanVien = Depends(require_manager),
+    db: Session = Depends(get_db),
+):
+    area = db.scalar(select(KhuVuc).where(KhuVuc.id == area_id).with_for_update())
+    if area is None:
+        raise HTTPException(404, "Không tìm thấy khu vực.")
+    conflict = "Khu vực đang có bàn, chỉ có thể ngừng sử dụng."
+    if db.scalar(select(Ban.id).where(Ban.khu_vuc_id == area_id).limit(1)) is not None:
+        raise HTTPException(409, conflict)
+    try:
+        db.delete(area)
+        db.commit()
+    except IntegrityError as error:
+        db.rollback()
+        if getattr(error.orig, "pgcode", None) == "23503":
+            raise HTTPException(409, conflict) from error
+        raise
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def normalized_name_expression():

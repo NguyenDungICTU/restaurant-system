@@ -228,6 +228,35 @@ export async function uploadDishImage(dishId, file) {
   return response.data
 }
 
+export async function deleteArea(id) {
+  await api.delete(`/api/khu-vuc/${id}`)
+}
+
+export async function getTables() { return (await api.get('/api/ban')).data }
+export async function createTable(payload) { return (await api.post('/api/ban', payload)).data }
+export async function deleteTable(id) { await api.delete(`/api/ban/${id}`) }
+export async function updateTable(id, payload) { return (await api.put(`/api/ban/${id}`, payload)).data }
+export async function regenerateQR(id) { return (await api.post(`/api/ban/${id}/qr/regenerate`)).data }
+export async function scanQR(token) { return (await api.get(`/api/ban/qr/${encodeURIComponent(token)}`)).data }
+export async function downloadQR(path, filename) {
+  let response
+  try {
+    response = await api.get(path, { responseType: 'blob', timeout: 60000 })
+  } catch (error) {
+    if (error.response?.data instanceof Blob) {
+      try { error.response.data = JSON.parse(await error.response.data.text()) } catch { /* Keep fallback error. */ }
+    }
+    throw error
+  }
+  const url = URL.createObjectURL(response.data)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
 export async function deleteDish(dishId) {
   const response = await api.delete(`/api/menu/dishes/${dishId}`)
   return response.data
