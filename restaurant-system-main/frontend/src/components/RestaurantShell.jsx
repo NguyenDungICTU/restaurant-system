@@ -1,0 +1,544 @@
+import { useEffect, useState } from 'react'
+import {
+  BellOutlined,
+  CalendarOutlined,
+  DashboardOutlined,
+  DisconnectOutlined,
+  LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  SettingOutlined,
+  ShoppingCartOutlined,
+  TeamOutlined,
+  UnorderedListOutlined,
+  UserOutlined,
+  WifiOutlined,
+  ApartmentOutlined,
+  AuditOutlined,
+  TableOutlined,
+  FireOutlined,
+  CreditCardOutlined,
+  FileTextOutlined,
+  FieldTimeOutlined,
+} from '@ant-design/icons'
+
+import { Button, Tooltip } from 'antd'
+
+import {
+  createOrderSocket,
+  getHealth,
+  logout,
+} from '../services/api'
+
+import Employees from '../pages/Employees'
+import KhuVuc from '../pages/KhuVuc'
+import Menu from '../pages/Menu'
+import AuditLogs from '../pages/AuditLogs'
+import Tables from '../pages/Tables'
+import BusinessHours from '../pages/BusinessHours'
+import Reservations from '../pages/Reservations'
+import Orders from '../pages/Orders'
+
+const navigation = [
+  { key: 'dashboard', label: 'Tổng quan', icon: DashboardOutlined, roles: ['QUAN_LY'] },
+  { key: 'bookings', label: 'Đặt bàn', icon: CalendarOutlined, roles: ['QUAN_LY', 'PHUC_VU'] },
+  { key: 'customers', label: 'Khách hàng', icon: TeamOutlined, roles: ['QUAN_LY'] },
+  { key: 'menu', label: 'Thực đơn', icon: UnorderedListOutlined, roles: ['QUAN_LY'] },
+  { key: 'orders', label: 'Gọi món', icon: ShoppingCartOutlined, roles: ['QUAN_LY', 'PHUC_VU'] },
+  { key: 'employees', label: 'Nhân viên', icon: TeamOutlined, roles: ['QUAN_LY'] },
+  { key: 'areas', label: 'Khu vực', icon: ApartmentOutlined, roles: ['QUAN_LY'] },
+  { key: 'tables', label: 'Bàn & QR', icon: TableOutlined, roles: ['QUAN_LY', 'PHUC_VU'] },
+  { key: 'kitchen', label: 'Màn hình bếp', icon: FireOutlined, roles: ['BEP'] },
+  { key: 'daily-menu', label: 'Món trong ngày', icon: UnorderedListOutlined, roles: ['BEP'] },
+  { key: 'payments', label: 'Thanh toán', icon: CreditCardOutlined, roles: ['THU_NGAN'] },
+  { key: 'invoices', label: 'Hóa đơn', icon: FileTextOutlined, roles: ['THU_NGAN'] },
+  { key: 'shift-close', label: 'Chốt ca', icon: FieldTimeOutlined, roles: ['THU_NGAN'] },
+  { key: 'audit-logs', label: 'Nhật ký thao tác', icon: AuditOutlined, roles: ['QUAN_LY'] },
+]
+
+const secondary = [
+  {
+    key: 'business-hours',
+    label: 'Giờ mở cửa',
+    icon: SettingOutlined,
+    roles: ['QUAN_LY'],
+  },
+]
+
+export default function RestaurantShell({ user, loginMessage, onLogout }) {
+  const permittedNavigation = navigation.filter((item) => item.roles.includes(user?.role))
+  const permittedSecondary = secondary.filter((item) => item.roles.includes(user?.role))
+  const permittedPages = new Set([...permittedNavigation, ...permittedSecondary].map((item) => item.key))
+  const firstPage = permittedNavigation[0]?.key || 'forbidden'
+  const [page, setPage] = useState(firstPage)
+  const [collapsed, setCollapsed] = useState(false)
+  const [health, setHealth] = useState('checking')
+  const [socket, setSocket] = useState('connecting')
+  const [events, setEvents] = useState([])
+  const [showLoginMessage, setShowLoginMessage] = useState(Boolean(loginMessage))
+
+  useEffect(() => {
+    if (!loginMessage) return undefined
+    setShowLoginMessage(true)
+    const timeout = window.setTimeout(() => setShowLoginMessage(false), 4000)
+    return () => window.clearTimeout(timeout)
+  }, [loginMessage])
+
+  useEffect(() => {
+    let mounted = true
+
+    getHealth()
+      .then(() => {
+        if (mounted) setHealth('online')
+      })
+      .catch(() => {
+        if (mounted) setHealth('offline')
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let socketConnection
+
+    try {
+      socketConnection = createOrderSocket(
+        (message) => {
+          setEvents((current) =>
+            [
+              {
+                id: `${Date.now()}-${Math.random()}`,
+                message,
+              },
+              ...current,
+            ].slice(0, 5),
+          )
+        },
+        setSocket,
+      )
+    } catch {
+      setSocket('error')
+    }
+
+    return () => {
+      socketConnection?.close()
+    }
+  }, [])
+
+  async function signout() {
+    try {
+      await logout()
+    } finally {
+      onLogout()
+    }
+  }
+
+  const currentPage = [...permittedNavigation, ...permittedSecondary].find(
+    (item) => item.key === page,
+  )
+
+  const pageLabel = currentPage?.label || 'Tổng quan'
+
+  return (
+    <div className="app-shell">
+      <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+        <div className="brand">
+          <div className="brand-mark">R</div>
+
+          {!collapsed && (
+            <div>
+              <strong>Resto</strong>
+              <span>Management</span>
+            </div>
+          )}
+        </div>
+
+        <div className="nav-section">
+          {!collapsed && <p className="nav-title">QUẢN LÝ</p>}
+
+          {permittedNavigation.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              className={`nav-item ${page === key ? 'active' : ''}`}
+              onClick={() => setPage(key)}
+              title={collapsed ? label : undefined}
+            >
+              <Icon />
+              {!collapsed && <span>{label}</span>}
+            </button>
+          ))}
+        </div>
+
+        <div className="sidebar-bottom">
+          {!collapsed && <p className="nav-title">HỆ THỐNG</p>}
+
+          {permittedSecondary.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              className={`nav-item ${page === key ? 'active' : ''}`}
+              onClick={() => setPage(key)}
+              title={collapsed ? label : undefined}
+            >
+              <Icon />
+              {!collapsed && <span>{label}</span>}
+            </button>
+          ))}
+
+          <button
+            className="nav-item logout-nav"
+            onClick={signout}
+            title={collapsed ? 'Đăng xuất' : undefined}
+          >
+            <LogoutOutlined />
+            {!collapsed && <span>Đăng xuất</span>}
+          </button>
+        </div>
+
+        <div className="user-card">
+          <div className="avatar">
+            <UserOutlined />
+          </div>
+
+          {!collapsed && (
+            <div className="user-copy">
+              <strong>{user?.full_name || 'Nhân viên'}</strong>
+              <span>{user?.role || 'Nhân viên'}</span>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <main className="main-content">
+        <header className="topbar">
+          <Button
+            type="text"
+            className="collapse-button"
+            icon={
+              collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+            }
+            onClick={() => setCollapsed((current) => !current)}
+          />
+
+          <div className="breadcrumb">
+            <span>Nhà hàng</span>
+            <b>/</b>
+            <strong>{pageLabel}</strong>
+          </div>
+
+          <div className="topbar-actions">
+            <div className="connection-status">
+              <span
+                className={`status-dot ${
+                  health === 'online'
+                    ? 'success'
+                    : health === 'offline'
+                      ? 'danger'
+                      : 'warning'
+                }`}
+              />
+              <span>
+                API{' '}
+                {health === 'online'
+                  ? 'Online'
+                  : health === 'offline'
+                    ? 'Offline'
+                    : 'Đang kiểm tra'}
+              </span>
+            </div>
+
+            <Tooltip title="Thông báo">
+              <Button type="text" icon={<BellOutlined />} />
+            </Tooltip>
+
+            <div className="top-avatar">
+              {(user?.full_name || 'A').slice(0, 1).toUpperCase()}
+            </div>
+          </div>
+        </header>
+
+        <div className="page-content">
+          {showLoginMessage && <div className="login-success-banner" role="status">{loginMessage}</div>}
+          {!permittedPages.has(page) ? (
+            <section className="module-placeholder" role="alert">
+              <p className="eyebrow">403</p>
+              <h1>Không có quyền truy cập</h1>
+              <p>Tài khoản của bạn không được phép mở chức năng này.</p>
+            </section>
+          ) : page === 'dashboard' ? (
+            <Dashboard
+              health={health}
+              socket={socket}
+              events={events}
+            />
+          ) : page === 'employees' ? (
+            <Employees />
+          ) : page === 'areas' ? (
+            <KhuVuc />
+          ) : page === 'menu' ? (
+            <Menu />
+          ) : page === 'audit-logs' ? (
+            <AuditLogs />
+          ) : page === 'tables' ? (
+            <Tables user={user} />
+          ) : page === 'business-hours' ? (
+            <BusinessHours />
+          ) : page === 'bookings' ? (
+            <Reservations />
+          ) : page === 'orders' ? (
+            <Orders user={user} />
+          ) : page === 'kitchen' ? (
+            <Orders user={user} mode="kitchen" />
+          ) : page === 'payments' ? (
+            <Orders user={user} mode="cashier" />
+          ) : (
+            <ModulePage page={page} />
+          )}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function Dashboard({ health, socket, events }) {
+  const cards = [
+    ['Đặt bàn hôm nay', '—', 'Chưa có API đặt bàn'],
+    ['Khách hàng', '—', 'Chưa có API khách hàng'],
+    ['Đơn hàng', '—', 'Dữ liệu realtime qua WebSocket'],
+    ['Doanh thu', '—', 'Chưa có API báo cáo'],
+  ]
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">RESTAURANT MANAGEMENT</p>
+          <h1>Tổng quan hoạt động</h1>
+          <p className="subheading">
+            Theo dõi nhanh tình trạng hệ thống và các nghiệp vụ nhà hàng.
+          </p>
+        </div>
+
+        <div className="live-pill">
+          <span
+            className={`status-dot ${
+              socket === 'connected' ? 'success' : 'warning'
+            }`}
+          />
+          <WifiOutlined />
+          WebSocket{' '}
+          {socket === 'connected' ? 'đã kết nối' : 'chưa kết nối'}
+        </div>
+      </section>
+
+      <section className="stats-grid">
+        {cards.map(([title, value, note]) => (
+          <article className="stat-card" key={title}>
+            <div className="stat-label">{title}</div>
+            <div className="stat-value">{value}</div>
+            <div className="stat-note">{note}</div>
+          </article>
+        ))}
+      </section>
+
+      <section className="content-grid">
+        <article className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Trạng thái hệ thống</h2>
+              <p>Các kết nối hiện có trong backend.</p>
+            </div>
+            <WifiOutlined className="panel-icon" />
+          </div>
+
+          <div className="system-list">
+            <div>
+              <span>
+                <span
+                  className={`status-dot ${
+                    health === 'online' ? 'success' : 'danger'
+                  }`}
+                />
+                API Health
+              </span>
+              <strong
+                className={
+                  health === 'online' ? 'text-success' : 'text-danger'
+                }
+              >
+                {health === 'online' ? 'Đang hoạt động' : 'Cần kiểm tra'}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                <span
+                  className={`status-dot ${
+                    socket === 'connected' ? 'success' : 'warning'
+                  }`}
+                />
+                WebSocket /ws/orders
+              </span>
+              <strong>{socketLabel(socket)}</strong>
+            </div>
+
+            <div>
+              <span>
+                <span className="status-dot warning" />
+                CRUD nghiệp vụ
+              </span>
+              <strong className="text-muted">Chưa có endpoint</strong>
+            </div>
+          </div>
+        </article>
+
+        <article className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Order realtime</h2>
+              <p>Sự kiện nhận từ WebSocket.</p>
+            </div>
+            <ShoppingCartOutlined className="panel-icon" />
+          </div>
+
+          {events.length ? (
+            <div className="event-list">
+              {events.map((event) => (
+                <div className="event-item" key={event.id}>
+                  <span>{event.message}</span>
+                  <small>vừa nhận</small>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <DisconnectOutlined />
+              <strong>Chưa có sự kiện</strong>
+              <span>
+                Khi backend broadcast order update, dữ liệu sẽ xuất hiện tại
+                đây.
+              </span>
+            </div>
+          )}
+        </article>
+      </section>
+
+      <section className="implementation-note">
+        <div className="note-icon">i</div>
+        <div>
+          <strong>
+            Frontend đang bám đúng API backend hiện có
+          </strong>
+          <p>
+            Đăng nhập thật qua <code>/api/auth/login</code>, kiểm tra phiên
+            qua <code>/api/auth/me</code>, đăng xuất qua{' '}
+            <code>/api/auth/logout</code> và realtime order qua{' '}
+            <code>/ws/orders</code>. Các module còn lại chưa gọi API giả.
+          </p>
+        </div>
+      </section>
+    </>
+  )
+}
+
+function socketLabel(socket) {
+  if (socket === 'connected') {
+    return 'Đã kết nối'
+  }
+
+  if (socket === 'error') {
+    return 'Lỗi kết nối'
+  }
+
+  return 'Đang kết nối'
+}
+
+function ModulePage({ page }) {
+  const labels = {
+    bookings: [
+      'Đặt bàn',
+      'Quản lý lịch đặt bàn, khung giờ nhận khách và trạng thái bàn.',
+    ],
+    customers: [
+      'Khách hàng',
+      'Quản lý hồ sơ, thông tin liên hệ và lịch sử khách hàng.',
+    ],
+    menu: [
+      'Thực đơn',
+      'Quản lý nhóm món, món ăn, giá và trạng thái còn/hết trong ngày.',
+    ],
+    tables: [
+      'Sơ đồ bàn',
+      'Bàn và mã QR được quản lý theo khu vực.',
+    ],
+    kitchen: [
+      'Màn hình bếp',
+      'Danh sách món đang chờ chế biến trong ca.',
+    ],
+    'daily-menu': [
+      'Món trong ngày',
+      'Danh sách món hiện đang được bán.',
+    ],
+    payments: [
+      'Thanh toán',
+      'Tiếp nhận và xác nhận thanh toán hóa đơn.',
+    ],
+    invoices: [
+      'Hóa đơn',
+      'Tra cứu hóa đơn theo ca làm việc.',
+    ],
+    'shift-close': [
+      'Chốt ca',
+      'Tổng hợp giao dịch trước khi kết thúc ca.',
+    ],
+    'audit-logs': [
+      'Nhật ký thao tác',
+      'Lịch sử đăng nhập và thay đổi dữ liệu.',
+    ],
+    'business-hours': [
+      'Giờ mở cửa',
+      'Cấu hình thời gian hoạt động, khung đặt bàn và ngày nghỉ đặc biệt.',
+    ],
+    orders: [
+      'Đơn hàng',
+      'Theo dõi order theo bàn và tiến độ phục vụ.',
+    ],
+    settings: [
+      'Cài đặt',
+      'Cấu hình các thông tin vận hành của nhà hàng.',
+    ],
+  }
+
+  const [title, description] = labels[page] || ['Tổng quan', '']
+
+  const icons = {
+    bookings: CalendarOutlined,
+    customers: TeamOutlined,
+    orders: ShoppingCartOutlined,
+    'business-hours': SettingOutlined,
+    tables: ApartmentOutlined,
+    kitchen: FireOutlined,
+    'daily-menu': UnorderedListOutlined,
+    payments: CreditCardOutlined,
+    invoices: FileTextOutlined,
+    'shift-close': FieldTimeOutlined,
+  }
+
+  const Icon = icons[page] || SettingOutlined
+
+  return (
+    <section className="module-placeholder">
+      <div className="placeholder-icon">
+        <Icon />
+      </div>
+
+      <p className="eyebrow">MODULE</p>
+      <h1>{title}</h1>
+      <p>{description}</p>
+      <span>
+        UI đã sẵn sàng · Chờ backend cung cấp endpoint nghiệp vụ.
+      </span>
+    </section>
+  )
+}

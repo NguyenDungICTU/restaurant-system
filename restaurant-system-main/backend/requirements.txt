@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+
+sqlalchemy
+alembic
+psycopg2-binary
+
+pydantic
+pydantic-settings
+
+bcrypt
+
+python-multipart
+websockets
+qrcode[pil]
+reportlab
