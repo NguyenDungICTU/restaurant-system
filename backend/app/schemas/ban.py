@@ -34,6 +34,10 @@ class BanResponse(BanPayload):
     updated_at: datetime
 
 
+class BanCodeAvailabilityResponse(BaseModel):
+    available: bool
+    normalized_code: str
+    
 class BanScanResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int

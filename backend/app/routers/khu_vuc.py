@@ -5,15 +5,14 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.dependencies.auth import get_current_user, require_manager
-from app.models.khu_vuc import KhuVuc
 from app.models.ban import Ban
+from app.models.khu_vuc import KhuVuc
 from app.models.nhan_vien import NhanVien
 from app.schemas.khu_vuc import (
     KhuVucCreate,
     KhuVucResponse,
     KhuVucUpdate,
 )
-
 
 router = APIRouter(
     prefix="/api/khu-vuc",
@@ -146,11 +145,20 @@ def update_area(
         payload.ten_khu_vuc,
         excluded_id=area.id,
     )
+    try:
+        for field, value in payload.model_dump().items():
+            setattr(area, field, value)
 
-    for field, value in payload.model_dump().items():
-        setattr(area, field, value)
+        db.commit()
 
-    db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail="Tên khu vực đã tồn tại.",
+        ) from exc
+
     db.refresh(area)
 
     return area
@@ -169,6 +177,7 @@ def deactivate_area(
     db.refresh(area)
 
     return area
+
 
 @router.patch("/{area_id}/kich-hoat", response_model=KhuVucResponse)
 def activate_area(

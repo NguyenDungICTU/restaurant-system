@@ -190,6 +190,16 @@ export async function deleteCategory(categoryId) {
 // ─────────────────────────────────────────────
 // Menu dishes
 // ─────────────────────────────────────────────
+export async function checkTableCode(maBan, excludeId = null) {
+  const response = await api.get('/api/ban/availability', {
+    params: {
+      ma_ban: maBan,
+      ...(excludeId ? { exclude_id: excludeId } : {}),
+    },
+  });
+
+  return response.data;
+}
 
 export async function getDishes(categoryId) {
     const params = categoryId ? { category_id: categoryId } : undefined

@@ -1,41 +1,77 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import shutil
+
+from fastapi import (
+    FastAPI,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
+from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
-
-from app.routers.employees import router as employees_router
-from app.routers.khu_vuc import router as khu_vuc_router
 from app.routers.ban import router as ban_router
-
+from app.routers.employees import (
+    router as employees_router,
+)
+from app.routers.khu_vuc import (
+    router as khu_vuc_router,
+)
+from app.routers.mon_an import (
+    router as mon_an_router,
+)
 from app.routers.nhom_mon import (
     router as nhom_mon_router,
 )
-from app.routers.mon_an import router as mon_an_router
-from app.routers.audit import router as audit_router
+
 
 app = FastAPI(
     title=settings.project_name,
 )
 
-Path("/app/uploads/categories").mkdir(parents=True, exist_ok=True)
-Path("/app/uploads/dishes").mkdir(parents=True, exist_ok=True)
-for default_name in ("default-category.svg", "default-dish.svg"):
-    target = Path("/app/uploads") / default_name
-    source = Path("/app/default-assets") / default_name
+
+Path("/app/uploads/categories").mkdir(
+    parents=True,
+    exist_ok=True,
+)
+
+Path("/app/uploads/dishes").mkdir(
+    parents=True,
+    exist_ok=True,
+)
+
+for default_name in (
+    "default-category.svg",
+    "default-dish.svg",
+):
+    target = (
+        Path("/app/uploads") / default_name
+    )
+
+    source = (
+        Path("/app/default-assets")
+        / default_name
+    )
+
     if not target.exists() and source.exists():
-        shutil.copyfile(source, target)
-app.mount("/media", StaticFiles(directory="/app/uploads"), name="media")
+        shutil.copyfile(
+            source,
+            target,
+        )
+
+
+app.mount(
+    "/media",
+    StaticFiles(directory="/app/uploads"),
+    name="media",
+)
 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.frontend_url,
-    ],
+    allow_origins=settings.frontend_urls,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,11 +79,9 @@ app.add_middleware(
 
 
 app.include_router(auth_router)
-
 app.include_router(employees_router)
 app.include_router(khu_vuc_router)
 app.include_router(ban_router)
-
 app.include_router(nhom_mon_router)
 app.include_router(mon_an_router)
 app.include_router(audit_router)
@@ -56,7 +90,9 @@ app.include_router(audit_router)
 @app.get("/")
 def read_root():
     return {
-        "message": "Welcome to Restaurant System API"
+        "message": (
+            "Welcome to Restaurant System API"
+        )
     }
 
 
@@ -70,7 +106,9 @@ def health_check():
 class ConnectionManager:
 
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        self.active_connections: list[
+            WebSocket
+        ] = []
 
     async def connect(
         self,
@@ -95,10 +133,20 @@ class ConnectionManager:
         self,
         message: str,
     ):
+        disconnected = []
+
         for connection in self.active_connections:
-            await connection.send_text(
-                message
-            )
+            try:
+                await connection.send_text(
+                    message
+                )
+            except Exception:
+                disconnected.append(
+                    connection
+                )
+
+        for connection in disconnected:
+            self.disconnect(connection)
 
 
 manager = ConnectionManager()
@@ -108,18 +156,17 @@ manager = ConnectionManager()
 async def websocket_endpoint(
     websocket: WebSocket,
 ):
-
     await manager.connect(websocket)
 
     try:
         while True:
-
-            data = await websocket.receive_text()
+            data = (
+                await websocket.receive_text()
+            )
 
             await manager.broadcast(
                 f"Order update: {data}"
             )
 
     except WebSocketDisconnect:
-
         manager.disconnect(websocket)
