@@ -201,6 +201,8 @@ export default function Menu() {
         ...dishPayload
       } = payload
 
+      let imageUploadError = null
+
       if (dishModalMode === 'edit') {
         await updateDish(editingDish.id, {
           ...dishPayload,
@@ -208,10 +210,11 @@ export default function Menu() {
         })
 
         if (imageFile) {
-          await uploadDishImage(
-            editingDish.id,
-            imageFile,
-          )
+          try {
+            await uploadDishImage(editingDish.id, imageFile)
+          } catch (error) {
+            imageUploadError = error
+          }
         }
 
         message.success('Đã cập nhật món ăn.')
@@ -219,19 +222,25 @@ export default function Menu() {
         const created = await createDish(dishPayload)
 
         if (imageFile) {
-          await uploadDishImage(
-            created.id,
-            imageFile,
-          )
+          try {
+            await uploadDishImage(created.id, imageFile)
+          } catch (error) {
+            imageUploadError = error
+          }
         }
 
-        message.success('Đã thêm món ăn vào nhóm.')
+        message.success('Đã thêm món ăn.')
       }
 
+      // Always reload the complete dish list, even when the optional image
+      // upload fails. The dish record must never disappear from the dish tab.
+      await loadDishes(false)
       setDishModalOpen(false)
       setEditingDish(null)
 
-      await loadDishes(false)
+      if (imageUploadError) {
+        message.warning(`Món đã được lưu nhưng ảnh chưa tải lên: ${getErrorMessage(imageUploadError, 'kiểm tra định dạng ảnh')}`)
+      }
     } catch (error) {
       message.error(
         getErrorMessage(

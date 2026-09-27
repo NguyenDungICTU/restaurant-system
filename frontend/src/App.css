@@ -209,7 +209,6 @@
   .area-layout {
     grid-template-columns: 1fr;
   }
-}
 
 
 :root {
@@ -226,10 +225,9 @@
   --shadow: 0 8px 30px rgba(54, 38, 27, 0.06);
 }
 
-/* =========================================================
+/* 
    APP SHELL
-   ========================================================= */
-
+    */
 .app-shell {
   display: flex;
   min-height: 100vh;
@@ -719,9 +717,9 @@
   margin-top: 10px;
 }
 
-/* =========================================================
+/* 
    MENU / CATEGORY MANAGEMENT
-   ========================================================= */
+    */
 
 .menu-page {
   width: 100%;
@@ -1039,9 +1037,9 @@
   box-shadow: 0 0 0 3px rgba(159, 47, 39, 0.07);
 }
 
-/* =========================================================
+/* 
    PUBLIC HOME + LOGIN
-   ========================================================= */
+    */
 
 .public-home {
   min-height: 100vh;
@@ -1379,9 +1377,9 @@
   background: #f9ece9;
 }
 
-/* =========================================================
+/* 
    LOGIN PAGE
-   ========================================================= */
+    */
 
 .login-page {
   min-height: 100vh;
@@ -1720,9 +1718,9 @@
   }
 }
 
-/* =========================================================
+/* 
    MENU CATEGORY EXPANSION + IMAGE MANAGEMENT
-   ========================================================= */
+    */
 .category-expand-wrap { border-bottom: 1px solid var(--border); }
 .category-expand-wrap:last-child { border-bottom: 0; }
 .category-row { border-bottom: 0; }
@@ -1771,4 +1769,17 @@
   .dish-row { grid-template-columns: 48px 34px minmax(120px, 1fr) 40px; }
   .dish-row .category-status { display: none; }
 
+}
+/* Patch: fixed-size dish/category media so uploads never stretch the layout. */
+.category-image-thumb { width: 48px !important; height: 40px !important; }
+.category-image-thumb img, .category-image-thumb .ant-image-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dish-image-fixed { width: 72px; height: 56px; border-radius: 9px; overflow: hidden; background: #f2eee9; flex: 0 0 72px; }
+.dish-image-fixed .ant-image, .dish-image-fixed .ant-image-img { width: 100%; height: 100%; }
+.dish-image-fixed img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dish-price-fixed { min-width: 120px; text-align: right; font-weight: 700; color: #8b2d2a; white-space: nowrap; }
+.dish-row { grid-template-columns: 72px 42px minmax(220px, 1fr) 120px 110px 42px !important; }
+.dish-row .category-main small { display: block; margin-top: 4px; color: #918980; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 560px; }
+@media (max-width: 900px) {
+  .dish-row { grid-template-columns: 56px 34px minmax(130px, 1fr) 95px 42px !important; }
+  .dish-row .dish-price-fixed { display: none; }
 }

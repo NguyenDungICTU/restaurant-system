@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.dependencies.auth import require_manager
+from app.dependencies.roles import require_roles
 from app.models.ban import Ban, BanQRToken
 from app.models.khu_vuc import KhuVuc
 from app.schemas.ban import (
@@ -24,6 +25,7 @@ router = APIRouter(
 )
 
 manager = [Depends(require_manager)]
+read_table_roles = [Depends(require_roles("QUAN_LY", "PHUC_VU"))]
 
 
 def get_table(
@@ -104,7 +106,7 @@ def commit(
 @router.get(
     "",
     response_model=list[BanResponse],
-    dependencies=manager,
+    dependencies=read_table_roles,
 )
 def list_tables(
     khu_vuc_id: int | None = None,

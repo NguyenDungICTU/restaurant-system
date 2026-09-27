@@ -1,5 +1,4 @@
 import secrets
-import string
 
 from fastapi import HTTPException, Request
 from sqlalchemy import select, update
@@ -19,11 +18,6 @@ ALLOWED_STATUSES = {"HOAT_DONG", "DA_NGHI"}
 
 
 def generate_temporary_password(length: int = 8) -> str:
-    """Generate exactly 8 cryptographically secure characters.
-
-    Ensure the password contains at least one lowercase letter, uppercase
-    letter and digit while avoiding characters that are easy to confuse.
-    """
     if length != 8:
         raise ValueError("Temporary password length must be exactly 8.")
 
@@ -37,20 +31,27 @@ def generate_temporary_password(length: int = 8) -> str:
         secrets.choice(upper),
         secrets.choice(digits),
     ]
-    chars.extend(secrets.choice(alphabet) for _ in range(length - len(chars)))
+    chars.extend(
+        secrets.choice(alphabet)
+        for _ in range(length - len(chars))
+    )
     secrets.SystemRandom().shuffle(chars)
     return "".join(chars)
 
 
 def username_exists(db: Session, username: str) -> bool:
     return db.scalar(
-        select(NhanVien.id).where(NhanVien.ten_dang_nhap == username)
+        select(NhanVien.id).where(
+            NhanVien.ten_dang_nhap == username
+        )
     ) is not None
 
 
 def phone_exists(db: Session, phone: str) -> bool:
     return db.scalar(
-        select(NhanVien.id).where(NhanVien.so_dien_thoai == phone)
+        select(NhanVien.id).where(
+            NhanVien.so_dien_thoai == phone
+        )
     ) is not None
 
 
@@ -72,7 +73,11 @@ def _audit(
             doi_tuong_id=target_id,
             du_lieu_cu=old_data,
             du_lieu_moi=new_data,
-            ip_address=request.client.host if request.client else None,
+            ip_address=(
+                request.client.host
+                if request.client
+                else None
+            ),
             user_agent=request.headers.get("user-agent"),
         )
     )
@@ -85,20 +90,28 @@ def create_employee(
     manager: NhanVien,
     request: Request,
 ) -> tuple[NhanVien, str]:
-    # Friendly pre-checks. Database unique indexes remain the final guard
-    # against concurrent requests creating the same username/phone.
     if username_exists(db, payload.username):
         raise HTTPException(
             status_code=409,
-            detail={"field": "username", "code": "USERNAME_EXISTS", "message": "Tên đăng nhập đã được sử dụng."},
+            detail={
+                "field": "username",
+                "code": "USERNAME_EXISTS",
+                "message": "Tên đăng nhập đã được sử dụng.",
+            },
         )
+
     if phone_exists(db, payload.phone):
         raise HTTPException(
             status_code=409,
-            detail={"field": "phone", "code": "PHONE_EXISTS", "message": "Số điện thoại đã được sử dụng."},
+            detail={
+                "field": "phone",
+                "code": "PHONE_EXISTS",
+                "message": "Số điện thoại đã được sử dụng.",
+            },
         )
 
     temporary_password = generate_temporary_password()
+
     employee = NhanVien(
         ho_ten=payload.full_name,
         so_dien_thoai=payload.phone,
@@ -106,11 +119,13 @@ def create_employee(
         mat_khau=hash_password(temporary_password),
         vai_tro=payload.role,
         trang_thai=payload.status,
+        su_dung_mat_khau_tam=True,
     )
 
     try:
         db.add(employee)
-        db.flush()  # Obtain id while staying in the same transaction.
+        db.flush()
+
         _audit(
             db,
             actor_id=manager.id,
@@ -123,23 +138,40 @@ def create_employee(
                 "ten_dang_nhap": employee.ten_dang_nhap,
                 "vai_tro": employee.vai_tro,
                 "trang_thai": employee.trang_thai,
+                "su_dung_mat_khau_tam": True,
             },
             request=request,
         )
+
         db.commit()
         db.refresh(employee)
+
     except IntegrityError:
         db.rollback()
-        # Re-check to return a field-level error even under a race.
-        if username_exists(db, payload.username):
-            detail = {"field": "username", "code": "USERNAME_EXISTS", "message": "Tên đăng nhập đã được sử dụng."}
-        elif phone_exists(db, payload.phone):
-            detail = {"field": "phone", "code": "PHONE_EXISTS", "message": "Số điện thoại đã được sử dụng."}
-        else:
-            detail = {"code": "EMPLOYEE_CONFLICT", "message": "Dữ liệu tài khoản bị trùng."}
-        raise HTTPException(status_code=409, detail=detail)
 
-    # Plaintext is never persisted or logged; it exists only in this response.
+        if username_exists(db, payload.username):
+            detail = {
+                "field": "username",
+                "code": "USERNAME_EXISTS",
+                "message": "Tên đăng nhập đã được sử dụng.",
+            }
+        elif phone_exists(db, payload.phone):
+            detail = {
+                "field": "phone",
+                "code": "PHONE_EXISTS",
+                "message": "Số điện thoại đã được sử dụng.",
+            }
+        else:
+            detail = {
+                "code": "EMPLOYEE_CONFLICT",
+                "message": "Dữ liệu tài khoản bị trùng.",
+            }
+
+        raise HTTPException(
+            status_code=409,
+            detail=detail,
+        )
+
     return employee, temporary_password
 
 
@@ -152,27 +184,40 @@ def update_employee_status(
     request: Request,
 ) -> NhanVien:
     if status not in ALLOWED_STATUSES:
-        raise HTTPException(status_code=422, detail="Trạng thái không hợp lệ.")
+        raise HTTPException(
+            status_code=422,
+            detail="Trạng thái không hợp lệ.",
+        )
 
     employee = db.scalar(
-        select(NhanVien).where(NhanVien.id == employee_id).with_for_update()
+        select(NhanVien)
+        .where(NhanVien.id == employee_id)
+        .with_for_update()
     )
-    if employee is None:
-        raise HTTPException(status_code=404, detail="Không tìm thấy nhân viên.")
 
-    # Avoid a manager accidentally disabling their own current account.
+    if employee is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy nhân viên.",
+        )
+
     if employee.id == manager.id and status == "DA_NGHI":
-        raise HTTPException(status_code=400, detail="Không thể tự đặt tài khoản quản lý hiện tại thành đã nghỉ.")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Không thể tự đặt tài khoản quản lý hiện tại "
+                "thành đã nghỉ."
+            ),
+        )
 
     old_status = employee.trang_thai
+
     if old_status == status:
         return employee
 
     employee.trang_thai = status
     now = utc_now()
 
-    # Immediately revoke all active sessions when employment ends.
-    # Audit/history rows are deliberately NOT deleted.
     if status == "DA_NGHI":
         db.execute(
             update(PhienDangNhap)
@@ -192,6 +237,8 @@ def update_employee_status(
         new_data={"trang_thai": status},
         request=request,
     )
+
     db.commit()
     db.refresh(employee)
+
     return employee

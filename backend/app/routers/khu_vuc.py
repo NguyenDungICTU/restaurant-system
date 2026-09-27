@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.dependencies.auth import get_current_user, require_manager
+from app.dependencies.roles import require_roles
 from app.models.ban import Ban
 from app.models.khu_vuc import KhuVuc
 from app.models.nhan_vien import NhanVien
@@ -82,7 +83,7 @@ def get_area_or_404(db: Session, area_id: int) -> KhuVuc:
 @router.get("", response_model=list[KhuVucResponse])
 def list_areas(
     include_inactive: bool = Query(default=True),
-    _: NhanVien = Depends(require_manager),
+    _: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
     db: Session = Depends(get_db),
 ):
     statement = select(KhuVuc)
