@@ -2,32 +2,14 @@ from pydantic import BaseModel, Field
 
 
 class LoginRequest(BaseModel):
-    identifier: str = Field(
-        min_length=1,
-        max_length=100,
-    )
-
-    password: str = Field(
-        min_length=1,
-        max_length=128,
-    )
+    identifier: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1, max_length=128)
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str = Field(
-        min_length=1,
-        max_length=128,
-    )
-
-    new_password: str = Field(
-        min_length=1,
-        max_length=128,
-    )
-
-    confirm_password: str = Field(
-        min_length=1,
-        max_length=128,
-    )
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=1, max_length=128)
+    confirm_password: str = Field(min_length=1, max_length=128)
 
 
 class UserResponse(BaseModel):
@@ -41,6 +23,7 @@ class UserResponse(BaseModel):
 class LoginResponse(BaseModel):
     message: str
     user: UserResponse
+    access_token: str
 
 
 class ChangePasswordResponse(BaseModel):

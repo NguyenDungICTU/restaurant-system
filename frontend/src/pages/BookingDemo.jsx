@@ -7,7 +7,7 @@ import {
   CloseCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons'
-import { cancelBooking, createBooking, getBookings, getOpeningSettings, getRestaurantTables, createRestaurantTable, getAvailableTables, confirmBooking } from '../services/api'
+import { cancelBooking, createBooking, getBookings, getOpeningSettings, getRestaurantTables, getAvailableTables, confirmBooking } from '../services/api'
 import './BookingDemo.css'
 
 const TIME_ZONE = 'Asia/Ho_Chi_Minh'
@@ -99,8 +99,6 @@ export default function BookingDemo() {
   const [note, setNote] = useState('')
   const [result, setResult] = useState(null)
   const [tables, setTables] = useState([])
-  const [tableName, setTableName] = useState("")
-  const [tableSeats, setTableSeats] = useState(2)
   const [assigningId, setAssigningId] = useState(null)
   const [availableTables, setAvailableTables] = useState([])
   const [selectedTableId, setSelectedTableId] = useState("")
@@ -202,29 +200,6 @@ export default function BookingDemo() {
       setResult({ ok: true, message: `Đã hủy yêu cầu #${id}.` })
     } catch (cause) {
       setResult({ ok: false, message: `Không hủy được đơn: ${apiError(cause)}` })
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function addTable() {
-    if (!tableName.trim() || !Number.isInteger(tableSeats) || tableSeats < 1 || tableSeats > 30) {
-      setResult({ ok: false, message: 'Nhập tên bàn và số chỗ từ 1 đến 30.' })
-      return
-    }
-
-    setBusy(true)
-    setResult(null)
-    try {
-      const added = await createRestaurantTable({
-        ten_ban: tableName.trim(),
-        so_cho: tableSeats,
-      })
-      setTables(await getRestaurantTables())
-      setTableName('')
-      setResult({ ok: true, message: `Đã thêm bàn ${added.ten_ban} (${added.so_cho} chỗ).` })
-    } catch (cause) {
-      setResult({ ok: false, message: `Không thêm được bàn: ${apiError(cause)}` })
     } finally {
       setBusy(false)
     }
@@ -353,19 +328,14 @@ export default function BookingDemo() {
       </div>
 
       <Card className="booking-demo-card booking-demo-list" title={`Bàn vật lý (${tables.length})`}>
-        <div className="booking-demo-table-controls">
-          <Input placeholder="Tên bàn (ví dụ: B01)" value={tableName} maxLength={50} onChange={(event) => setTableName(event.target.value)} />
-          <InputNumber min={1} max={30} value={tableSeats} onChange={setTableSeats} style={{ width: 110 }} addonAfter="chỗ" />
-          <Button type="primary" loading={busy} onClick={addTable}>Thêm bàn</Button>
-          <Button disabled={busy} onClick={async () => {
-            try { setTables(await getRestaurantTables()) }
-            catch (cause) { setResult({ ok: false, message: apiError(cause) }) }
-          }}>Tải bàn</Button>
-        </div>
-        <p className="booking-demo-help">Chỉ Quản lý được thêm bàn; Quản lý và Phục vụ được phân bàn. Bàn phải được khai báo trước khi xác nhận đơn.</p>
+        <p className="booking-demo-help">Danh sách bàn được đọc từ chức năng Quản lý bàn. Chỉ Quản lý mới được thêm/sửa/xóa bàn; Phục vụ chỉ xem sơ đồ bàn và phân bàn cho đặt chỗ.</p>
         <div className="booking-demo-table-chips">
-          {tables.map((table) => <Tag key={table.id} color={table.hoat_dong ? 'green' : 'default'}>{table.ten_ban} · {table.so_cho} chỗ{table.hoat_dong ? '' : ' (ngừng dùng)'}</Tag>)}
-          {!tables.length && <span>Chưa có bàn nào. Quản lý hãy thêm bàn.</span>}
+          {tables.map((table) => (
+            <Tag key={table.id} color={table.trang_thai === 'NGUNG_SU_DUNG' ? 'default' : 'green'}>
+              {table.ma_ban} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách
+            </Tag>
+          ))}
+          {!tables.length && <span>Chưa có bàn nào. Quản lý hãy khai báo bàn trước.</span>}
         </div>
       </Card>
 
@@ -388,7 +358,7 @@ export default function BookingDemo() {
                 <div className="booking-demo-assign">
                   <select value={selectedTableId} onChange={(event) => setSelectedTableId(event.target.value)} disabled={busy || !availableTables.length}>
                     <option value="">{availableTables.length ? 'Chọn bàn còn trống' : 'Không có bàn phù hợp'}</option>
-                    {availableTables.map((table) => <option key={table.id} value={table.id}>{table.ten_ban} · {table.so_cho} chỗ</option>)}
+                    {availableTables.map((table) => <option key={table.id} value={table.id}>{table.ten_ban} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách</option>)}
                   </select>
                   <Button type="primary" size="small" disabled={busy || !selectedTableId} loading={busy} onClick={() => assignTable(booking.id)}>Phân bàn & xác nhận</Button>
                 </div>

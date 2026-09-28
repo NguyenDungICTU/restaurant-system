@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.dependencies.auth import get_current_user, require_manager
+from app.dependencies.roles import require_roles
+from app.models.ban import Ban
 from app.models.khu_vuc import KhuVuc
 from app.models.nhan_vien import NhanVien
 from app.schemas.khu_vuc import (
@@ -12,11 +15,33 @@ from app.schemas.khu_vuc import (
     KhuVucUpdate,
 )
 
-
 router = APIRouter(
     prefix="/api/khu-vuc",
     tags=["Khu vực"],
 )
+
+
+@router.delete("/{area_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_area(
+    area_id: int,
+    _: NhanVien = Depends(require_manager),
+    db: Session = Depends(get_db),
+):
+    area = db.scalar(select(KhuVuc).where(KhuVuc.id == area_id).with_for_update())
+    if area is None:
+        raise HTTPException(404, "Không tìm thấy khu vực.")
+    conflict = "Khu vực đang có bàn, chỉ có thể ngừng sử dụng."
+    if db.scalar(select(Ban.id).where(Ban.khu_vuc_id == area_id).limit(1)) is not None:
+        raise HTTPException(409, conflict)
+    try:
+        db.delete(area)
+        db.commit()
+    except IntegrityError as error:
+        db.rollback()
+        if getattr(error.orig, "pgcode", None) == "23503":
+            raise HTTPException(409, conflict) from error
+        raise
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def normalized_name_expression():
@@ -58,7 +83,7 @@ def get_area_or_404(db: Session, area_id: int) -> KhuVuc:
 @router.get("", response_model=list[KhuVucResponse])
 def list_areas(
     include_inactive: bool = Query(default=True),
-    _: NhanVien = Depends(require_manager),
+    _: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
     db: Session = Depends(get_db),
 ):
     statement = select(KhuVuc)
@@ -121,11 +146,20 @@ def update_area(
         payload.ten_khu_vuc,
         excluded_id=area.id,
     )
+    try:
+        for field, value in payload.model_dump().items():
+            setattr(area, field, value)
 
-    for field, value in payload.model_dump().items():
-        setattr(area, field, value)
+        db.commit()
 
-    db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail="Tên khu vực đã tồn tại.",
+        ) from exc
+
     db.refresh(area)
 
     return area
@@ -144,6 +178,7 @@ def deactivate_area(
     db.refresh(area)
 
     return area
+
 
 @router.patch("/{area_id}/kich-hoat", response_model=KhuVucResponse)
 def activate_area(

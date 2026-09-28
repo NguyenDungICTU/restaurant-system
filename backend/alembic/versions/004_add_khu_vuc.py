@@ -1,16 +1,17 @@
 """add khu vuc
 
-Revision ID: 002_add_khu_vuc
-Revises: 001_create_auth_tables
+Revision ID: 003_add_khu_vuc
+Revises: 002_add_menu_categories
 Create Date: 2026-09-24
 """
+
 
 from alembic import op
 import sqlalchemy as sa
 
 
-revision = "002_add_khu_vuc"
-down_revision = "001_create_auth_tables"
+revision = "004_add_khu_vuc"
+down_revision = "003_add_menu_images"
 branch_labels = None
 depends_on = None
 

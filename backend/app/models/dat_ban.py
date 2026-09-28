@@ -48,7 +48,7 @@ class DatBan(Base):
 
     @property
     def ten_ban(self) -> str | None:
-        return self.ban.ten_ban if self.ban else None
+        return self.ban.ma_ban if self.ban else None
 
     ghi_chu: Mapped[str | None] = mapped_column(
         Text, nullable=True

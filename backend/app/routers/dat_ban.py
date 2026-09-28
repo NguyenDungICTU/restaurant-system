@@ -13,8 +13,7 @@ from app.models.dat_ban import DatBan
 from app.models.ban import Ban
 from app.models.lich_hoat_dong import CauHinhDatBan, LichHoatDong, NgayNghiDacBiet
 from app.models.nhan_vien import NhanVien
-from app.schemas.dat_ban import DatBanCreate, DatBanResponse
-from app.schemas.ban import XacNhanDatBan
+from app.schemas.dat_ban import DatBanCreate, DatBanResponse, XacNhanDatBan
 
 router = APIRouter(prefix="/api/dat-ban", tags=["Đặt bàn"])
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
@@ -156,16 +155,16 @@ def lay_ban_trong(
 
     tables = db.scalars(
         select(Ban).where(
-            Ban.hoat_dong.is_(True),
-            Ban.so_cho >= booking.so_luong_khach,
-        ).order_by(Ban.so_cho, Ban.ten_ban)
+            Ban.trang_thai != "NGUNG_SU_DUNG",
+            Ban.suc_chua_toi_da >= booking.so_luong_khach,
+        ).order_by(Ban.suc_chua_toi_da, Ban.ma_ban)
     ).all()
 
     available = [
         {
             "id": table.id,
-            "ten_ban": table.ten_ban,
-            "so_cho": table.so_cho,
+            "ma_ban": table.ma_ban,
+            "suc_chua_toi_da": table.suc_chua_toi_da,
             "khu_vuc_id": table.khu_vuc_id,
         }
         for table in tables
@@ -268,13 +267,10 @@ def xac_nhan_va_phan_ban(
             detail="Giờ đặt không còn phù hợp lịch hoạt động.",
         )
 
-    if not table.hoat_dong:
-        raise HTTPException(
-            status_code=409,
-            detail="Bàn đã ngừng sử dụng.",
-        )
+    if table.trang_thai == "NGUNG_SU_DUNG":
+        raise HTTPException(status_code=409, detail="Bàn đã ngừng sử dụng.")
 
-    if table.so_cho < booking.so_luong_khach:
+    if table.suc_chua_toi_da < booking.so_luong_khach:
         raise HTTPException(
             status_code=409,
             detail="Bàn không đủ số chỗ cho khách.",
@@ -302,6 +298,8 @@ def xac_nhan_va_phan_ban(
 
     booking.ban_id = table.id
     booking.trang_thai = "DA_XAC_NHAN"
+    if table.trang_thai == "TRONG":
+        table.trang_thai = "DA_DAT"
 
     db.commit()
     db.refresh(booking)
@@ -309,7 +307,7 @@ def xac_nhan_va_phan_ban(
     return {
         "id": booking.id,
         "ban_id": table.id,
-        "ten_ban": table.ten_ban,
+        "ma_ban": table.ma_ban,
         "trang_thai": booking.trang_thai,
         "message": "Đã phân bàn và xác nhận đơn thành công.",
     }

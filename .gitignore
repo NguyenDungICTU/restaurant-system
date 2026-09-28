@@ -1,4 +1,4 @@
-.env
+﻿.env
 .env.*
 !.env.example
 
@@ -24,3 +24,24 @@ frontend/dist/
 *.njsproj
 *.sln
 *.sw?
+
+backend.zip
+frontend.zip
+backups
+
+# Local authentication/session cookies
+*.cookies
+*.cookie
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Node
+node_modules/
+dist/

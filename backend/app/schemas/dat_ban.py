@@ -37,3 +37,7 @@ class DatBanResponse(DatBanCreate):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+class XacNhanDatBan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ban_id: int = Field(gt=0)

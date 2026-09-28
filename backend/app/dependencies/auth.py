@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fastapi import Cookie, Depends, HTTPException, Request
+from fastapi import Cookie, Depends, Header, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -19,119 +19,76 @@ TEMP_PASSWORD_ALLOWED_PATHS = {
 }
 
 
-def get_current_user(
+def get_request_session_token(
     request: Request,
-    session_token: str | None = Cookie(
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
         default=None,
         alias=settings.session_cookie_name,
     ),
+) -> str | None:
+    # Bearer token is preferred. The SPA stores it in sessionStorage so each
+    # browser tab can own a different employee session. Cookie remains only as
+    # a backward-compatible fallback for direct API clients.
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+        if token:
+            return token
+    return session_cookie
+
+
+def get_current_user(
+    request: Request,
+    session_token: str | None = Depends(get_request_session_token),
     db: Session = Depends(get_db),
 ) -> NhanVien:
-
     if not session_token:
-        raise HTTPException(
-            status_code=401,
-            detail="SESSION_REQUIRED",
-        )
+        raise HTTPException(status_code=401, detail="SESSION_REQUIRED")
 
-    token_hash = hash_session_token(
-        session_token
-    )
-
+    token_hash = hash_session_token(session_token)
     session = db.scalar(
-        select(PhienDangNhap).where(
-            PhienDangNhap.token_hash == token_hash
-        )
+        select(PhienDangNhap).where(PhienDangNhap.token_hash == token_hash)
     )
 
     if session is None or session.revoked_at is not None:
-        raise HTTPException(
-            status_code=401,
-            detail="SESSION_EXPIRED",
-        )
+        raise HTTPException(status_code=401, detail="SESSION_EXPIRED")
 
     now = utc_now()
+    idle_limit = timedelta(minutes=settings.session_idle_minutes)
 
-    idle_limit = timedelta(
-        minutes=settings.session_idle_minutes
-    )
-
-    if now - session.last_activity_at > idle_limit:
+    if now - session.last_activity_at > idle_limit or session.expires_at <= now:
         session.revoked_at = now
         db.commit()
+        raise HTTPException(status_code=401, detail="SESSION_EXPIRED")
 
-        raise HTTPException(
-            status_code=401,
-            detail="SESSION_EXPIRED",
-        )
-
-    if session.expires_at <= now:
+    employee = db.get(NhanVien, session.nhan_vien_id)
+    if employee is None or employee.trang_thai != "HOAT_DONG":
         session.revoked_at = now
         db.commit()
+        raise HTTPException(status_code=401, detail="SESSION_EXPIRED")
 
-        raise HTTPException(
-            status_code=401,
-            detail="SESSION_EXPIRED",
-        )
-
-    employee = db.get(
-        NhanVien,
-        session.nhan_vien_id,
-    )
-
-    if employee is None:
-        session.revoked_at = now
-        db.commit()
-
-        raise HTTPException(
-            status_code=401,
-            detail="SESSION_EXPIRED",
-        )
-
-    if employee.trang_thai != "HOAT_DONG":
-        session.revoked_at = now
-        db.commit()
-
-        raise HTTPException(
-            status_code=401,
-            detail="SESSION_EXPIRED",
-        )
-
-    # Lát 2: a temporary-password account may only read its own
-    # session state, change the password, or log out.
-    if (
-        employee.su_dung_mat_khau_tam
-        and request.url.path not in TEMP_PASSWORD_ALLOWED_PATHS
-    ):
+    if employee.su_dung_mat_khau_tam and request.url.path not in TEMP_PASSWORD_ALLOWED_PATHS:
         raise HTTPException(
             status_code=403,
             detail={
                 "code": "PASSWORD_CHANGE_REQUIRED",
-                "message": (
-                    "Bạn phải đổi mật khẩu tạm trước khi "
-                    "sử dụng chức năng khác."
-                ),
+                "message": "Bạn phải đổi mật khẩu tạm trước khi sử dụng chức năng khác.",
             },
         )
 
     session.last_activity_at = now
     session.expires_at = now + idle_limit
-
     db.commit()
-
     return employee
 
 
-def require_manager(
-    current_user: NhanVien = Depends(
-        get_current_user
-    ),
-) -> NhanVien:
-
+def require_manager(current_user: NhanVien = Depends(get_current_user)) -> NhanVien:
     if current_user.vai_tro != "QUAN_LY":
         raise HTTPException(
             status_code=403,
-            detail="Bạn không có quyền thực hiện thao tác này.",
+            detail={
+                "code": "FORBIDDEN",
+                "message": "Bạn không có quyền thực hiện thao tác này.",
+            },
         )
-
     return current_user
