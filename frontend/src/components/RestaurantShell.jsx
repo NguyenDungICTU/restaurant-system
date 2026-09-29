@@ -16,6 +16,7 @@ import AuditLogs from '../pages/AuditLogs'
 import Menu from '../pages/Menu'
 import OpeningHoursSettings from '../pages/OpeningHoursSettings'
 import BookingDemo from '../pages/BookingDemo'
+import TodayBookings from '../pages/TodayBookings'
 import RoleWorkspace from '../pages/RoleWorkspace'
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
@@ -151,7 +152,10 @@ export default function RestaurantShell({ user, onLogout }) {
             : page === 'menu-management' ? <Menu />
             : page === 'audit' ? <AuditLogs />
             : page === 'opening-hours' ? <OpeningHoursSettings />
-            : page === 'bookings' ? <BookingDemo />
+            : page === 'bookings'
+              ? role === 'PHUC_VU'
+                ? <TodayBookings />
+                : <BookingDemo />
             : <RoleWorkspace resource={page} />}
         </div>
       </main>

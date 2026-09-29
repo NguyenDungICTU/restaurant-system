@@ -37,6 +37,19 @@ class DatBanResponse(DatBanCreate):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DatBanHomNayResponse(BaseModel):
+    ma_dat_ban: str
+    ho_ten_khach: str
+    so_dien_thoai_da_che: str
+    so_luong_khach: int
+    khung_gio: str
+    ten_ban: str | None = None
+    trang_thai: str
+    sap_den_trong_30_phut: bool
+
+
 class XacNhanDatBan(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

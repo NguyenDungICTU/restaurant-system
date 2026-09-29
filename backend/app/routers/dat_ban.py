@@ -1,9 +1,10 @@
 """Yêu cầu đặt bàn, chưa phân bàn hoặc cam kết còn chỗ."""
 
 from datetime import datetime
+from typing import Literal
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,7 +14,13 @@ from app.models.dat_ban import DatBan
 from app.models.ban import Ban
 from app.models.lich_hoat_dong import CauHinhDatBan, LichHoatDong, NgayNghiDacBiet
 from app.models.nhan_vien import NhanVien
-from app.schemas.dat_ban import DatBanCreate, DatBanResponse, XacNhanDatBan
+from app.schemas.dat_ban import (
+    DatBanCreate,
+    DatBanHomNayResponse,
+    DatBanResponse,
+    XacNhanDatBan,
+)
+from app.services.today_bookings import build_today_booking_list
 
 router = APIRouter(prefix="/api/dat-ban", tags=["Đặt bàn"])
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
@@ -32,6 +39,48 @@ def lay_danh_sach_dat_ban(
         DatBan.ngay_dat.desc(), DatBan.gio_bat_dau.desc(), DatBan.id.desc()
     )
     return list(db.scalars(statement).all())
+
+
+@router.get(
+    "/hom-nay",
+    response_model=list[DatBanHomNayResponse],
+)
+def lay_danh_sach_dat_ban_hom_nay(
+    trang_thai: Literal[
+        "CHO_XAC_NHAN",
+        "DA_XAC_NHAN",
+        "DA_HUY",
+        "KHACH_KHONG_TOI",
+    ]
+    | None = Query(default=None),
+    current_user: NhanVien = Depends(
+        require_roles("QUAN_LY", "PHUC_VU")
+    ),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(VIETNAM_TZ)
+
+    statement = select(DatBan).where(
+        DatBan.ngay_dat == now.date()
+    )
+
+    if trang_thai is not None:
+        statement = statement.where(
+            DatBan.trang_thai == trang_thai
+        )
+
+    statement = statement.order_by(
+        DatBan.gio_bat_dau.asc(),
+        DatBan.id.asc(),
+    )
+
+    rows = list(db.scalars(statement).all())
+
+    return build_today_booking_list(
+        rows,
+        now,
+        trang_thai,
+    )
 
 
 @router.post("", response_model=DatBanResponse, status_code=201)
