@@ -1,4 +1,5 @@
 from datetime import date, datetime, time
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -9,6 +10,7 @@ class DatBanCreate(BaseModel):
     so_luong_khach: int = Field(ge=1, le=30)
     ngay_dat: date
     gio_bat_dau: time
+    khu_vuc_yeu_cau_id: int | None = Field(default=None, gt=0)
     ghi_chu: str | None = Field(default=None, max_length=1000)
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
@@ -34,12 +36,16 @@ class DatBanResponse(DatBanCreate):
     trang_thai: str
     ban_id: int | None = None
     ten_ban: str | None = None
+    ly_do_tu_choi: str | None = None
+    thong_bao_khach: str | None = None
+    thong_bao_gui_luc: datetime | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class DatBanHomNayResponse(BaseModel):
+    id: int
     ma_dat_ban: str
     ho_ten_khach: str
     so_dien_thoai_da_che: str
@@ -48,9 +54,42 @@ class DatBanHomNayResponse(BaseModel):
     ten_ban: str | None = None
     trang_thai: str
     sap_den_trong_30_phut: bool
+    co_the_doi_ban: bool
+    khu_vuc_yeu_cau_id: int | None = None
 
 
 class XacNhanDatBan(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     ban_id: int = Field(gt=0)
+
+
+class TuChoiDatBan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ly_do: Literal[
+        "HET_BAN",
+        "NGOAI_GIO_PHUC_VU",
+        "KHONG_LIEN_LAC_DUOC",
+    ]
+
+
+class DoiBanDatBan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ban_id: int = Field(gt=0)
+
+
+class TraCuuDatBanResponse(BaseModel):
+    ma_dat_ban: str
+    ho_ten_khach: str
+    so_dien_thoai_da_che: str
+    ngay_dat: date
+    gio_bat_dau: time
+    so_luong_khach: int
+    trang_thai: str
+    ten_ban: str | None = None
+    ly_do_tu_choi: str | None = None
+    ly_do_tu_choi_hien_thi: str | None = None
+    thong_bao_khach: str | None = None
+    thong_bao_gui_luc: datetime | None = None

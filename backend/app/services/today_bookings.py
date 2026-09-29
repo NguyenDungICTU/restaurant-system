@@ -36,7 +36,10 @@ def booking_time_range(booking) -> str:
 
 
 def booking_to_staff_view(booking, now: datetime) -> dict:
+    start = booking_start(booking)
+
     return {
+        "id": booking.id,
         "ma_dat_ban": f"DB-{booking.id:06d}",
         "ho_ten_khach": booking.ho_ten_khach,
         "so_dien_thoai_da_che": mask_phone(booking.so_dien_thoai),
@@ -47,6 +50,15 @@ def booking_to_staff_view(booking, now: datetime) -> dict:
         "sap_den_trong_30_phut": is_upcoming_30_minutes(
             booking,
             now,
+        ),
+        "co_the_doi_ban": (
+            booking.trang_thai == "DA_XAC_NHAN"
+            and start > now.astimezone(VIETNAM_TZ)
+        ),
+        "khu_vuc_yeu_cau_id": getattr(
+            booking,
+            "khu_vuc_yeu_cau_id",
+            None,
         ),
     }
 

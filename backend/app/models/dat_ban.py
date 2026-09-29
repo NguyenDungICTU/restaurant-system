@@ -1,4 +1,3 @@
-
 from datetime import date, datetime, time
 
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, Time, func
@@ -43,8 +42,31 @@ class DatBan(Base):
         String(30), nullable=False, default="CHO_XAC_NHAN"
     )
 
-    ban_id: Mapped[int | None] = mapped_column(ForeignKey("ban.id", ondelete="RESTRICT"), nullable=True)
+    ban_id: Mapped[int | None] = mapped_column(
+        ForeignKey("ban.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
     ban: Mapped[Ban | None] = relationship()
+
+    khu_vuc_yeu_cau_id: Mapped[int | None] = mapped_column(
+        ForeignKey("khu_vuc.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    ly_do_tu_choi: Mapped[str | None] = mapped_column(
+        String(40),
+        nullable=True,
+    )
+
+    thong_bao_khach: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    thong_bao_gui_luc: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     @property
     def ten_ban(self) -> str | None:

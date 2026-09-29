@@ -372,6 +372,35 @@ export async function confirmBooking(bookingId, tableId) {
   return response.data
 }
 
+export async function rejectBooking(bookingId, reason) {
+  const response = await api.post(
+    `/api/dat-ban/${bookingId}/tu-choi`,
+    { ly_do: reason },
+  )
+  return response.data
+}
+
+export async function moveBooking(bookingId, tableId) {
+  const response = await api.post(
+    `/api/dat-ban/${bookingId}/doi-ban`,
+    { ban_id: tableId },
+  )
+  return response.data
+}
+
+export async function lookupBooking(bookingCode, phone) {
+  const response = await api.get(
+    '/api/dat-ban/tra-cuu',
+    {
+      params: {
+        ma_dat_ban: bookingCode,
+        so_dien_thoai: phone,
+      },
+    },
+  )
+  return response.data
+}
+
 // Physical tables + QR
 export async function getTables(areaId) {
   const response = await api.get('/api/ban', { params: areaId ? { khu_vuc_id: areaId } : undefined })
