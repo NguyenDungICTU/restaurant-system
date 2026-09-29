@@ -28,6 +28,7 @@ from app.routers.workspace import router as workspace_router
 from app.routers.nhom_mon import (
     router as nhom_mon_router,
 )
+from app.routers.public_menu import router as public_menu_router
 
 
 app = FastAPI(
@@ -86,6 +87,7 @@ app.include_router(employees_router)
 app.include_router(khu_vuc_router)
 app.include_router(ban_router)
 app.include_router(nhom_mon_router)
+app.include_router(public_menu_router)
 app.include_router(mon_an_router)
 app.include_router(dat_ban_router)
 app.include_router(lich_hoat_dong_router)

@@ -4,7 +4,8 @@ import ImageField from './ImageField'
 
 const STATUS_OPTIONS = [
   { value: 'DANG_BAN', label: 'Đang bán' },
-  { value: 'TAM_NGUNG', label: 'Tạm ngừng' },
+  { value: 'TAM_HET', label: 'Tạm hết hôm nay' },
+  { value: 'NGUNG_BAN', label: 'Ngừng bán' },
 ]
 
 export default function DishFormModal({ open, mode = 'create', dish = null, categories = [], loading = false, onCancel, onSubmit }) {
