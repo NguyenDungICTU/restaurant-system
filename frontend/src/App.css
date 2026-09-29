@@ -1783,3 +1783,5 @@
   .dish-row { grid-template-columns: 56px 34px minmax(130px, 1fr) 95px 42px !important; }
   .dish-row .dish-price-fixed { display: none; }
 }
+
+.button-link{border:0;background:transparent;cursor:pointer;padding:0}
