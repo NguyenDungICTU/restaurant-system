@@ -2,7 +2,7 @@ import { DeleteOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Empty, Image, Skeleton, Tag } from 'antd'
 import { getMediaUrl } from '../../services/api'
 
-const STATUS_LABELS = { DANG_BAN: 'Đang bán', TAM_NGUNG: 'Tạm ngừng' }
+const STATUS_LABELS = { DANG_BAN: 'Đang bán', TAM_HET: 'Tạm hết', NGUNG_BAN: 'Ngừng bán', TAM_NGUNG: 'Tạm ngừng' }
 
 export default function DishList({ dishes, loading, categories, onEdit, onDelete }) {
   if (loading) return <div className="menu-category-list">{[1, 2, 3].map((item) => <div className="category-skeleton" key={item}><Skeleton active paragraph={{ rows: 1 }} /></div>)}</div>
@@ -22,7 +22,7 @@ export default function DishList({ dishes, loading, categories, onEdit, onDelete
             {dish.mo_ta_ngan && <small>{dish.mo_ta_ngan}</small>}
           </div>
           <div className="dish-price-fixed">{Number(dish.gia || 0).toLocaleString('vi-VN')} đ</div>
-          <div className="category-status"><Tag color={dish.trang_thai === 'DANG_BAN' ? 'green' : 'default'}>{STATUS_LABELS[dish.trang_thai] || dish.trang_thai}</Tag></div>
+          <div className="category-status"><Tag color={dish.trang_thai === 'DANG_BAN' ? 'green' : dish.trang_thai === 'TAM_HET' ? 'orange' : 'default'}>{STATUS_LABELS[dish.trang_thai] || dish.trang_thai}</Tag></div>
           <Dropdown menu={{ items: [{ key: 'edit', label: 'Chỉnh sửa', icon: <EditOutlined /> }, { type: 'divider' }, { key: 'delete', label: 'Xóa món ăn', icon: <DeleteOutlined />, danger: true }], onClick: ({ key }) => { if (key === 'edit') onEdit(dish); if (key === 'delete') onDelete(dish) } }} trigger={['click']}>
             <Button type="text" icon={<MoreOutlined />} />
           </Dropdown>
