@@ -5,7 +5,7 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
@@ -235,7 +235,13 @@ def tao_yeu_cau_dat_ban(
             detail=f"Không đủ {duration} phút giữ bàn trước giờ đóng cửa.",
         )
 
+    next_id = db.scalar(
+        select(func.nextval("dat_ban_id_seq"))
+    )
+
     booking = DatBan(
+        id=next_id,
+        ma_dat_ban=f"{next_id:06d}",
         ho_ten_khach=payload.ho_ten_khach,
         so_dien_thoai=payload.so_dien_thoai,
         so_luong_khach=payload.so_luong_khach,

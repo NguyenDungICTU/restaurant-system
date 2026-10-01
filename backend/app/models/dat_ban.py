@@ -14,6 +14,10 @@ class DatBan(Base):
         Integer, primary_key=True, autoincrement=True
     )
 
+    ma_dat_ban: Mapped[str] = mapped_column(
+        String(6), nullable=False, unique=True
+    )
+
     ho_ten_khach: Mapped[str] = mapped_column(
         String(100), nullable=False
     )
@@ -49,7 +53,8 @@ class DatBan(Base):
     ban: Mapped[Ban | None] = relationship()
 
     khu_vuc_yeu_cau_id: Mapped[int | None] = mapped_column(
-        ForeignKey("khu_vuc.id", ondelete="SET NULL"),
+        "khu_vuc_id",
+        ForeignKey("khu_vuc.id", ondelete="RESTRICT"),
         nullable=True,
     )
 
@@ -58,15 +63,50 @@ class DatBan(Base):
         nullable=True,
     )
 
-    thong_bao_khach: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    thong_bao_gui_luc: Mapped[datetime | None] = mapped_column(
+    xac_nhan_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
+
+    huy_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    @property
+    def thong_bao_khach(self) -> str | None:
+        value = getattr(self, "_thong_bao_khach", None)
+        if value:
+            return value
+
+        if self.trang_thai == "DA_HUY" and self.ly_do_tu_choi:
+            labels = {
+                "HET_BAN": "Hết bàn",
+                "NGOAI_GIO_PHUC_VU": "Ngoài giờ phục vụ",
+                "KHONG_LIEN_LAC_DUOC": "Không liên lạc được",
+            }
+            reason = labels.get(self.ly_do_tu_choi, self.ly_do_tu_choi)
+            return f"Đặt bàn DB-{self.id:06d} đã bị từ chối. Lý do: {reason}."
+
+        if self.trang_thai == "DA_XAC_NHAN" and self.ten_ban:
+            return f"Đặt bàn DB-{self.id:06d} đã được xác nhận. Bàn: {self.ten_ban}."
+
+        return None
+
+    @thong_bao_khach.setter
+    def thong_bao_khach(self, value: str | None):
+        self._thong_bao_khach = value
+
+    @property
+    def thong_bao_gui_luc(self) -> datetime | None:
+        return self.huy_at if self.trang_thai == "DA_HUY" else self.xac_nhan_at
+
+    @thong_bao_gui_luc.setter
+    def thong_bao_gui_luc(self, value: datetime | None):
+        if self.trang_thai == "DA_HUY":
+            self.huy_at = value
+        else:
+            self.xac_nhan_at = value
 
     @property
     def ten_ban(self) -> str | None:
