@@ -329,6 +329,25 @@ export async function cancelBooking(id) {
   return response.data
 }
 
+// ─────────────────────────────────────────────
+// Đặt bàn công khai cho khách (S2-02)
+// ─────────────────────────────────────────────
+
+export async function getPublicBookingAreas() {
+  const response = await api.get('/api/dat-ban/cong-khai/khu-vuc')
+  return response.data
+}
+
+export async function getPublicTimeSlots(params) {
+  const response = await api.get('/api/dat-ban/cong-khai/khung-gio', { params })
+  return response.data
+}
+
+export async function createPublicBooking(payload) {
+  const response = await api.post('/api/dat-ban/cong-khai', payload)
+  return response.data
+}
+
 // Quản lý bàn vật lý
 export async function getRestaurantTables() {
   const response = await api.get('/api/ban')
