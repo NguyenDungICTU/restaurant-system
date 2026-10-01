@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import ChangePassword from './pages/ChangePassword'
 import QuetQR from './pages/QuetQR'
+import PublicMenu from './pages/PublicMenu'
 import RestaurantShell from './components/RestaurantShell'
 import { getCurrentUser, getSessionToken, logout, setSessionToken } from './services/api'
 import './App.css'
@@ -49,7 +50,8 @@ function AuthenticatedApp() {
   }
 
   if (screen === 'loading') return <div className="app-loading"><div className="loading-mark">R</div><span>Đang mở hệ thống...</span></div>
-  if (screen === 'home') return <Home onLogin={() => setScreen('login')} />
+  if (screen === 'home') return <Home onLogin={() => setScreen('login')} onOpenMenu={() => setScreen('public-menu')} />
+  if (screen === 'public-menu') return <PublicMenu onBack={() => setScreen('home')} />
   if (screen === 'login') return <Login onBack={() => setScreen('home')} onSuccess={openAuthenticatedScreen} />
   if (screen === 'change-password') return <ChangePassword user={user} forced={mustChangePassword(user)} onLogout={signOut} onSuccess={async () => { setSessionToken(null); setUser(null); setScreen('login') }} />
 
