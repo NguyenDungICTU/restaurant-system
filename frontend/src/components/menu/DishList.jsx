@@ -14,7 +14,16 @@ export default function DishList({ dishes, loading, categories, onEdit, onDelete
     <div className="menu-category-list dish-list-fixed">
       {dishes.map((dish) => (
         <article className="category-row dish-row" key={dish.id}>
-          <div className="dish-image-fixed"><Image src={getMediaUrl(dish.anh_url)} alt={dish.ten_mon} preview /></div>
+          <div className="dish-image-fixed">
+            <Image
+              src={getMediaUrl(dish.anh_url)}
+              alt={dish.ten_mon}
+              preview
+              width={120}
+              height={120}
+              style={{ objectFit: 'cover', borderRadius: 16 }}
+            />
+          </div>
           <div className="category-order">{String(dish.id).padStart(2, '0')}</div>
           <div className="category-main">
             <strong>{dish.ten_mon}</strong>

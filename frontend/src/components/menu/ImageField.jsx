@@ -6,7 +6,7 @@ import { getMediaUrl } from '../../services/api'
 export default function ImageField({
   value,
   onChange,
-  label = 'Ảnh mô tả (không bắt buộc)',
+  label = 'Ảnh minh hoạ món ăn (JPG/PNG, tối đa 5MB)',
 }) {
   const [preview, setPreview] = useState(
     typeof value === 'string' ? value : null,
@@ -42,7 +42,7 @@ export default function ImageField({
   const handleFile = (file) => {
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
       return
     }
 
