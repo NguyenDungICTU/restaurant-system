@@ -102,7 +102,7 @@ export default function ImageField({
 
             <input
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
+              accept="image/jpeg,image/png"
               hidden
               onChange={(event) =>
                 handleFile(event.target.files?.[0])
@@ -124,7 +124,7 @@ export default function ImageField({
       </div>
 
       <Typography.Text type="secondary">
-        Tối đa 5 MB. Có thể bỏ qua; hệ thống sẽ dùng ảnh mặc định.
+        Tối đa 5 MB. Chỉ JPG/PNG. Ảnh sẽ tự nén và thu nhỏ trước khi lưu.
       </Typography.Text>
     </div>
   )

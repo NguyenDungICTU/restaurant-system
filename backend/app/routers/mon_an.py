@@ -10,7 +10,7 @@ from app.models.nhan_vien import NhanVien
 from app.models.nhat_ky_thao_tac import NhatKyThaoTac
 from app.models.nhom_mon import NhomMon
 from app.schemas.mon_an import MonAnAvailabilityResponse, MonAnAvailabilityUpdate, MonAnCreate, MonAnResponse, MonAnUpdate
-from app.services.image_service import save_image
+from app.services.image_service import save_image, delete_image
 from app.services.mon_an_service import create_dish, delete_dish, get_dish, update_dish
 from app.services.mon_an_availability_service import reset_expired_temporary_sold_out, set_temporary_sold_out
 
@@ -117,7 +117,10 @@ def update_dish_endpoint(dish_id: int, payload: MonAnUpdate, request: Request, d
 @router.post("/{dish_id}/image", response_model=MonAnResponse)
 async def upload_dish_image(dish_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: NhanVien = Depends(require_manager)):
     dish = get_dish(db, dish_id)
+    old = dish.anh_url
     dish.anh_url = await save_image(file, "dishes")
+    if old != dish.anh_url:
+        delete_image(old)
     db.commit()
     db.refresh(dish)
     return dish_to_dict(dish)

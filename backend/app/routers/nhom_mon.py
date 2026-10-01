@@ -14,7 +14,7 @@ from app.schemas.nhom_mon import (
     NhomMonStatusUpdate,
     NhomMonUpdate,
 )
-from app.services.image_service import save_image
+from app.services.image_service import save_image, delete_image
 from app.services.nhom_mon_service import (
     change_status,
     create_category,
@@ -329,7 +329,10 @@ async def upload_category_image(
     current_user: NhanVien = Depends(require_manager),
 ):
     category = get_category(db, category_id)
+    old = category.anh_url
     category.anh_url = await save_image(file, "categories")
+    if old != category.anh_url:
+        delete_image(old)
     db.commit()
     db.refresh(category)
     return category
