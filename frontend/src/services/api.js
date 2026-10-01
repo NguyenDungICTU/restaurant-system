@@ -245,6 +245,11 @@ export async function getPublicDishes() {
   return response.data
 }
 
+export async function getPublicMenu() {
+  const response = await api.get('/api/menu/public')
+  return response.data
+}
+
 export async function createDish(payload) {
   const response = await api.post('/api/menu/dishes', payload)
   return response.data
