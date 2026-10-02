@@ -50,6 +50,17 @@ services:
       DB_MIGRATION_RETRIES: ${DB_MIGRATION_RETRIES:-12}
       DB_MIGRATION_RETRY_DELAY: ${DB_MIGRATION_RETRY_DELAY:-2}
 
+      # Customer booking lookup/cancellation.
+      # Defaults use the local Mailpit demo service so teammates
+      # can test cancellation emails without personal SMTP credentials.
+      RESTAURANT_PHONE: ${RESTAURANT_PHONE:-0900000000}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-no-reply@restaurant.local}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
+
     ports:
       - "8000:8000"
 
@@ -73,6 +84,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: restaurant-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
 
   frontend:
     build:

@@ -1,14 +1,16 @@
 """Yêu cầu đặt bàn, chưa phân bàn hoặc cam kết còn chỗ."""
 
 import secrets
+import re
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
+from app.core.config import settings
 from app.dependencies.roles import require_roles
 from app.models.dat_ban import DatBan
 from app.models.ban import Ban
@@ -17,17 +19,104 @@ from app.models.lich_hoat_dong import CauHinhDatBan, LichHoatDong, NgayNghiDacBi
 from app.models.nhan_vien import NhanVien
 from app.schemas.dat_ban import (
     DatBanCreate,
+    PublicBookingCreate,
+    PublicBookingLookupResponse,
     DatBanResponse,
     PublicBookingResponse,
     PublicTimeSlot,
     PublicTimeSlotsResponse,
     XacNhanDatBan,
 )
+from app.models.thong_bao import ThongBao
+from app.services.email_service import send_cancellation_email
+
+from collections import defaultdict, deque
+from threading import Lock
+
 
 router = APIRouter(prefix="/api/dat-ban", tags=["Đặt bàn"])
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 MA_DAT_BAN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+# Public booking lookup is intentionally rate-limited per client IP without
+# introducing a new database table/migration. This is suitable for the
+# current single-container deployment.
+_LOOKUP_FAILURES: dict[str, deque[datetime]] = defaultdict(deque)
+_LOOKUP_RATE_LOCK = Lock()
+_LOOKUP_WINDOW_SECONDS = 10 * 60
+_LOOKUP_MAX_FAILURES = 5
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip")
+    return real_ip or (request.client.host if request.client else "unknown")
+
+
+def _is_lookup_blocked(ip: str) -> tuple[bool, int]:
+    now = datetime.now(VIETNAM_TZ)
+    with _LOOKUP_RATE_LOCK:
+        attempts = _LOOKUP_FAILURES[ip]
+        while attempts and (now - attempts[0]).total_seconds() >= _LOOKUP_WINDOW_SECONDS:
+            attempts.popleft()
+        if len(attempts) >= _LOOKUP_MAX_FAILURES:
+            retry = int(_LOOKUP_WINDOW_SECONDS - (now - attempts[0]).total_seconds()) + 1
+            return True, max(retry, 1)
+    return False, 0
+
+
+def _record_lookup_failure(ip: str) -> None:
+    now = datetime.now(VIETNAM_TZ)
+    with _LOOKUP_RATE_LOCK:
+        attempts = _LOOKUP_FAILURES[ip]
+        while attempts and (now - attempts[0]).total_seconds() >= _LOOKUP_WINDOW_SECONDS:
+            attempts.popleft()
+        attempts.append(now)
+
+
+def _clear_lookup_failures(ip: str) -> None:
+    with _LOOKUP_RATE_LOCK:
+        _LOOKUP_FAILURES.pop(ip, None)
+
+
+def _booking_public_view(booking: DatBan) -> PublicBookingLookupResponse:
+    start_at = datetime.combine(booking.ngay_dat, booking.gio_bat_dau, VIETNAM_TZ)
+    remaining = max(int((start_at - datetime.now(VIETNAM_TZ)).total_seconds() // 60), 0)
+    can_cancel = (
+        remaining >= 60
+        and booking.trang_thai in {"CHO_XAC_NHAN", "DA_XAC_NHAN"}
+    )
+    if booking.trang_thai == "DA_HUY":
+        cancel_message = "Đặt bàn đã được huỷ."
+    elif remaining < 60:
+        cancel_message = "Đã dưới 60 phút trước giờ hẹn. Vui lòng gọi trực tiếp cho nhà hàng."
+    elif booking.trang_thai not in {"CHO_XAC_NHAN", "DA_XAC_NHAN"}:
+        cancel_message = "Đặt bàn hiện không thể huỷ trực tuyến."
+    else:
+        cancel_message = None
+
+    return PublicBookingLookupResponse(
+        id=booking.id,
+        ma_dat_ban=booking.ma_dat_ban,
+        ho_ten_khach=booking.ho_ten_khach,
+        so_dien_thoai=booking.so_dien_thoai,
+        email=booking.email,
+        so_luong_khach=booking.so_luong_khach,
+        ngay_dat=booking.ngay_dat,
+        gio_bat_dau=booking.gio_bat_dau,
+        thoi_luong_giu_ban=booking.thoi_luong_giu_ban,
+        trang_thai=booking.trang_thai,
+        ten_khu_vuc=booking.khu_vuc.ten_khu_vuc if booking.khu_vuc else None,
+        ten_ban=booking.ban.ma_ban if booking.ban else None,
+        ghi_chu=booking.ghi_chu,
+        co_the_huy=can_cancel,
+        phut_con_lai=remaining,
+        so_dien_thoai_quan=settings.restaurant_phone or None,
+        thong_bao_huy=cancel_message,
+    )
 
 
 def _minutes(value) -> int:
@@ -279,7 +368,7 @@ def lay_khung_gio_cong_khai(
 
 @router.post("/cong-khai", response_model=PublicBookingResponse, status_code=201)
 def tao_dat_ban_cong_khai(
-    payload: DatBanCreate,
+    payload: PublicBookingCreate,
     db: Session = Depends(get_db),
 ):
     _, duration = _validate_booking_window(
@@ -337,6 +426,7 @@ def tao_dat_ban_cong_khai(
         trang_thai="CHO_XAC_NHAN",
         ghi_chu=payload.ghi_chu,
         khu_vuc_id=payload.khu_vuc_id,
+        email=payload.email,
         ma_dat_ban=_generate_ma_dat_ban(db),
     )
     db.add(booking)
@@ -354,7 +444,181 @@ def tao_dat_ban_cong_khai(
         ten_khu_vuc=ten_khu_vuc,
         ghi_chu=booking.ghi_chu,
         trang_thai=booking.trang_thai,
+        email=booking.email,
+        ten_ban=booking.ten_ban,
     )
+
+
+
+@router.post("/cong-khai/tra-cuu", response_model=PublicBookingLookupResponse)
+def tra_cuu_dat_ban_cong_khai(
+    request: Request,
+    ma_dat_ban: str = Query(default=""),
+    so_dien_thoai: str = Query(default=""),
+    db: Session = Depends(get_db),
+):
+    ip = _client_ip(request)
+    blocked, retry_after = _is_lookup_blocked(ip)
+    if blocked:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Bạn đã tra cứu sai quá 5 lần trong 10 phút. Vui lòng thử lại sau {retry_after} giây.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    normalized_code = ma_dat_ban.strip().upper()
+    normalized_phone = so_dien_thoai.strip()
+    if not re.fullmatch(r"[A-Z0-9]{6}", normalized_code) or not re.fullmatch(r"0\d{9}", normalized_phone):
+        _record_lookup_failure(ip)
+        raise HTTPException(status_code=404, detail="Mã đặt bàn hoặc số điện thoại không chính xác.")
+
+    booking = db.scalar(
+        select(DatBan)
+        .where(
+            DatBan.ma_dat_ban == normalized_code,
+            DatBan.so_dien_thoai == normalized_phone,
+        )
+        .with_for_update(read=True)
+    )
+    if booking is None:
+        _record_lookup_failure(ip)
+        raise HTTPException(
+            status_code=404,
+            detail="Mã đặt bàn hoặc số điện thoại không chính xác.",
+        )
+
+    _clear_lookup_failures(ip)
+    return _booking_public_view(booking)
+
+
+@router.post("/cong-khai/huy", response_model=PublicBookingLookupResponse)
+def huy_dat_ban_cong_khai(
+    request: Request,
+    ma_dat_ban: str = Query(default=""),
+    so_dien_thoai: str = Query(default=""),
+    db: Session = Depends(get_db),
+):
+    ip = _client_ip(request)
+    blocked, retry_after = _is_lookup_blocked(ip)
+    if blocked:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Bạn đã tra cứu sai quá 5 lần trong 10 phút. Vui lòng thử lại sau {retry_after} giây.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    normalized_code = ma_dat_ban.strip().upper()
+    normalized_phone = so_dien_thoai.strip()
+    if not re.fullmatch(r"[A-Z0-9]{6}", normalized_code) or not re.fullmatch(r"0\d{9}", normalized_phone):
+        _record_lookup_failure(ip)
+        raise HTTPException(status_code=404, detail="Mã đặt bàn hoặc số điện thoại không chính xác.")
+
+    booking = db.scalar(
+        select(DatBan)
+        .where(
+            DatBan.ma_dat_ban == normalized_code,
+            DatBan.so_dien_thoai == normalized_phone,
+        )
+        .with_for_update()
+    )
+    if booking is None:
+        _record_lookup_failure(ip)
+        raise HTTPException(
+            status_code=404,
+            detail="Mã đặt bàn hoặc số điện thoại không chính xác.",
+        )
+
+    _clear_lookup_failures(ip)
+
+    start_at = datetime.combine(booking.ngay_dat, booking.gio_bat_dau, VIETNAM_TZ)
+    remaining_minutes = int((start_at - datetime.now(VIETNAM_TZ)).total_seconds() // 60)
+    if remaining_minutes < 60:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Chỉ có thể huỷ trực tuyến khi còn ít nhất 60 phút trước giờ hẹn.",
+                "so_dien_thoai_quan": settings.restaurant_phone or None,
+            },
+        )
+
+    if booking.trang_thai == "DA_HUY":
+        return _booking_public_view(booking)
+    if booking.trang_thai not in {"CHO_XAC_NHAN", "DA_XAC_NHAN"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Đặt bàn hiện không thể huỷ trực tuyến.",
+        )
+
+    old_table = booking.ban
+    booking.trang_thai = "DA_HUY"
+    booking.huy_at = datetime.now(VIETNAM_TZ)
+
+    # A cancelled confirmed booking no longer occupies its assigned table.
+    # Only move DA_DAT -> TRONG; never override a table currently in use.
+    if old_table is not None and old_table.trang_thai == "DA_DAT":
+        other_booking = db.scalar(
+            select(DatBan.id).where(
+                DatBan.id != booking.id,
+                DatBan.ban_id == old_table.id,
+                DatBan.ngay_dat == booking.ngay_dat,
+                DatBan.trang_thai == "DA_XAC_NHAN",
+            ).limit(1)
+        )
+        if other_booking is None:
+            old_table.trang_thai = "TRONG"
+
+    notification = None
+    if booking.email:
+        notification = db.scalar(
+            select(ThongBao).where(
+                ThongBao.dat_ban_id == booking.id,
+                ThongBao.loai == "HUY_DAT_BAN",
+            )
+        )
+        if notification is None:
+            notification = ThongBao(
+                dat_ban_id=booking.id,
+                loai="HUY_DAT_BAN",
+                email=booking.email,
+                trang_thai="DANG_GUI",
+                so_lan_thu=1,
+                lan_thu_cuoi_at=datetime.now(VIETNAM_TZ),
+            )
+            db.add(notification)
+        else:
+            notification.email = booking.email
+            notification.trang_thai = "DANG_GUI"
+            notification.so_lan_thu = min(notification.so_lan_thu + 1, 3)
+            notification.lan_thu_cuoi_at = datetime.now(VIETNAM_TZ)
+
+    db.flush()
+
+    email_ok = True
+    email_error = None
+    if booking.email:
+        email_ok, email_error = send_cancellation_email(
+            to_email=booking.email,
+            booking=booking,
+        )
+        if notification is not None:
+            notification.trang_thai = "DA_GUI" if email_ok else "THAT_BAI"
+            notification.da_gui_at = datetime.now(VIETNAM_TZ) if email_ok else None
+            notification.loi_cuoi = email_error
+            notification.updated_at = datetime.now(VIETNAM_TZ)
+    else:
+        email_ok = False
+        email_error = "Đặt bàn chưa có email."
+
+    db.commit()
+    db.refresh(booking)
+
+    result = _booking_public_view(booking)
+    if not email_ok:
+        result.thong_bao_huy = (
+            "Đã huỷ đặt bàn thành công, nhưng email xác nhận chưa gửi được. "
+            "Nhà hàng sẽ kiểm tra lại."
+        )
+    return result
 
 
 @router.patch("/{booking_id}/huy", response_model=DatBanResponse)

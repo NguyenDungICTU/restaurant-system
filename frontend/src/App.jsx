@@ -20,6 +20,7 @@ export default function App() {
 }
 
 function AuthenticatedApp() {
+  const [publicBookingMode, setPublicBookingMode] = useState('create')
   const [screen, setScreen] = useState('loading')
   const [user, setUser] = useState(null)
 
@@ -51,9 +52,9 @@ function AuthenticatedApp() {
   }
 
   if (screen === 'loading') return <div className="app-loading"><div className="loading-mark">R</div><span>Đang mở hệ thống...</span></div>
-  if (screen === 'home') return <Home onLogin={() => setScreen('login')} onOpenMenu={() => setScreen('public-menu')} onOpenBooking={() => setScreen('public-booking')} />
+  if (screen === 'home') return <Home onLogin={() => setScreen('login')} onOpenMenu={() => setScreen('public-menu')} onOpenBooking={() => { setPublicBookingMode('create'); setScreen('public-booking') }} onOpenLookup={() => { setPublicBookingMode('lookup'); setScreen('public-booking') }} />
   if (screen === 'public-menu') return <PublicMenu onBack={() => setScreen('home')} />
-  if (screen === 'public-booking') return <PublicBooking onBack={() => setScreen('home')} />
+  if (screen === 'public-booking') return <PublicBooking initialMode={publicBookingMode} onBack={() => setScreen('home')} />
   if (screen === 'login') return <Login onBack={() => setScreen('home')} onSuccess={openAuthenticatedScreen} />
   if (screen === 'change-password') return <ChangePassword user={user} forced={mustChangePassword(user)} onLogout={signOut} onSuccess={async () => { setSessionToken(null); setUser(null); setScreen('login') }} />
 
