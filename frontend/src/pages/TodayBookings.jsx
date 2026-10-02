@@ -7,6 +7,7 @@ import {
   Modal,
   Select,
   Space,
+  Select,
   Table,
   Tag,
 } from 'antd'
@@ -23,6 +24,7 @@ import {
   moveBooking,
   rejectBooking,
 } from '../services/api'
+import { getTodayBookings } from '../services/api'
 import './TodayBookings.css'
 
 
@@ -50,6 +52,11 @@ const REJECT_OPTIONS = [
 function errorMessage(error) {
   const detail = error?.response?.data?.detail
   if (typeof detail === 'string') return detail
+function errorMessage(error) {
+  const detail = error?.response?.data?.detail
+
+  if (typeof detail === 'string') return detail
+
   if (Array.isArray(detail)) {
     return detail
       .map((item) => item?.msg || item?.message)
@@ -60,6 +67,12 @@ function errorMessage(error) {
     return detail.message || detail.msg || 'Không thực hiện được thao tác.'
   }
   return error?.message || 'Không thực hiện được thao tác.'
+
+  if (detail && typeof detail === 'object') {
+    return detail.message || detail.msg || 'Không tải được dữ liệu.'
+  }
+
+  return error?.message || 'Không tải được dữ liệu.'
 }
 
 export default function TodayBookings() {
@@ -76,6 +89,7 @@ export default function TodayBookings() {
 
   const [rejectRow, setRejectRow] = useState(null)
   const [rejectReason, setRejectReason] = useState()
+  const [error, setError] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -277,6 +291,10 @@ export default function TodayBookings() {
           </p>
           <h1>Danh sách đặt bàn hôm nay</h1>
           <p>{todayLabel} · Xác nhận, từ chối và phân bàn cho khách.</p>
+            <CalendarOutlined /> S2-05 · PHỤC VỤ
+          </p>
+          <h1>Danh sách đặt bàn hôm nay</h1>
+          <p>{todayLabel} · Sắp xếp theo giờ hẹn và ưu tiên khách sắp tới.</p>
         </div>
 
         <Button icon={<ReloadOutlined />} loading={loading} onClick={load}>
@@ -335,6 +353,7 @@ export default function TodayBookings() {
             loading={loading}
             pagination={false}
             scroll={{ x: 1250 }}
+            scroll={{ x: 980 }}
             rowClassName={(row) =>
               row.sap_den_trong_30_phut
                 ? 'today-bookings-upcoming'

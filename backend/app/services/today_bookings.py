@@ -40,6 +40,7 @@ def booking_to_staff_view(booking, now: datetime) -> dict:
 
     return {
         "id": booking.id,
+    return {
         "ma_dat_ban": f"DB-{booking.id:06d}",
         "ho_ten_khach": booking.ho_ten_khach,
         "so_dien_thoai_da_che": mask_phone(booking.so_dien_thoai),

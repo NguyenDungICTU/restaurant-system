@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 from app.models.ban import Ban
+from app.models.khu_vuc import KhuVuc
 
 
 class DatBan(Base):
@@ -107,6 +108,35 @@ class DatBan(Base):
             self.huy_at = value
         else:
             self.xac_nhan_at = value
+    ma_dat_ban: Mapped[str] = mapped_column(
+        String(6), nullable=False, unique=True
+    )
+
+    email: Mapped[str | None] = mapped_column(
+        String(254), nullable=True
+    )
+
+    khu_vuc_id: Mapped[int | None] = mapped_column(
+        ForeignKey("khu_vuc.id", ondelete="RESTRICT"), nullable=True
+    )
+    khu_vuc: Mapped[KhuVuc | None] = relationship()
+
+    ly_do_tu_choi: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )
+
+    xac_nhan_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    huy_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    khach_toi_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    khong_toi_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     @property
     def ten_ban(self) -> str | None:
