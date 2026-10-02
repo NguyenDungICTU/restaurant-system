@@ -337,6 +337,20 @@ export async function getBookings() {
   return response.data
 }
 
+export async function getTodayBookings(status) {
+  const params =
+    status && status !== 'ALL'
+      ? { trang_thai: status }
+      : undefined
+
+  const response = await api.get(
+    '/api/dat-ban/hom-nay',
+    { params },
+  )
+
+  return response.data
+}
+
 export async function createBooking(payload) {
   const response = await api.post('/api/dat-ban', payload)
   return response.data
