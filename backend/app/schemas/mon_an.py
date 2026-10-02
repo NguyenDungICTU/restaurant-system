@@ -81,3 +81,15 @@ class MonAnResponse(BaseModel):
     anh_url: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class MonAnAvailabilityUpdate(BaseModel):
+    tam_het: bool
+
+
+class MonAnAvailabilityResponse(BaseModel):
+    id: int
+    ten_mon: str
+    trang_thai: str
+    tam_het: bool
+

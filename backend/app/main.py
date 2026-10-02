@@ -1,5 +1,15 @@
+from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
+import asyncio
 import shutil
+from zoneinfo import ZoneInfo
+
+from app.database.session import SessionLocal
+from app.services.mon_an_availability_service import (
+    next_midnight_vietnam,
+    reset_expired_temporary_sold_out,
+)
 
 from fastapi import (
     FastAPI,
@@ -31,8 +41,44 @@ from app.routers.nhom_mon import (
 from app.routers.public_menu import router as public_menu_router
 
 
+async def _temporary_sold_out_reset_loop():
+    timezone = ZoneInfo("Asia/Ho_Chi_Minh")
+    while True:
+        now = datetime.now(timezone)
+        next_midnight = next_midnight_vietnam(now)
+        delay = max((next_midnight - now).total_seconds(), 1)
+        await asyncio.sleep(delay)
+
+        db = SessionLocal()
+        try:
+            reset_expired_temporary_sold_out(db)
+        finally:
+            db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Recover rows if the container was stopped during 00:00.
+    db = SessionLocal()
+    try:
+        reset_expired_temporary_sold_out(db)
+    finally:
+        db.close()
+
+    task = asyncio.create_task(_temporary_sold_out_reset_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
 app = FastAPI(
     title=settings.project_name,
+    lifespan=lifespan,
 )
 
 

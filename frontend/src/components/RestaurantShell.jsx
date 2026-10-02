@@ -17,6 +17,8 @@ import Menu from '../pages/Menu'
 import OpeningHoursSettings from '../pages/OpeningHoursSettings'
 import BookingDemo from '../pages/BookingDemo'
 import RoleWorkspace from '../pages/RoleWorkspace'
+import DailyMenu from '../pages/DailyMenu'
+import OrderEntry from '../pages/OrderEntry'
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
 
@@ -26,6 +28,7 @@ const ROLE_NAVIGATION = {
     { key: 'bookings', label: 'Đặt bàn', icon: CalendarOutlined },
     { key: 'customers', label: 'Khách hàng', icon: TeamOutlined },
     { key: 'menu-management', label: 'Thực đơn', icon: UnorderedListOutlined },
+    { key: 'daily-menu', label: 'Món trong ngày', icon: FireOutlined },
     { key: 'orders', label: 'Đơn hàng', icon: ShoppingCartOutlined },
     { key: 'employees', label: 'Nhân viên', icon: TeamOutlined },
     { key: 'areas', label: 'Khu vực', icon: ApartmentOutlined },
@@ -149,8 +152,10 @@ export default function RestaurantShell({ user, onLogout }) {
             : page === 'areas' ? <KhuVuc />
             : page === 'tables' || page === 'table-map' ? <Ban />
             : page === 'menu-management' ? <Menu />
+            : page === 'daily-menu' ? <DailyMenu />
             : page === 'audit' ? <AuditLogs />
             : page === 'opening-hours' ? <OpeningHoursSettings />
+            : page === 'order-entry' ? <OrderEntry />
             : page === 'bookings' ? <BookingDemo />
             : <RoleWorkspace resource={page} />}
         </div>

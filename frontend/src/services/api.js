@@ -240,6 +240,24 @@ export function getMediaUrl(path) {
   return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
 }
 
+export async function getDailyDishes() {
+  const response = await api.get('/api/menu/dishes/daily')
+  return response.data
+}
+
+export async function getOrderableDishes() {
+  const response = await api.get('/api/menu/dishes/orderable')
+  return response.data
+}
+
+export async function toggleDishTemporarySoldOut(dishId, tamHet) {
+  const response = await api.patch(
+    `/api/menu/dishes/${dishId}/temporary-sold-out`,
+    { tam_het: tamHet },
+  )
+  return response.data
+}
+
 export async function getPublicDishes() {
   const response = await api.get('/api/menu/dishes/public')
   return response.data
