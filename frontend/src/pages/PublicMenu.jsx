@@ -11,7 +11,7 @@ import { Button, Empty, Spin } from 'antd'
 import { getMediaUrl, getPublicMenu } from '../services/api'
 import './PublicMenu.css'
 
-const REFRESH_MS = 15000
+const REFRESH_MS = 3000
 
 function normalizeVietnamese(value = '') {
   return value
@@ -183,7 +183,7 @@ export default function PublicMenu({ onBack }) {
                       >
                         <div className="public-dish-image-wrap">
                           <img src={getMediaUrl(dish.anh_url)} alt={dish.ten_mon} loading="lazy" />
-                          {soldOut && <span className="sold-out-badge">Tạm hết hôm nay</span>}
+                          {soldOut && <span className="sold-out-badge">Tạm hết</span>}
                           {selected && <span className="selected-badge"><CheckOutlined /> Đã chọn</span>}
                         </div>
                         <div className="public-dish-body">
