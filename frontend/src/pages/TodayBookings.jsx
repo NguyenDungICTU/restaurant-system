@@ -4,6 +4,9 @@ import {
   Button,
   Card,
   Empty,
+  Modal,
+  Select,
+  Space,
   Select,
   Table,
   Tag,
@@ -14,6 +17,13 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons'
 
+import {
+  confirmBooking,
+  getAvailableTables,
+  getTodayBookings,
+  moveBooking,
+  rejectBooking,
+} from '../services/api'
 import { getTodayBookings } from '../services/api'
 import './TodayBookings.css'
 
@@ -33,6 +43,15 @@ const STATUS_META = {
   KHACH_KHONG_TOI: { text: 'Khách không tới', color: 'red' },
 }
 
+const REJECT_OPTIONS = [
+  { value: 'HET_BAN', label: 'Hết bàn' },
+  { value: 'NGOAI_GIO_PHUC_VU', label: 'Ngoài giờ phục vụ' },
+  { value: 'KHONG_LIEN_LAC_DUOC', label: 'Không liên lạc được' },
+]
+
+function errorMessage(error) {
+  const detail = error?.response?.data?.detail
+  if (typeof detail === 'string') return detail
 function errorMessage(error) {
   const detail = error?.response?.data?.detail
 
@@ -44,6 +63,10 @@ function errorMessage(error) {
       .filter(Boolean)
       .join('; ')
   }
+  if (detail && typeof detail === 'object') {
+    return detail.message || detail.msg || 'Không thực hiện được thao tác.'
+  }
+  return error?.message || 'Không thực hiện được thao tác.'
 
   if (detail && typeof detail === 'object') {
     return detail.message || detail.msg || 'Không tải được dữ liệu.'
@@ -56,6 +79,16 @@ export default function TodayBookings() {
   const [status, setStatus] = useState('ALL')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState(null)
+
+  const [tableAction, setTableAction] = useState(null)
+  const [tables, setTables] = useState([])
+  const [tableId, setTableId] = useState()
+
+  const [rejectRow, setRejectRow] = useState(null)
+  const [rejectReason, setRejectReason] = useState()
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
@@ -86,6 +119,77 @@ export default function TodayBookings() {
       }).format(new Date()),
     [],
   )
+
+  async function openTableAction(row, mode) {
+    setBusy(true)
+    setNotice(null)
+    setTables([])
+    setTableId(undefined)
+
+    try {
+      const result = await getAvailableTables(row.id)
+      setTables(result.ban_trong || [])
+      setTableAction({ row, mode })
+    } catch (cause) {
+      setNotice({ type: 'error', text: errorMessage(cause) })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function saveTableAction() {
+    if (!tableAction || !tableId) return
+
+    setBusy(true)
+    setNotice(null)
+
+    try {
+      if (tableAction.mode === 'confirm') {
+        await confirmBooking(tableAction.row.id, tableId)
+        setNotice({
+          type: 'success',
+          text: 'Đã xác nhận, phân bàn và tạo thông báo cho khách.',
+        })
+      } else {
+        await moveBooking(tableAction.row.id, tableId)
+        setNotice({
+          type: 'success',
+          text: 'Đã đổi bàn và ghi nhật ký thao tác.',
+        })
+      }
+
+      setTableAction(null)
+      setTableId(undefined)
+      setTables([])
+      await load()
+    } catch (cause) {
+      setNotice({ type: 'error', text: errorMessage(cause) })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function saveReject() {
+    if (!rejectRow || !rejectReason) return
+
+    setBusy(true)
+    setNotice(null)
+
+    try {
+      await rejectBooking(rejectRow.id, rejectReason)
+      setRejectRow(null)
+      setRejectReason(undefined)
+      setNotice({
+        type: 'success',
+        text: 'Đã từ chối. Lý do được lưu để khách tra cứu.',
+      })
+      await load()
+    } catch (cause) {
+      setNotice({ type: 'error', text: errorMessage(cause) })
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const columns = [
     {
@@ -133,6 +237,49 @@ export default function TodayBookings() {
         return <Tag color={meta.color}>{meta.text}</Tag>
       },
     },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      width: 250,
+      render: (_, row) => (
+        <Space wrap>
+          {row.trang_thai === 'CHO_XAC_NHAN' && (
+            <>
+              <Button
+                type="primary"
+                size="small"
+                disabled={busy}
+                onClick={() => openTableAction(row, 'confirm')}
+              >
+                Xác nhận & phân bàn
+              </Button>
+              <Button
+                danger
+                size="small"
+                disabled={busy}
+                onClick={() => {
+                  setRejectRow(row)
+                  setRejectReason(undefined)
+                  setNotice(null)
+                }}
+              >
+                Từ chối
+              </Button>
+            </>
+          )}
+
+          {row.trang_thai === 'DA_XAC_NHAN' && row.co_the_doi_ban && (
+            <Button
+              size="small"
+              disabled={busy}
+              onClick={() => openTableAction(row, 'move')}
+            >
+              Đổi bàn
+            </Button>
+          )}
+        </Space>
+      ),
+    },
   ]
 
   return (
@@ -140,6 +287,10 @@ export default function TodayBookings() {
       <div className="today-bookings-heading">
         <div>
           <p className="today-bookings-eyebrow">
+            <CalendarOutlined /> S2-05 / S2-06 · PHỤC VỤ
+          </p>
+          <h1>Danh sách đặt bàn hôm nay</h1>
+          <p>{todayLabel} · Xác nhận, từ chối và phân bàn cho khách.</p>
             <CalendarOutlined /> S2-05 · PHỤC VỤ
           </p>
           <h1>Danh sách đặt bàn hôm nay</h1>
@@ -150,6 +301,16 @@ export default function TodayBookings() {
           Tải lại
         </Button>
       </div>
+
+      {notice && (
+        <Alert
+          showIcon
+          closable
+          type={notice.type}
+          message={notice.text}
+          onClose={() => setNotice(null)}
+        />
+      )}
 
       <Card className="today-bookings-card">
         <div className="today-bookings-toolbar">
@@ -191,6 +352,7 @@ export default function TodayBookings() {
             rowKey="ma_dat_ban"
             loading={loading}
             pagination={false}
+            scroll={{ x: 1250 }}
             scroll={{ x: 980 }}
             rowClassName={(row) =>
               row.sap_den_trong_30_phut
@@ -200,6 +362,79 @@ export default function TodayBookings() {
           />
         )}
       </Card>
+
+      <Modal
+        open={Boolean(tableAction)}
+        title={
+          tableAction?.mode === 'move'
+            ? `Đổi bàn ${tableAction?.row?.ma_dat_ban || ''}`
+            : `Xác nhận ${tableAction?.row?.ma_dat_ban || ''}`
+        }
+        onCancel={() => {
+          setTableAction(null)
+          setTableId(undefined)
+          setTables([])
+        }}
+        onOk={saveTableAction}
+        okText={
+          tableAction?.mode === 'move'
+            ? 'Đổi bàn'
+            : 'Xác nhận & phân bàn'
+        }
+        cancelText="Hủy"
+        confirmLoading={busy}
+        okButtonProps={{ disabled: !tableId }}
+      >
+        <p>
+          Chỉ hiển thị bàn còn trống trong khung giờ,
+          đủ sức chứa và đúng khu vực yêu cầu nếu có.
+        </p>
+
+        <Select
+          value={tableId}
+          onChange={setTableId}
+          placeholder={
+            tables.length
+              ? 'Chọn bàn phù hợp'
+              : 'Không có bàn phù hợp'
+          }
+          disabled={!tables.length}
+          style={{ width: '100%' }}
+          options={tables.map((table) => ({
+            value: table.id,
+            label: `${table.ma_ban} · ${table.suc_chua_toi_da} chỗ`,
+          }))}
+        />
+      </Modal>
+
+      <Modal
+        open={Boolean(rejectRow)}
+        title={`Từ chối ${rejectRow?.ma_dat_ban || ''}`}
+        onCancel={() => {
+          setRejectRow(null)
+          setRejectReason(undefined)
+        }}
+        onOk={saveReject}
+        okText="Xác nhận từ chối"
+        cancelText="Hủy"
+        confirmLoading={busy}
+        okButtonProps={{
+          danger: true,
+          disabled: !rejectReason,
+        }}
+      >
+        <p>
+          Bắt buộc chọn lý do. Lý do sẽ hiển thị khi khách tra cứu.
+        </p>
+
+        <Select
+          value={rejectReason}
+          onChange={setRejectReason}
+          placeholder="Chọn lý do từ chối"
+          options={REJECT_OPTIONS}
+          style={{ width: '100%' }}
+        />
+      </Modal>
     </section>
   )
 }
