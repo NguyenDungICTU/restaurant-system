@@ -88,3 +88,34 @@
   .booking-code{font-size:36px;letter-spacing:5px}
   .booking-success{padding:34px 16px}
 }
+
+
+.public-booking-tabs{display:flex;gap:8px;background:#f3eee9;border-radius:12px;padding:5px;margin:0 0 18px}
+.public-booking-tabs button{flex:1;border:0;background:transparent;color:#756c64;border-radius:9px;padding:12px 14px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+.public-booking-tabs button.active{background:#fff;color:var(--wine);box-shadow:0 3px 12px rgba(32,27,24,.08)}
+
+.lookup-form{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+.lookup-form .ant-btn{height:42px}
+.public-lookup-result{background:#fff;border:1px solid var(--border);border-radius:15px;padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}
+.lookup-result-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:8px}
+.lookup-result-header h2{margin:0;font-size:24px;letter-spacing:2px;color:var(--wine)}
+.lookup-result-header .booking-success-eyebrow{margin-bottom:5px}
+.lookup-cancel-note{display:flex;gap:8px;align-items:flex-start;background:#f1f8f3;border:1px solid #cfe6d8;color:#3e6c50;border-radius:10px;padding:11px 13px;font-size:12px;line-height:1.6;margin:0 0 12px}
+.lookup-cancel-note.warning{background:#fff7e8;border-color:#f2d59d;color:#8a6118}
+.lookup-phone-box{display:flex;gap:10px;align-items:flex-start;background:#fff7e8;border:1px solid #f2d59d;color:#79581f;border-radius:10px;padding:13px;font-size:12px;line-height:1.6}
+.lookup-phone-box strong{display:block;margin-top:2px;font-size:14px;color:#5d4315}
+.booking-history-list{display:grid;gap:8px}
+.booking-history-item{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #eee8e2;border-radius:10px;padding:11px 12px;background:#fff}
+.booking-history-item>div:first-child{display:grid;gap:4px}
+.booking-history-item strong{color:var(--wine);letter-spacing:1px}
+.booking-history-item span{font-size:11px;color:var(--muted)}
+.booking-history-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+
+@media(max-width:680px){
+  .lookup-form{grid-template-columns:1fr}
+  .lookup-form .ant-btn{width:100%}
+  .public-booking-tabs{flex-direction:column}
+  .lookup-result-header{align-items:flex-start}
+  .booking-history-item{align-items:flex-start}
+  .booking-history-actions{flex-direction:column}
+}

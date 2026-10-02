@@ -366,6 +366,20 @@ export async function createPublicBooking(payload) {
   return response.data
 }
 
+export async function lookupPublicBooking(maDatBan, soDienThoai) {
+  const response = await api.post('/api/dat-ban/cong-khai/tra-cuu', null, {
+    params: { ma_dat_ban: maDatBan, so_dien_thoai: soDienThoai },
+  })
+  return response.data
+}
+
+export async function cancelPublicBooking(maDatBan, soDienThoai) {
+  const response = await api.post('/api/dat-ban/cong-khai/huy', null, {
+    params: { ma_dat_ban: maDatBan, so_dien_thoai: soDienThoai },
+  })
+  return response.data
+}
+
 // Quản lý bàn vật lý
 export async function getRestaurantTables() {
   const response = await api.get('/api/ban')
