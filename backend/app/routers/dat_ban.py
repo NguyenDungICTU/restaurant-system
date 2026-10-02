@@ -1,48 +1,39 @@
 """Yêu cầu đặt bàn, chưa phân bàn hoặc cam kết còn chỗ."""
 
-from datetime import datetime
-from typing import Literal
-from zoneinfo import ZoneInfo
-
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
-import secrets
-import re
+from collections import defaultdict, deque
 from datetime import date, datetime, time
+import re
+import secrets
+from threading import Lock
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.database.session import get_db
 from app.core.config import settings
+from app.database.session import get_db
 from app.dependencies.roles import require_roles
-from app.models.dat_ban import DatBan
 from app.models.ban import Ban
+from app.models.dat_ban import DatBan
 from app.models.khu_vuc import KhuVuc
 from app.models.lich_hoat_dong import CauHinhDatBan, LichHoatDong, NgayNghiDacBiet
 from app.models.nhan_vien import NhanVien
+from app.models.thong_bao import ThongBao
 from app.schemas.dat_ban import (
     DatBanCreate,
     DatBanHomNayResponse,
     DatBanResponse,
-    XacNhanDatBan,
-)
-from app.services.today_bookings import build_today_booking_list
     PublicBookingCreate,
     PublicBookingLookupResponse,
-    DatBanResponse,
     PublicBookingResponse,
     PublicTimeSlot,
     PublicTimeSlotsResponse,
     XacNhanDatBan,
 )
-from app.models.thong_bao import ThongBao
 from app.services.email_service import send_cancellation_email
-
-from collections import defaultdict, deque
-from threading import Lock
+from app.services.today_bookings import build_today_booking_list
 
 
 router = APIRouter(prefix="/api/dat-ban", tags=["Đặt bàn"])
@@ -50,9 +41,7 @@ VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 MA_DAT_BAN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
-# Public booking lookup is intentionally rate-limited per client IP without
-# introducing a new database table/migration. This is suitable for the
-# current single-container deployment.
+# Rate-limit tra cứu đơn đặt bàn public
 _LOOKUP_FAILURES: dict[str, deque[datetime]] = defaultdict(deque)
 _LOOKUP_RATE_LOCK = Lock()
 _LOOKUP_WINDOW_SECONDS = 10 * 60
@@ -130,7 +119,7 @@ def _booking_public_view(booking: DatBan) -> PublicBookingLookupResponse:
     )
 
 
-def _minutes(value) -> int:
+def _minutes(value: time) -> int:
     return value.hour * 60 + value.minute
 
 
@@ -148,55 +137,6 @@ def _generate_ma_dat_ban(db: Session) -> str:
     )
 
 
-@router.get(
-    "/hom-nay",
-    response_model=list[DatBanHomNayResponse],
-)
-def lay_danh_sach_dat_ban_hom_nay(
-    trang_thai: Literal[
-        "CHO_XAC_NHAN",
-        "DA_XAC_NHAN",
-        "DA_HUY",
-        "KHACH_KHONG_TOI",
-    ]
-    | None = Query(default=None),
-    current_user: NhanVien = Depends(
-        require_roles("QUAN_LY", "PHUC_VU")
-    ),
-    db: Session = Depends(get_db),
-):
-    now = datetime.now(VIETNAM_TZ)
-
-    statement = select(DatBan).where(
-        DatBan.ngay_dat == now.date()
-    )
-
-    if trang_thai is not None:
-        statement = statement.where(
-            DatBan.trang_thai == trang_thai
-        )
-
-    statement = statement.order_by(
-        DatBan.gio_bat_dau.asc(),
-        DatBan.id.asc(),
-    )
-
-    rows = list(db.scalars(statement).all())
-
-    return build_today_booking_list(
-        rows,
-        now,
-        trang_thai,
-    )
-
-
-@router.post("", response_model=DatBanResponse, status_code=201)
-def tao_yeu_cau_dat_ban(
-    payload: DatBanCreate,
-    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
-    db: Session = Depends(get_db),
-):
-    start_at = datetime.combine(payload.ngay_dat, payload.gio_bat_dau, VIETNAM_TZ)
 def _validate_booking_window(
     db: Session,
     ngay_dat: date,
@@ -301,6 +241,48 @@ def _suitable_table_exists(
         )
     ).all()
     return any(table.id not in occupied for table in tables)
+
+
+@router.get(
+    "/hom-nay",
+    response_model=list[DatBanHomNayResponse],
+)
+def lay_danh_sach_dat_ban_hom_nay(
+    trang_thai: Literal[
+        "CHO_XAC_NHAN",
+        "DA_XAC_NHAN",
+        "DA_HUY",
+        "KHACH_KHONG_TOI",
+    ]
+    | None = Query(default=None),
+    current_user: NhanVien = Depends(
+        require_roles("QUAN_LY", "PHUC_VU")
+    ),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(VIETNAM_TZ)
+
+    statement = select(DatBan).where(
+        DatBan.ngay_dat == now.date()
+    )
+
+    if trang_thai is not None:
+        statement = statement.where(
+            DatBan.trang_thai == trang_thai
+        )
+
+    statement = statement.order_by(
+        DatBan.gio_bat_dau.asc(),
+        DatBan.id.asc(),
+    )
+
+    rows = list(db.scalars(statement).all())
+
+    return build_today_booking_list(
+        rows,
+        now,
+        trang_thai,
+    )
 
 
 @router.get("", response_model=list[DatBanResponse])
@@ -505,9 +487,8 @@ def tao_dat_ban_cong_khai(
         ghi_chu=booking.ghi_chu,
         trang_thai=booking.trang_thai,
         email=booking.email,
-        ten_ban=booking.ten_ban,
+        ten_ban=booking.ten_ban if hasattr(booking, "ten_ban") else None,
     )
-
 
 
 @router.post("/cong-khai/tra-cuu", response_model=PublicBookingLookupResponse)
@@ -613,8 +594,6 @@ def huy_dat_ban_cong_khai(
     booking.trang_thai = "DA_HUY"
     booking.huy_at = datetime.now(VIETNAM_TZ)
 
-    # A cancelled confirmed booking no longer occupies its assigned table.
-    # Only move DA_DAT -> TRONG; never override a table currently in use.
     if old_table is not None and old_table.trang_thai == "DA_DAT":
         other_booking = db.scalar(
             select(DatBan.id).where(
@@ -706,7 +685,6 @@ def lay_ban_trong(
     ),
     db: Session = Depends(get_db),
 ):
-
     booking = db.get(DatBan, booking_id)
 
     if booking is None:
@@ -874,9 +852,7 @@ def xac_nhan_va_phan_ban(
 
     for existing in confirmed:
         existing_start = _minutes(existing.gio_bat_dau)
-        existing_end = (
-            existing_start + existing.thoi_luong_giu_ban
-        )
+        existing_end = existing_start + existing.thoi_luong_giu_ban
 
         if existing_start < end and start < existing_end:
             raise HTTPException(
