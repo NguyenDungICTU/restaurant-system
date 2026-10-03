@@ -156,6 +156,7 @@ def lay_ban_trong(
     tables = db.scalars(
         select(Ban).where(
             Ban.trang_thai != "NGUNG_SU_DUNG",
+            Ban.da_cau_hinh.is_(True),
             Ban.suc_chua_toi_da >= booking.so_luong_khach,
         ).order_by(Ban.suc_chua_toi_da, Ban.ma_ban)
     ).all()
@@ -270,7 +271,16 @@ def xac_nhan_va_phan_ban(
     if table.trang_thai == "NGUNG_SU_DUNG":
         raise HTTPException(status_code=409, detail="Bàn đã ngừng sử dụng.")
 
-    if table.suc_chua_toi_da < booking.so_luong_khach:
+    if not table.da_cau_hinh:
+        raise HTTPException(
+            status_code=409,
+            detail="Bàn chưa được cấu hình và chưa thể nhận đặt bàn.",
+        )
+
+    if (
+        table.suc_chua_toi_da is None
+        or table.suc_chua_toi_da < booking.so_luong_khach
+    ):
         raise HTTPException(
             status_code=409,
             detail="Bàn không đủ số chỗ cho khách.",

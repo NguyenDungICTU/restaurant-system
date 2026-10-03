@@ -1785,3 +1785,9 @@
 }
 
 .button-link{border:0;background:transparent;cursor:pointer;padding:0}
+
+.page-content--table-map {
+  width: 100%;
+  max-width: none;
+  padding: 22px 20px 40px;
+}

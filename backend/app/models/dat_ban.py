@@ -45,6 +45,10 @@ class DatBan(Base):
 
     ban_id: Mapped[int | None] = mapped_column(ForeignKey("ban.id", ondelete="RESTRICT"), nullable=True)
     ban: Mapped[Ban | None] = relationship()
+    khach_toi_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     @property
     def ten_ban(self) -> str | None:
