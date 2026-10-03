@@ -1,16 +1,11 @@
 """Yêu cầu đặt bàn, xác nhận, từ chối và phân bàn."""
 
-from datetime import datetime
-from typing import Literal
-from zoneinfo import ZoneInfo
-
-from fastapi import APIRouter, Depends, HTTPException, Query
 from collections import defaultdict, deque
 from datetime import date, datetime, time
-import re
-import secrets
 from threading import Lock
 from typing import Literal
+import re
+import secrets
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -22,18 +17,21 @@ from app.database.session import get_db
 from app.dependencies.roles import require_roles
 from app.models.ban import Ban
 from app.models.dat_ban import DatBan
-from app.models.lich_hoat_dong import CauHinhDatBan, LichHoatDong, NgayNghiDacBiet
-from app.models.nhan_vien import NhanVien
-from app.models.nhat_ky_thao_tac import NhatKyThaoTac
 from app.models.khu_vuc import KhuVuc
 from app.models.lich_hoat_dong import CauHinhDatBan, LichHoatDong, NgayNghiDacBiet
 from app.models.nhan_vien import NhanVien
+from app.models.nhat_ky_thao_tac import NhatKyThaoTac
 from app.models.thong_bao import ThongBao
 from app.schemas.dat_ban import (
     DatBanCreate,
     DatBanHomNayResponse,
     DatBanResponse,
     DoiBanDatBan,
+    PublicBookingCreate,
+    PublicBookingLookupResponse,
+    PublicBookingResponse,
+    PublicTimeSlot,
+    PublicTimeSlotsResponse,
     TraCuuDatBanResponse,
     TuChoiDatBan,
     XacNhanDatBan,
@@ -48,15 +46,11 @@ from app.services.booking_decision import (
     overlaps,
     rejection_message,
 )
-from app.services.today_bookings import build_today_booking_list
-    PublicBookingCreate,
-    PublicBookingLookupResponse,
-    PublicBookingResponse,
-    PublicTimeSlot,
-    PublicTimeSlotsResponse,
-    XacNhanDatBan,
+from app.services.booking_notifications import (
+    CANCELLATION,
+    CONFIRMATION,
+    queue_booking_notification,
 )
-from app.services.email_service import send_cancellation_email
 from app.services.today_bookings import build_today_booking_list
 
 
@@ -106,6 +100,24 @@ def _clear_lookup_failures(ip: str) -> None:
         _LOOKUP_FAILURES.pop(ip, None)
 
 
+def _minutes(value: time) -> int:
+    return value.hour * 60 + value.minute
+
+
+def _generate_ma_dat_ban(db: Session) -> str:
+    for _ in range(20):
+        code = "".join(secrets.choice(MA_DAT_BAN_ALPHABET) for _ in range(6))
+        exists = db.scalar(
+            select(DatBan.id).where(DatBan.ma_dat_ban == code)
+        )
+        if exists is None:
+            return code
+    raise HTTPException(
+        status_code=500,
+        detail="Không tạo được mã đặt bàn. Vui lòng thử lại.",
+    )
+
+
 def _booking_public_view(booking: DatBan) -> PublicBookingLookupResponse:
     start_at = datetime.combine(booking.ngay_dat, booking.gio_bat_dau, VIETNAM_TZ)
     remaining = max(int((start_at - datetime.now(VIETNAM_TZ)).total_seconds() // 60), 0)
@@ -140,11 +152,11 @@ def _booking_public_view(booking: DatBan) -> PublicBookingLookupResponse:
         phut_con_lai=remaining,
         so_dien_thoai_quan=settings.restaurant_phone or None,
         thong_bao_huy=cancel_message,
+        email_xac_nhan_trang_thai=booking.email_xac_nhan_trang_thai,
+        email_xac_nhan_so_lan_thu=booking.email_xac_nhan_so_lan_thu,
+        email_huy_trang_thai=booking.email_huy_trang_thai,
+        email_huy_so_lan_thu=booking.email_huy_so_lan_thu,
     )
-
-
-def _minutes(value) -> int:
-    return minutes(value)
 
 
 def _available_tables(
@@ -225,81 +237,6 @@ def _notify_customer(booking: DatBan, message: str):
     booking.thong_bao_gui_luc = datetime.now(VIETNAM_TZ)
 
 
-@router.get("", response_model=list[DatBanResponse])
-def lay_danh_sach_dat_ban(
-    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
-    db: Session = Depends(get_db),
-):
-    statement = select(DatBan).order_by(
-        DatBan.ngay_dat.desc(),
-        DatBan.gio_bat_dau.desc(),
-        DatBan.id.desc(),
-def _minutes(value: time) -> int:
-    return value.hour * 60 + value.minute
-
-
-def _generate_ma_dat_ban(db: Session) -> str:
-    for _ in range(20):
-        code = "".join(secrets.choice(MA_DAT_BAN_ALPHABET) for _ in range(6))
-        exists = db.scalar(
-            select(DatBan.id).where(DatBan.ma_dat_ban == code)
-        )
-        if exists is None:
-            return code
-    raise HTTPException(
-        status_code=500,
-        detail="Không tạo được mã đặt bàn. Vui lòng thử lại.",
-    )
-
-
-@router.get(
-    "/hom-nay",
-    response_model=list[DatBanHomNayResponse],
-)
-def lay_danh_sach_dat_ban_hom_nay(
-    trang_thai: Literal[
-        "CHO_XAC_NHAN",
-        "DA_XAC_NHAN",
-        "DA_HUY",
-        "KHACH_KHONG_TOI",
-    ]
-    | None = Query(default=None),
-    current_user: NhanVien = Depends(
-        require_roles("QUAN_LY", "PHUC_VU")
-    ),
-    db: Session = Depends(get_db),
-):
-    now = datetime.now(VIETNAM_TZ)
-
-    statement = select(DatBan).where(
-        DatBan.ngay_dat == now.date()
-    )
-
-    if trang_thai is not None:
-        statement = statement.where(
-            DatBan.trang_thai == trang_thai
-        )
-
-    statement = statement.order_by(
-        DatBan.gio_bat_dau.asc(),
-        DatBan.id.asc(),
-    )
-
-    rows = list(db.scalars(statement).all())
-    return build_today_booking_list(rows, now, trang_thai)
-
-
-@router.post("", response_model=DatBanResponse, status_code=201)
-def tao_yeu_cau_dat_ban(
-    payload: DatBanCreate,
-    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
-    db: Session = Depends(get_db),
-):
-    start_at = datetime.combine(
-        payload.ngay_dat,
-        payload.gio_bat_dau,
-        VIETNAM_TZ,
-    )
 def _validate_booking_window(
     db: Session,
     ngay_dat: date,
@@ -361,8 +298,6 @@ def _validate_booking_window(
             detail=f"Không đủ {duration} phút giữ bàn trước giờ đóng cửa.",
         )
 
-    next_id = db.scalar(
-        select(func.nextval("dat_ban_id_seq"))
     return schedule, duration
 
 
@@ -408,6 +343,19 @@ def _suitable_table_exists(
     return any(table.id not in occupied for table in tables)
 
 
+@router.get("", response_model=list[DatBanResponse])
+def lay_danh_sach_dat_ban(
+    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
+    db: Session = Depends(get_db),
+):
+    statement = select(DatBan).order_by(
+        DatBan.ngay_dat.desc(),
+        DatBan.gio_bat_dau.desc(),
+        DatBan.id.desc(),
+    )
+    return list(db.scalars(statement).all())
+
+
 @router.get(
     "/hom-nay",
     response_model=list[DatBanHomNayResponse],
@@ -442,23 +390,7 @@ def lay_danh_sach_dat_ban_hom_nay(
     )
 
     rows = list(db.scalars(statement).all())
-
-    return build_today_booking_list(
-        rows,
-        now,
-        trang_thai,
-    )
-
-
-@router.get("", response_model=list[DatBanResponse])
-def lay_danh_sach_dat_ban(
-    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
-    db: Session = Depends(get_db),
-):
-    statement = select(DatBan).order_by(
-        DatBan.ngay_dat.desc(), DatBan.gio_bat_dau.desc(), DatBan.id.desc()
-    )
-    return list(db.scalars(statement).all())
+    return build_today_booking_list(rows, now, trang_thai)
 
 
 @router.post("", response_model=DatBanResponse, status_code=201)
@@ -472,8 +404,7 @@ def tao_yeu_cau_dat_ban(
     )
 
     booking = DatBan(
-        id=next_id,
-        ma_dat_ban=f"{next_id:06d}",
+        ma_dat_ban=_generate_ma_dat_ban(db),
         ho_ten_khach=payload.ho_ten_khach,
         so_dien_thoai=payload.so_dien_thoai,
         so_luong_khach=payload.so_luong_khach,
@@ -484,9 +415,10 @@ def tao_yeu_cau_dat_ban(
         khu_vuc_yeu_cau_id=payload.khu_vuc_yeu_cau_id,
         ghi_chu=payload.ghi_chu,
         khu_vuc_id=payload.khu_vuc_id,
-        ma_dat_ban=_generate_ma_dat_ban(db),
     )
     db.add(booking)
+    db.flush()
+    queue_booking_notification(db, booking, CONFIRMATION)
     db.commit()
     db.refresh(booking)
     return booking
@@ -640,6 +572,8 @@ def tao_dat_ban_cong_khai(
         ma_dat_ban=_generate_ma_dat_ban(db),
     )
     db.add(booking)
+    db.flush()
+    queue_booking_notification(db, booking, CONFIRMATION)
     db.commit()
     db.refresh(booking)
 
@@ -655,7 +589,7 @@ def tao_dat_ban_cong_khai(
         ghi_chu=booking.ghi_chu,
         trang_thai=booking.trang_thai,
         email=booking.email,
-        ten_ban=booking.ten_ban if hasattr(booking, "ten_ban") else None,
+        ten_ban=booking.ban.ma_ban if booking.ban else None,
     )
 
 
@@ -760,6 +694,7 @@ def huy_dat_ban_cong_khai(
 
     old_table = booking.ban
     booking.trang_thai = "DA_HUY"
+    booking.ly_do_tu_choi = "KHACH_YEU_CAU_HUY"
     booking.huy_at = datetime.now(VIETNAM_TZ)
 
     if old_table is not None and old_table.trang_thai == "DA_DAT":
@@ -774,57 +709,17 @@ def huy_dat_ban_cong_khai(
         if other_booking is None:
             old_table.trang_thai = "TRONG"
 
-    notification = None
-    if booking.email:
-        notification = db.scalar(
-            select(ThongBao).where(
-                ThongBao.dat_ban_id == booking.id,
-                ThongBao.loai == "HUY_DAT_BAN",
-            )
-        )
-        if notification is None:
-            notification = ThongBao(
-                dat_ban_id=booking.id,
-                loai="HUY_DAT_BAN",
-                email=booking.email,
-                trang_thai="DANG_GUI",
-                so_lan_thu=1,
-                lan_thu_cuoi_at=datetime.now(VIETNAM_TZ),
-            )
-            db.add(notification)
-        else:
-            notification.email = booking.email
-            notification.trang_thai = "DANG_GUI"
-            notification.so_lan_thu = min(notification.so_lan_thu + 1, 3)
-            notification.lan_thu_cuoi_at = datetime.now(VIETNAM_TZ)
-
-    db.flush()
-
-    email_ok = True
-    email_error = None
-    if booking.email:
-        email_ok, email_error = send_cancellation_email(
-            to_email=booking.email,
-            booking=booking,
-        )
-        if notification is not None:
-            notification.trang_thai = "DA_GUI" if email_ok else "THAT_BAI"
-            notification.da_gui_at = datetime.now(VIETNAM_TZ) if email_ok else None
-            notification.loi_cuoi = email_error
-            notification.updated_at = datetime.now(VIETNAM_TZ)
-    else:
-        email_ok = False
-        email_error = "Đặt bàn chưa có email."
+    queue_booking_notification(db, booking, CANCELLATION)
 
     db.commit()
     db.refresh(booking)
 
     result = _booking_public_view(booking)
-    if not email_ok:
-        result.thong_bao_huy = (
-            "Đã huỷ đặt bàn thành công, nhưng email xác nhận chưa gửi được. "
-            "Nhà hàng sẽ kiểm tra lại."
-        )
+    result.thong_bao_huy = (
+        "Đã huỷ đặt bàn thành công. Email thông báo đang được hệ thống xử lý."
+        if booking.email
+        else "Đã huỷ đặt bàn thành công. Lượt đặt này không có email để gửi thông báo."
+    )
     return result
 
 
@@ -846,6 +741,9 @@ def huy_yeu_cau_dat_ban(
             detail="Không thể hủy đơn ở trạng thái hiện tại.",
         )
     booking.trang_thai = "DA_HUY"
+    booking.ly_do_tu_choi = "NHA_HANG_HUY"
+    booking.huy_at = datetime.now(VIETNAM_TZ)
+    queue_booking_notification(db, booking, CANCELLATION)
     db.commit()
     db.refresh(booking)
     return booking
@@ -1080,6 +978,8 @@ def tu_choi_dat_ban(
 
     booking.trang_thai = "DA_HUY"
     booking.ly_do_tu_choi = payload.ly_do
+    booking.huy_at = datetime.now(VIETNAM_TZ)
+    queue_booking_notification(db, booking, CANCELLATION)
     _notify_customer(
         booking,
         rejection_message(booking, payload.ly_do),
@@ -1232,14 +1132,14 @@ def tra_cuu_dat_ban_cho_khach(
     phone = booking.so_dien_thoai
 
     return TraCuuDatBanResponse(
-        ma_dat_ban=f"DB-{booking.id:06d}",
+        ma_dat_ban=booking.ma_dat_ban,
         ho_ten_khach=booking.ho_ten_khach,
         so_dien_thoai_da_che=f"{phone[:3]}****{phone[-3:]}",
         ngay_dat=booking.ngay_dat,
         gio_bat_dau=booking.gio_bat_dau,
         so_luong_khach=booking.so_luong_khach,
         trang_thai=booking.trang_thai,
-        ten_ban=booking.ten_ban,
+        ten_ban=booking.ban.ma_ban if booking.ban else None,
         ly_do_tu_choi=booking.ly_do_tu_choi,
         ly_do_tu_choi_hien_thi=(
             REJECTION_REASON_LABELS.get(booking.ly_do_tu_choi)
@@ -1249,5 +1149,3 @@ def tra_cuu_dat_ban_cho_khach(
         thong_bao_khach=booking.thong_bao_khach,
         thong_bao_gui_luc=booking.thong_bao_gui_luc,
     )
-        "message": "Đã phân bàn và xác nhận đơn thành công.",
-    }

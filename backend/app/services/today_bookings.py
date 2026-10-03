@@ -40,7 +40,6 @@ def booking_to_staff_view(booking, now: datetime) -> dict:
 
     return {
         "id": booking.id,
-    return {
         "ma_dat_ban": f"DB-{booking.id:06d}",
         "ho_ten_khach": booking.ho_ten_khach,
         "so_dien_thoai_da_che": mask_phone(booking.so_dien_thoai),
@@ -61,6 +60,15 @@ def booking_to_staff_view(booking, now: datetime) -> dict:
             "khu_vuc_yeu_cau_id",
             None,
         ),
+        "email": booking.email,
+        "email_xac_nhan_trang_thai": booking.email_xac_nhan_trang_thai,
+        "email_xac_nhan_so_lan_thu": booking.email_xac_nhan_so_lan_thu,
+        "email_xac_nhan_gui_luc": booking.email_xac_nhan_gui_luc,
+        "email_xac_nhan_loi_cuoi": booking.email_xac_nhan_loi_cuoi,
+        "email_huy_trang_thai": booking.email_huy_trang_thai,
+        "email_huy_so_lan_thu": booking.email_huy_so_lan_thu,
+        "email_huy_gui_luc": booking.email_huy_gui_luc,
+        "email_huy_loi_cuoi": booking.email_huy_loi_cuoi,
     }
 
 

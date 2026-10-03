@@ -42,6 +42,14 @@ class DatBanResponse(DatBanCreate):
     thong_bao_khach: str | None = None
     thong_bao_gui_luc: datetime | None = None
     email: str | None = None
+    email_xac_nhan_trang_thai: str | None = None
+    email_xac_nhan_so_lan_thu: int = 0
+    email_xac_nhan_gui_luc: datetime | None = None
+    email_xac_nhan_loi_cuoi: str | None = None
+    email_huy_trang_thai: str | None = None
+    email_huy_so_lan_thu: int = 0
+    email_huy_gui_luc: datetime | None = None
+    email_huy_loi_cuoi: str | None = None
     ly_do_tu_choi: str | None = None
     created_at: datetime
 
@@ -60,6 +68,15 @@ class DatBanHomNayResponse(BaseModel):
     sap_den_trong_30_phut: bool
     co_the_doi_ban: bool
     khu_vuc_yeu_cau_id: int | None = None
+    email: str | None = None
+    email_xac_nhan_trang_thai: str | None = None
+    email_xac_nhan_so_lan_thu: int = 0
+    email_xac_nhan_gui_luc: datetime | None = None
+    email_xac_nhan_loi_cuoi: str | None = None
+    email_huy_trang_thai: str | None = None
+    email_huy_so_lan_thu: int = 0
+    email_huy_gui_luc: datetime | None = None
+    email_huy_loi_cuoi: str | None = None
 
 
 class XacNhanDatBan(BaseModel):
@@ -124,6 +141,9 @@ class PublicBookingResponse(BaseModel):
     ghi_chu: str | None = None
     trang_thai: str
     email: str | None = None
+    email_xac_nhan_trang_thai: str | None = None
+    email_xac_nhan_so_lan_thu: int = 0
+    email_huy_trang_thai: str | None = None
     ten_ban: str | None = None
 
 
