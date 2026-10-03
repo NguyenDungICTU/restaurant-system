@@ -7,7 +7,6 @@ import {
   Modal,
   Select,
   Space,
-  Select,
   Table,
   Tag,
 } from 'antd'
@@ -15,6 +14,7 @@ import {
   CalendarOutlined,
   ClockCircleOutlined,
   ReloadOutlined,
+  EyeOutlined,
 } from '@ant-design/icons'
 
 import {
@@ -24,9 +24,7 @@ import {
   moveBooking,
   rejectBooking,
 } from '../services/api'
-import { getTodayBookings } from '../services/api'
 import './TodayBookings.css'
-
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
@@ -51,9 +49,6 @@ const REJECT_OPTIONS = [
 
 function errorMessage(error) {
   const detail = error?.response?.data?.detail
-  if (typeof detail === 'string') return detail
-function errorMessage(error) {
-  const detail = error?.response?.data?.detail
 
   if (typeof detail === 'string') return detail
 
@@ -63,16 +58,12 @@ function errorMessage(error) {
       .filter(Boolean)
       .join('; ')
   }
+
   if (detail && typeof detail === 'object') {
     return detail.message || detail.msg || 'Không thực hiện được thao tác.'
   }
+
   return error?.message || 'Không thực hiện được thao tác.'
-
-  if (detail && typeof detail === 'object') {
-    return detail.message || detail.msg || 'Không tải được dữ liệu.'
-  }
-
-  return error?.message || 'Không tải được dữ liệu.'
 }
 
 export default function TodayBookings() {
@@ -89,7 +80,7 @@ export default function TodayBookings() {
 
   const [rejectRow, setRejectRow] = useState(null)
   const [rejectReason, setRejectReason] = useState()
-  const [error, setError] = useState('')
+  const [detailRow, setDetailRow] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -191,6 +182,14 @@ export default function TodayBookings() {
     }
   }
 
+  function emailStatusMeta(status) {
+    if (status === 'DA_GUI') return { text: 'Đã gửi', color: 'green' }
+    if (status === 'DANG_GUI') return { text: 'Đang gửi', color: 'blue' }
+    if (status === 'THAT_BAI') return { text: 'Thất bại', color: 'red' }
+    if (status === 'CHO_GUI') return { text: 'Chờ gửi', color: 'orange' }
+    return { text: 'Chưa tạo', color: 'default' }
+  }
+
   const columns = [
     {
       title: 'Mã đặt bàn',
@@ -243,6 +242,13 @@ export default function TodayBookings() {
       width: 250,
       render: (_, row) => (
         <Space wrap>
+          <Button
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => setDetailRow(row)}
+          >
+            Chi tiết
+          </Button>
           {row.trang_thai === 'CHO_XAC_NHAN' && (
             <>
               <Button
@@ -291,10 +297,6 @@ export default function TodayBookings() {
           </p>
           <h1>Danh sách đặt bàn hôm nay</h1>
           <p>{todayLabel} · Xác nhận, từ chối và phân bàn cho khách.</p>
-            <CalendarOutlined /> S2-05 · PHỤC VỤ
-          </p>
-          <h1>Danh sách đặt bàn hôm nay</h1>
-          <p>{todayLabel} · Sắp xếp theo giờ hẹn và ưu tiên khách sắp tới.</p>
         </div>
 
         <Button icon={<ReloadOutlined />} loading={loading} onClick={load}>
@@ -353,11 +355,8 @@ export default function TodayBookings() {
             loading={loading}
             pagination={false}
             scroll={{ x: 1250 }}
-            scroll={{ x: 980 }}
             rowClassName={(row) =>
-              row.sap_den_trong_30_phut
-                ? 'today-bookings-upcoming'
-                : ''
+              row.sap_den_trong_30_phut ? 'today-bookings-upcoming' : ''
             }
           />
         )}
@@ -377,26 +376,22 @@ export default function TodayBookings() {
         }}
         onOk={saveTableAction}
         okText={
-          tableAction?.mode === 'move'
-            ? 'Đổi bàn'
-            : 'Xác nhận & phân bàn'
+          tableAction?.mode === 'move' ? 'Đổi bàn' : 'Xác nhận & phân bàn'
         }
         cancelText="Hủy"
         confirmLoading={busy}
         okButtonProps={{ disabled: !tableId }}
       >
         <p>
-          Chỉ hiển thị bàn còn trống trong khung giờ,
-          đủ sức chứa và đúng khu vực yêu cầu nếu có.
+          Chỉ hiển thị bàn còn trống trong khung giờ, đủ sức chứa và đúng khu
+          vực yêu cầu nếu có.
         </p>
 
         <Select
           value={tableId}
           onChange={setTableId}
           placeholder={
-            tables.length
-              ? 'Chọn bàn phù hợp'
-              : 'Không có bàn phù hợp'
+            tables.length ? 'Chọn bàn phù hợp' : 'Không có bàn phù hợp'
           }
           disabled={!tables.length}
           style={{ width: '100%' }}
@@ -405,6 +400,54 @@ export default function TodayBookings() {
             label: `${table.ma_ban} · ${table.suc_chua_toi_da} chỗ`,
           }))}
         />
+      </Modal>
+
+      <Modal
+        open={Boolean(detailRow)}
+        title={`Chi tiết email ${detailRow?.ma_dat_ban || ''}`}
+        footer={null}
+        onCancel={() => setDetailRow(null)}
+      >
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div>
+            <strong>Email khách</strong>
+            <div>{detailRow?.email || 'Không có email'}</div>
+          </div>
+
+          <div>
+            <strong>Email xác nhận đặt bàn</strong>
+            <div>
+              {(() => {
+                const meta = emailStatusMeta(detailRow?.email_xac_nhan_trang_thai)
+                return <Tag color={meta.color}>{meta.text}</Tag>
+              })()}
+              <span> · Lần thử: {detailRow?.email_xac_nhan_so_lan_thu || 0}/3</span>
+            </div>
+            {detailRow?.email_xac_nhan_gui_luc && (
+              <div>Gửi thành công lúc: {new Date(detailRow.email_xac_nhan_gui_luc).toLocaleString('vi-VN')}</div>
+            )}
+            {detailRow?.email_xac_nhan_loi_cuoi && (
+              <div style={{ color: '#b42318' }}>Lỗi cuối: {detailRow.email_xac_nhan_loi_cuoi}</div>
+            )}
+          </div>
+
+          <div>
+            <strong>Email huỷ đặt bàn</strong>
+            <div>
+              {(() => {
+                const meta = emailStatusMeta(detailRow?.email_huy_trang_thai)
+                return <Tag color={meta.color}>{meta.text}</Tag>
+              })()}
+              <span> · Lần thử: {detailRow?.email_huy_so_lan_thu || 0}/3</span>
+            </div>
+            {detailRow?.email_huy_gui_luc && (
+              <div>Gửi thành công lúc: {new Date(detailRow.email_huy_gui_luc).toLocaleString('vi-VN')}</div>
+            )}
+            {detailRow?.email_huy_loi_cuoi && (
+              <div style={{ color: '#b42318' }}>Lỗi cuối: {detailRow.email_huy_loi_cuoi}</div>
+            )}
+          </div>
+        </div>
       </Modal>
 
       <Modal
@@ -423,9 +466,7 @@ export default function TodayBookings() {
           disabled: !rejectReason,
         }}
       >
-        <p>
-          Bắt buộc chọn lý do. Lý do sẽ hiển thị khi khách tra cứu.
-        </p>
+        <p>Bắt buộc chọn lý do. Lý do sẽ hiển thị khi khách tra cứu.</p>
 
         <Select
           value={rejectReason}

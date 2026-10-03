@@ -1,7 +1,7 @@
 from datetime import date, datetime, time
 
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, Time, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from app.database.base import Base
 from app.models.ban import Ban
@@ -53,14 +53,18 @@ class DatBan(Base):
     )
     ban: Mapped[Ban | None] = relationship()
 
-    khu_vuc_yeu_cau_id: Mapped[int | None] = mapped_column(
-        "khu_vuc_id",
+    # The database has one physical column: dat_ban.khu_vuc_id.
+    # The router still uses khu_vuc_yeu_cau_id for backward compatibility,
+    # so expose it as a SQLAlchemy synonym instead of mapping the column twice.
+    khu_vuc_id: Mapped[int | None] = mapped_column(
         ForeignKey("khu_vuc.id", ondelete="RESTRICT"),
         nullable=True,
     )
+    khu_vuc_yeu_cau_id = synonym("khu_vuc_id")
+    khu_vuc: Mapped[KhuVuc | None] = relationship()
 
     ly_do_tu_choi: Mapped[str | None] = mapped_column(
-        String(40),
+        Text,
         nullable=True,
     )
 
@@ -72,6 +76,85 @@ class DatBan(Base):
     huy_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
+    )
+
+    khach_toi_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    khong_toi_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    ghi_chu: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    email: Mapped[str | None] = mapped_column(
+        String(254),
+        nullable=True,
+    )
+
+    thong_bao = relationship(
+        "ThongBao",
+        back_populates="dat_ban",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    def _notification(self, loai: str):
+        for item in self.thong_bao:
+            if item.loai == loai:
+                return item
+        return None
+
+    @property
+    def email_xac_nhan_trang_thai(self) -> str | None:
+        item = self._notification("XAC_NHAN_DAT_BAN")
+        return item.trang_thai if item else None
+
+    @property
+    def email_xac_nhan_so_lan_thu(self) -> int:
+        item = self._notification("XAC_NHAN_DAT_BAN")
+        return item.so_lan_thu if item else 0
+
+    @property
+    def email_xac_nhan_gui_luc(self) -> datetime | None:
+        item = self._notification("XAC_NHAN_DAT_BAN")
+        return item.da_gui_at if item else None
+
+    @property
+    def email_xac_nhan_loi_cuoi(self) -> str | None:
+        item = self._notification("XAC_NHAN_DAT_BAN")
+        return item.loi_cuoi if item else None
+
+    @property
+    def email_huy_trang_thai(self) -> str | None:
+        item = self._notification("HUY_DAT_BAN")
+        return item.trang_thai if item else None
+
+    @property
+    def email_huy_so_lan_thu(self) -> int:
+        item = self._notification("HUY_DAT_BAN")
+        return item.so_lan_thu if item else 0
+
+    @property
+    def email_huy_gui_luc(self) -> datetime | None:
+        item = self._notification("HUY_DAT_BAN")
+        return item.da_gui_at if item else None
+
+    @property
+    def email_huy_loi_cuoi(self) -> str | None:
+        item = self._notification("HUY_DAT_BAN")
+        return item.loi_cuoi if item else None
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
 
     @property
@@ -108,46 +191,7 @@ class DatBan(Base):
             self.huy_at = value
         else:
             self.xac_nhan_at = value
-    ma_dat_ban: Mapped[str] = mapped_column(
-        String(6), nullable=False, unique=True
-    )
-
-    email: Mapped[str | None] = mapped_column(
-        String(254), nullable=True
-    )
-
-    khu_vuc_id: Mapped[int | None] = mapped_column(
-        ForeignKey("khu_vuc.id", ondelete="RESTRICT"), nullable=True
-    )
-    khu_vuc: Mapped[KhuVuc | None] = relationship()
-
-    ly_do_tu_choi: Mapped[str | None] = mapped_column(
-        Text, nullable=True
-    )
-
-    xac_nhan_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    huy_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    khach_toi_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    khong_toi_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
 
     @property
     def ten_ban(self) -> str | None:
         return self.ban.ma_ban if self.ban else None
-
-    ghi_chu: Mapped[str | None] = mapped_column(
-        Text, nullable=True
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False
-    )
