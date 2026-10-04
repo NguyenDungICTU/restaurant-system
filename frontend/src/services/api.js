@@ -268,6 +268,24 @@ export function getMediaUrl(path) {
   return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
 }
 
+export async function getDailyDishes() {
+  const response = await api.get('/api/menu/dishes/daily')
+  return response.data
+}
+
+export async function getOrderableDishes() {
+  const response = await api.get('/api/menu/dishes/orderable')
+  return response.data
+}
+
+export async function toggleDishTemporarySoldOut(dishId, tamHet) {
+  const response = await api.patch(
+    `/api/menu/dishes/${dishId}/temporary-sold-out`,
+    { tam_het: tamHet },
+  )
+  return response.data
+}
+
 export async function getPublicDishes() {
   const response = await api.get('/api/menu/dishes/public')
   return response.data
@@ -349,6 +367,20 @@ export async function getBookings({ signal } = {}) {
   return response.data
 }
 
+export async function getTodayBookings(status) {
+  const params =
+    status && status !== 'ALL'
+      ? { trang_thai: status }
+      : undefined
+
+  const response = await api.get(
+    '/api/dat-ban/hom-nay',
+    { params },
+  )
+
+  return response.data
+}
+
 export async function createBooking(payload) {
   const response = await api.post('/api/dat-ban', payload)
   return response.data
@@ -356,6 +388,39 @@ export async function createBooking(payload) {
 
 export async function cancelBooking(id) {
   const response = await api.patch(`/api/dat-ban/${id}/huy`)
+  return response.data
+}
+
+// ─────────────────────────────────────────────
+// Đặt bàn công khai cho khách (S2-02)
+// ─────────────────────────────────────────────
+
+export async function getPublicBookingAreas() {
+  const response = await api.get('/api/dat-ban/cong-khai/khu-vuc')
+  return response.data
+}
+
+export async function getPublicTimeSlots(params) {
+  const response = await api.get('/api/dat-ban/cong-khai/khung-gio', { params })
+  return response.data
+}
+
+export async function createPublicBooking(payload) {
+  const response = await api.post('/api/dat-ban/cong-khai', payload)
+  return response.data
+}
+
+export async function lookupPublicBooking(maDatBan, soDienThoai) {
+  const response = await api.post('/api/dat-ban/cong-khai/tra-cuu', null, {
+    params: { ma_dat_ban: maDatBan, so_dien_thoai: soDienThoai },
+  })
+  return response.data
+}
+
+export async function cancelPublicBooking(maDatBan, soDienThoai) {
+  const response = await api.post('/api/dat-ban/cong-khai/huy', null, {
+    params: { ma_dat_ban: maDatBan, so_dien_thoai: soDienThoai },
+  })
   return response.data
 }
 
@@ -389,6 +454,35 @@ export async function confirmBooking(bookingId, tableId) {
   const response = await api.post(
     `/api/dat-ban/${bookingId}/xac-nhan`,
     { ban_id: tableId }
+  )
+  return response.data
+}
+
+export async function rejectBooking(bookingId, reason) {
+  const response = await api.post(
+    `/api/dat-ban/${bookingId}/tu-choi`,
+    { ly_do: reason },
+  )
+  return response.data
+}
+
+export async function moveBooking(bookingId, tableId) {
+  const response = await api.post(
+    `/api/dat-ban/${bookingId}/doi-ban`,
+    { ban_id: tableId },
+  )
+  return response.data
+}
+
+export async function lookupBooking(bookingCode, phone) {
+  const response = await api.get(
+    '/api/dat-ban/tra-cuu',
+    {
+      params: {
+        ma_dat_ban: bookingCode,
+        so_dien_thoai: phone,
+      },
+    },
   )
   return response.data
 }

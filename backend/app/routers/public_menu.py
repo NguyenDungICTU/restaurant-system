@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.mon_an import MonAn
 from app.models.nhom_mon import NhomMon
+from app.services.mon_an_availability_service import reset_expired_temporary_sold_out
 from app.schemas.public_menu import PublicMenuCategory, PublicMenuDish, PublicMenuResponse
 
 router = APIRouter(prefix="/api/menu", tags=["Public Menu"])
@@ -12,6 +13,8 @@ router = APIRouter(prefix="/api/menu", tags=["Public Menu"])
 
 @router.get("/public", response_model=PublicMenuResponse)
 def get_public_menu(db: Session = Depends(get_db)):
+    reset_expired_temporary_sold_out(db)
+
     """Public customer menu; no authentication required.
 
     TAM_HET is intentionally kept in the response so the frontend can render

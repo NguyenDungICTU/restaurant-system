@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import ChangePassword from './pages/ChangePassword'
 import QuetQR from './pages/QuetQR'
 import PublicMenu from './pages/PublicMenu'
+import PublicBooking from './pages/PublicBooking'
 import RestaurantShell from './components/RestaurantShell'
 import {
   getCurrentUser,
@@ -28,6 +29,8 @@ function AuthenticatedApp() {
   const [screen, setScreen] = useState(() =>
     getSessionToken() ? 'loading' : 'home'
   )
+  const [publicBookingMode, setPublicBookingMode] = useState('create')
+  const [screen, setScreen] = useState('loading')
   const [user, setUser] = useState(null)
   const [loginNotice, setLoginNotice] = useState('')
 
@@ -87,7 +90,7 @@ function AuthenticatedApp() {
   }
 
   if (screen === 'loading') return <div className="app-loading"><div className="loading-mark">R</div><span>Đang mở hệ thống...</span></div>
-  if (screen === 'home') return <Home onLogin={() => setScreen('login')} onOpenMenu={() => setScreen('public-menu')} />
+  if (screen === 'home') return <Home onLogin={() => setScreen('login')} onOpenMenu={() => setScreen('public-menu')} onOpenBooking={() => { setPublicBookingMode('create'); setScreen('public-booking') }} onOpenLookup={() => { setPublicBookingMode('lookup'); setScreen('public-booking') }} />
   if (screen === 'public-menu') return <PublicMenu onBack={() => setScreen('home')} />
   if (screen === 'login') return <Login
     notice={loginNotice}
@@ -97,6 +100,8 @@ function AuthenticatedApp() {
     }}
     onSuccess={openAuthenticatedScreen}
   />
+  if (screen === 'public-booking') return <PublicBooking initialMode={publicBookingMode} onBack={() => setScreen('home')} />
+  if (screen === 'login') return <Login onBack={() => setScreen('home')} onSuccess={openAuthenticatedScreen} />
   if (screen === 'change-password') return <ChangePassword user={user} forced={mustChangePassword(user)} onLogout={signOut} onSuccess={async () => { setSessionToken(null); setUser(null); setScreen('login') }} />
 
   return <RestaurantShell user={user} onLogout={() => { setUser(null); setScreen('home') }} />
