@@ -30,7 +30,6 @@ function AuthenticatedApp() {
     getSessionToken() ? 'loading' : 'home'
   )
   const [publicBookingMode, setPublicBookingMode] = useState('create')
-  const [screen, setScreen] = useState('loading')
   const [user, setUser] = useState(null)
   const [loginNotice, setLoginNotice] = useState('')
 

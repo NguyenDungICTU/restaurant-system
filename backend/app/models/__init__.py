@@ -14,5 +14,5 @@ __all__ = [
     "Ban", "BanQRToken", "DatBan", "KhuVuc", "LichHoatDong",
     "NgayNghiDacBiet", "CauHinhDatBan", "MonAn", "NhanVien",
     "NhatKyThaoTac", "NhomMon", "PhienDangNhap", "PhienBan",
-    "NhatKyThaoTac", "ThongBao", "NhomMon", "PhienDangNhap",
+    "ThongBao",
 ]

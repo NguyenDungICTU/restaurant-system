@@ -894,6 +894,11 @@ def xac_nhan_va_phan_ban(
         table.suc_chua_toi_da is None
         or table.suc_chua_toi_da < booking.so_luong_khach
     ):
+        raise HTTPException(
+            status_code=409,
+            detail="Bàn không đủ sức chứa cho số khách của đơn đặt bàn.",
+        )
+
     available_ids = {
         candidate.id
         for candidate in _available_tables(db, booking)

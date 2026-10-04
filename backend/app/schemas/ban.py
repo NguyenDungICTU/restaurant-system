@@ -28,7 +28,7 @@ class BanCreateRequest(BaseModel):
 class BanResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    # id: int
+    id: int
     ma_ban: str
     khu_vuc_id: int
     suc_chua_toi_thieu: int | None
