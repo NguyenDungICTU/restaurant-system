@@ -1786,6 +1786,10 @@
 
 .button-link{border:0;background:transparent;cursor:pointer;padding:0}
 
+.page-content--table-map {
+  width: 100%;
+  max-width: none;
+  padding: 22px 20px 40px;
 
 /* S2-08 - Temporary sold-out / daily menu */
 .daily-menu-page,

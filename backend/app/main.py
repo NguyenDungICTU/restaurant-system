@@ -24,6 +24,7 @@ from app.core.config import settings
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
 from app.routers.ban import router as ban_router
+from app.routers.table_map_events import router as table_map_events_router
 from app.routers.employees import (
     router as employees_router,
 )
@@ -135,6 +136,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(employees_router)
 app.include_router(khu_vuc_router)
+app.include_router(table_map_events_router)
 app.include_router(ban_router)
 app.include_router(nhom_mon_router)
 app.include_router(public_menu_router)

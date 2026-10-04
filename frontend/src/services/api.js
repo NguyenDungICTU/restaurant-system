@@ -13,14 +13,36 @@ export const api = axios.create({
 })
 
 const SESSION_KEY = 'restaurant_session_token'
+let sessionExpiryNotified = false
+export const SESSION_EXPIRED_EVENT = 'restaurant:session-expired'
+export const SESSION_ENDING_EVENT = 'restaurant:session-ending'
 
 export function getSessionToken() {
   return sessionStorage.getItem(SESSION_KEY)
 }
 
 export function setSessionToken(token) {
-  if (token) sessionStorage.setItem(SESSION_KEY, token)
-  else sessionStorage.removeItem(SESSION_KEY)
+  if (token) {
+    sessionExpiryNotified = false
+    sessionStorage.setItem(SESSION_KEY, token)
+  } else {
+    sessionStorage.removeItem(SESSION_KEY)
+  }
+}
+
+function notifySessionExpired() {
+  setSessionToken(null)
+  if (sessionExpiryNotified) return
+
+  sessionExpiryNotified = true
+  window.dispatchEvent(
+    new CustomEvent(SESSION_EXPIRED_EVENT, {
+      detail: {
+        message:
+          'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+      },
+    })
+  )
 }
 
 api.interceptors.request.use((config) => {
@@ -36,7 +58,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
-      setSessionToken(null)
+      const requestUrl = error.config?.url?.split('?')[0]
+      if (
+        requestUrl !== '/api/auth/login' &&
+        requestUrl !== '/api/auth/logout'
+      ) {
+        notifySessionExpired()
+      }
     }
     return Promise.reject(error)
   },
@@ -131,8 +159,8 @@ export async function changeEmployeeStatus(employeeId, status) {
 // KHU VỰC - NHÁNH HOANG
 // ─────────────────────────────────────────────
 
-export async function getAreas() {
-  const response = await api.get('/api/khu-vuc')
+export async function getAreas({ signal } = {}) {
+  const response = await api.get('/api/khu-vuc', { signal })
   return response.data
 }
 
@@ -322,8 +350,10 @@ export function createOrderSocket(onMessage, onStatus) {
 // GIỜ MỞ CỬA & ĐẶT BÀN
 // ===============================
 
-export async function getOpeningSettings() {
-  const response = await api.get('/api/lich-hoat-dong/toan-bo')
+export async function getOpeningSettings({ signal } = {}) {
+  const response = await api.get('/api/lich-hoat-dong/toan-bo', {
+    signal,
+  })
   return response.data
 }
 
@@ -332,8 +362,8 @@ export async function saveOpeningSettings(payload) {
   return response.data
 }
 
-export async function getBookings() {
-  const response = await api.get('/api/dat-ban')
+export async function getBookings({ signal } = {}) {
+  const response = await api.get('/api/dat-ban', { signal })
   return response.data
 }
 
@@ -458,12 +488,193 @@ export async function lookupBooking(bookingCode, phone) {
 }
 
 // Physical tables + QR
-export async function getTables(areaId) {
-  const response = await api.get('/api/ban', { params: areaId ? { khu_vuc_id: areaId } : undefined })
+export async function getTables(areaId, { signal } = {}) {
+  const response = await api.get('/api/ban', {
+    params: areaId ? { khu_vuc_id: areaId } : undefined,
+    signal,
+  })
   return response.data
 }
-export async function createTable(payload) {
-  const response = await api.post('/api/ban', payload)
+export async function getTableDetails(tableId, options = {}) {
+  const response = await api.get(`/api/ban/${tableId}`, options)
+  return response.data
+}
+
+export function createTableMapEventStream(onEvent, onStatus) {
+  const controller = new AbortController()
+  const eventUrl = `${API_BASE_URL.replace(/\/$/, '')}/api/ban/events`
+  let retryDelay = 1000
+
+  async function waitBeforeRetry(delay) {
+    await new Promise(resolve => {
+      if (controller.signal.aborted) {
+        resolve()
+        return
+      }
+      function finish() {
+        window.clearTimeout(timer)
+        controller.signal.removeEventListener('abort', finish)
+        resolve()
+      }
+      const timer = window.setTimeout(finish, delay)
+      controller.signal.addEventListener(
+        'abort',
+        finish,
+        { once: true }
+      )
+    })
+  }
+
+  async function readEventStream(response) {
+    const reader = response.body?.getReader()
+    if (!reader) throw new Error('Sự kiện không có luồng dữ liệu.')
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let eventName = 'message'
+    let eventData = []
+    let connectedAt = null
+
+    function dispatchBlock(block) {
+      for (const line of block.replace(/\r/g, '').split('\n')) {
+        if (line.startsWith('event:')) {
+          eventName = line.slice(6).trim()
+        } else if (line.startsWith('data:')) {
+          eventData.push(line.slice(5).trimStart())
+        }
+      }
+
+      if (eventData.length > 0) {
+        const data = JSON.parse(eventData.join('\n'))
+        if (eventName === 'ready') {
+          connectedAt = Date.now()
+          onStatus?.('connected')
+          onEvent?.({ type: 'ready' })
+        } else if (eventName === 'auth-expired') {
+          notifySessionExpired()
+          controller.abort()
+        } else if (eventName === 'forbidden') {
+          onStatus?.('forbidden')
+          controller.abort()
+        } else if (eventName === 'update') {
+          onEvent?.(data)
+        }
+      }
+
+      eventName = 'message'
+      eventData = []
+    }
+
+    while (!controller.signal.aborted) {
+      let heartbeatTimer
+      const heartbeatExpired = Symbol('heartbeat-expired')
+      let result
+      try {
+        result = await Promise.race([
+          reader.read(),
+          new Promise(resolve => {
+            heartbeatTimer = window.setTimeout(
+              () => resolve(heartbeatExpired),
+              45000,
+            )
+          }),
+        ])
+      } finally {
+        window.clearTimeout(heartbeatTimer)
+      }
+      if (result === heartbeatExpired) {
+        await reader.cancel()
+        throw new Error('Luồng sự kiện không phản hồi.')
+      }
+      const { done, value } = result
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+
+      let boundary = buffer.indexOf('\n\n')
+      while (boundary >= 0) {
+        dispatchBlock(buffer.slice(0, boundary))
+        buffer = buffer.slice(boundary + 2)
+        boundary = buffer.indexOf('\n\n')
+      }
+    }
+
+    if (!controller.signal.aborted) {
+      throw new Error('Luồng sự kiện đã đóng.')
+    }
+    return connectedAt
+  }
+
+  async function connect() {
+    while (!controller.signal.aborted) {
+      onStatus?.('connecting')
+      const token = getSessionToken()
+
+      try {
+        const response = await fetch(eventUrl, {
+          headers: {
+            Accept: 'text/event-stream',
+            ...(token
+              ? { Authorization: `Bearer ${token}` }
+              : {}),
+          },
+          credentials: 'include',
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+
+        if (response.status === 401) {
+          notifySessionExpired()
+          return
+        }
+        if (response.status === 403) {
+          onStatus?.('forbidden')
+          return
+        }
+        if (!response.ok) {
+          throw new Error(`Event stream returned ${response.status}.`)
+        }
+
+        const connectedAt = await readEventStream(response)
+        if (
+          connectedAt !== null &&
+          Date.now() - connectedAt >= 30000
+        ) {
+          retryDelay = 1000
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return
+        onStatus?.('disconnected')
+        await waitBeforeRetry(retryDelay)
+        retryDelay = Math.min(retryDelay * 2, 30000)
+      }
+    }
+  }
+
+  void connect()
+  return () => controller.abort()
+}
+
+export async function getTableDetailsByCode(tableCode, options = {}) {
+  const response = await api.get(
+    `/api/ban/ma/${encodeURIComponent(tableCode)}`,
+    options,
+  )
+  return response.data
+}
+export async function getArrivalBookings(tableId) {
+  const response = await api.get(`/api/ban/${tableId}/dat-ban-cho-nhan`)
+  return response.data
+}
+export async function receiveTableGuests(tableId, bookingId) {
+  const response = await api.post(`/api/ban/${tableId}/nhan-khach`, {
+    dat_ban_id: bookingId,
+  })
+  return response.data
+}
+export async function createTable(areaId) {
+  const response = await api.post('/api/ban', {
+    khu_vuc_id: areaId,
+  })
   return response.data
 }
 export async function updateTable(id, payload) {

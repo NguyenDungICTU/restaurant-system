@@ -10,7 +10,7 @@ from sqlalchemy.engine import make_url
 
 
 class MigrationTests(unittest.TestCase):
-    HEAD = "017_shift_and_table_merge"
+    HEAD = "018_unconfigured_tables"
 
     EXPECTED_TABLES = {
         "alembic_version",
@@ -206,3 +206,43 @@ class MigrationTests(unittest.TestCase):
                 set(columns).issubset(actual),
                 msg=f"Missing columns in {table}: {set(columns) - actual}",
             )
+
+        ban_columns = {
+            row[0]
+            for row in self.query(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema='public' AND table_name='ban'"
+            )
+        }
+        self.assertIn("da_cau_hinh", ban_columns)
+
+    def test_existing_table_data_remains_configured_by_default(self):
+        self.migrate("upgrade", "017_shift_and_table_merge")
+        self.query(
+            "INSERT INTO khu_vuc (ten_khu_vuc) VALUES ('Tầng cũ')"
+        )
+        area_id = self.query(
+            "SELECT id FROM khu_vuc WHERE ten_khu_vuc='Tầng cũ'"
+        )[0][0]
+        self.query(
+            "INSERT INTO ban "
+            "(ma_ban, khu_vuc_id, suc_chua_toi_thieu, suc_chua_toi_da, "
+            "loai_ban, trang_thai, qr_token) "
+            "VALUES ('M-CU', %s, 2, 6, 'PHONG_RIENG', 'DA_DAT', 'qr-cu')",
+            (area_id,),
+        )
+        before = self.query(
+            "SELECT ma_ban, suc_chua_toi_thieu, suc_chua_toi_da, "
+            "loai_ban, trang_thai, qr_token "
+            "FROM ban WHERE ma_ban='M-CU'"
+        )
+
+        self.migrate("upgrade", "head")
+
+        after = self.query(
+            "SELECT ma_ban, suc_chua_toi_thieu, suc_chua_toi_da, "
+            "loai_ban, trang_thai, qr_token, da_cau_hinh "
+            "FROM ban WHERE ma_ban='M-CU'"
+        )
+        self.assertEqual(after[0][:-1], before[0])
+        self.assertIs(after[0][-1], True)

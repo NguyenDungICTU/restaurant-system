@@ -7,7 +7,12 @@ import {
   TeamOutlined, UnorderedListOutlined, UserOutlined,
 } from '@ant-design/icons'
 import { Button, Tooltip } from 'antd'
-import { checkWorkspaceAccess, getHealth, logout } from '../services/api'
+import {
+  checkWorkspaceAccess,
+  getHealth,
+  logout,
+  SESSION_ENDING_EVENT,
+} from '../services/api'
 import Employees from '../pages/Employees'
 import Forbidden from '../pages/Forbidden'
 import KhuVuc from '../pages/KhuVuc'
@@ -75,26 +80,69 @@ export default function RestaurantShell({ user, onLogout }) {
   const firstAllowedPage = navigation[0]?.key || 'dashboard'
   const initialPathPage = pageFromPath()
   const [page, setPage] = useState(initialPathPage || firstAllowedPage)
+  const [focusedBookingId, setFocusedBookingId] = useState(
+    () => new URLSearchParams(window.location.search).get('bookingId')
+  )
   const [collapsed, setCollapsed] = useState(false)
   const [health, setHealth] = useState('checking')
-  const [accessState, setAccessState] = useState({ loading: true, allowed: false, message: '' })
+  const [accessState, setAccessState] = useState({
+    page: null,
+    loading: true,
+    allowed: false,
+    message: '',
+  })
 
   useEffect(() => {
-    if (!initialPathPage) window.history.replaceState({}, '', `/${firstAllowedPage}`)
-  }, [])
+    if (!initialPathPage) {
+      window.history.replaceState({}, '', `/${firstAllowedPage}`)
+    }
+  }, [firstAllowedPage, initialPathPage])
 
   useEffect(() => {
-    const onPopState = () => setPage(pageFromPath() || firstAllowedPage)
+    const onPopState = () => {
+      setPage(pageFromPath() || firstAllowedPage)
+      setFocusedBookingId(
+        new URLSearchParams(window.location.search).get('bookingId')
+      )
+    }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [firstAllowedPage])
 
   useEffect(() => {
+    function openBooking(event) {
+      const bookingId = event.detail?.bookingId
+      if (bookingId == null) return
+
+      setFocusedBookingId(String(bookingId))
+      window.history.pushState(
+        {},
+        '',
+        `/bookings?bookingId=${encodeURIComponent(bookingId)}`
+      )
+      setPage('bookings')
+    }
+
+    window.addEventListener('restaurant:open-booking', openBooking)
+    return () =>
+      window.removeEventListener('restaurant:open-booking', openBooking)
+  }, [])
+
+  useEffect(() => {
     let mounted = true
-    setAccessState({ loading: true, allowed: false, message: '' })
     checkWorkspaceAccess(page)
-      .then(() => mounted && setAccessState({ loading: false, allowed: true, message: '' }))
-      .catch((error) => mounted && setAccessState({ loading: false, allowed: false, message: apiErrorMessage(error) }))
+      .then(() => mounted && setAccessState({
+        page,
+        loading: false,
+        allowed: true,
+        message: '',
+      }))
+      .catch((error) => mounted && setAccessState({
+        page,
+        loading: false,
+        allowed: false,
+        message: apiErrorMessage(error),
+      }))
     return () => { mounted = false }
   }, [page, user?.id])
 
@@ -106,11 +154,15 @@ export default function RestaurantShell({ user, onLogout }) {
 
   function goTo(nextPage) {
     window.history.pushState({}, '', `/${nextPage}`)
+    setFocusedBookingId(null)
     setPage(nextPage)
   }
 
   async function signout() {
-    try { await logout() } finally { onLogout() }
+    const logoutRequest = logout()
+    window.dispatchEvent(new Event(SESSION_ENDING_EVENT))
+    onLogout()
+    await logoutRequest.catch(() => false)
   }
 
   const allItems = navigation
@@ -145,17 +197,24 @@ export default function RestaurantShell({ user, onLogout }) {
           </div>
         </header>
 
-        <div className="page-content">
-          {accessState.loading ? <div className="role-access-loading">Đang kiểm tra quyền truy cập...</div>
+        <div
+          className={`page-content ${
+            page === 'tables' || page === 'table-map'
+              ? 'page-content--table-map'
+              : ''
+          }`}
+        >
+          {accessState.loading || accessState.page !== page ? <div className="role-access-loading">Đang kiểm tra quyền truy cập...</div>
             : !accessState.allowed ? <Forbidden message={accessState.message} />
             : page === 'dashboard' ? <RoleWorkspace resource="dashboard" />
             : page === 'employees' ? <Employees />
             : page === 'areas' ? <KhuVuc />
-            : page === 'tables' || page === 'table-map' ? <Ban />
+            : page === 'tables' || page === 'table-map' ? <Ban user={user} />
             : page === 'menu-management' ? <Menu />
             : page === 'daily-menu' ? <DailyMenu />
             : page === 'audit' ? <AuditLogs />
             : page === 'opening-hours' ? <OpeningHoursSettings />
+            : page === 'bookings' ? <BookingDemo focusedBookingId={focusedBookingId} />
             : page === 'bookings'
               ? role === 'PHUC_VU'
                 ? <TodayBookings />

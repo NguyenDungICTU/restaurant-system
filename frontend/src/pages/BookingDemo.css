@@ -28,6 +28,7 @@
 @media(max-width:850px){.booking-demo-grid{grid-template-columns:1fr}.booking-demo-heading{align-items:flex-start;flex-direction:column}}
 .booking-demo-list{margin-top:18px}
 .booking-demo-list-item{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #463c35;padding:13px 0}
+.booking-demo-list-item--focused{background:#24432e;padding-inline:12px;border-radius:8px}
 .booking-demo-list-item:first-child{border-top:0}
 .booking-demo-list-item strong{color:#f4eee9;font-size:13px}
 .booking-demo-list-item p{color:#b7aa9e;font-size:12px;margin:5px 0;word-break:break-word}

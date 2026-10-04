@@ -52,6 +52,10 @@ class DatBan(Base):
         nullable=True,
     )
     ban: Mapped[Ban | None] = relationship()
+    khach_toi_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     # The database has one physical column: dat_ban.khu_vuc_id.
     # The router still uses khu_vuc_yeu_cau_id for backward compatibility,

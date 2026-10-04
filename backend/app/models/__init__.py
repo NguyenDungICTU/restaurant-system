@@ -8,9 +8,11 @@ from app.models.nhat_ky_thao_tac import NhatKyThaoTac
 from app.models.thong_bao import ThongBao
 from app.models.nhom_mon import NhomMon
 from app.models.phien_dang_nhap import PhienDangNhap
+from app.models.phien_ban import PhienBan
 
 __all__ = [
     "Ban", "BanQRToken", "DatBan", "KhuVuc", "LichHoatDong",
     "NgayNghiDacBiet", "CauHinhDatBan", "MonAn", "NhanVien",
+    "NhatKyThaoTac", "NhomMon", "PhienDangNhap", "PhienBan",
     "NhatKyThaoTac", "ThongBao", "NhomMon", "PhienDangNhap",
 ]

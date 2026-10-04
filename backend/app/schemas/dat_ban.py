@@ -85,6 +85,20 @@ class XacNhanDatBan(BaseModel):
     ban_id: int = Field(gt=0)
 
 
+class DatBanChoNhanKhachResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ho_ten_khach: str
+    so_luong_khach: int
+    ngay_dat: date
+    gio_bat_dau: time
+
+
+class NhanKhachBanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dat_ban_id: int | None = Field(default=None, gt=0)
 class TuChoiDatBan(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
