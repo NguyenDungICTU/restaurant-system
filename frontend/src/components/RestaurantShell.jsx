@@ -165,11 +165,10 @@ export default function RestaurantShell({ user, onLogout }) {
     await logoutRequest.catch(() => false)
   }
 
-  const allItems = navigation
-  const label = allItems.find((item) => item.key === page)?.label || 'Không có quyền truy cập'
+  const label = navigation.find((item) => item.key === page)?.label || 'Không có quyền truy cập'
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" style={{ display: 'flex', width: '100vw', minHeight: '100vh', overflowX: 'hidden' }}>
       <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
         <div className="brand"><div className="brand-mark">R</div>{!collapsed && <div><strong>Resto</strong><span>Management</span></div>}</div>
         <div className="nav-section">
@@ -186,7 +185,7 @@ export default function RestaurantShell({ user, onLogout }) {
         <div className="user-card"><div className="avatar"><UserOutlined /></div>{!collapsed && <div className="user-copy"><strong>{user?.full_name || 'Nhân viên'}</strong><span>{ROLE_LABELS[role] || role}</span></div>}</div>
       </aside>
 
-      <main className="main-content">
+      <main className="main-content" style={{ flex: 1, minWidth: 0, maxWidth: '100%', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <header className="topbar">
           <Button type="text" className="collapse-button" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed((v) => !v)} />
           <div className="breadcrumb"><span>Nhà hàng</span><b>/</b><strong>{label}</strong></div>
@@ -203,25 +202,35 @@ export default function RestaurantShell({ user, onLogout }) {
               ? 'page-content--table-map'
               : ''
           }`}
+          style={{ flex: 1, width: '100%', boxSizing: 'border-box' }}
         >
-          {accessState.loading || accessState.page !== page ? <div className="role-access-loading">Đang kiểm tra quyền truy cập...</div>
-            : !accessState.allowed ? <Forbidden message={accessState.message} />
-            : page === 'dashboard' ? <RoleWorkspace resource="dashboard" />
-            : page === 'employees' ? <Employees />
-            : page === 'areas' ? <KhuVuc />
-            : page === 'tables' || page === 'table-map' ? <Ban user={user} />
-            : page === 'menu-management' ? <Menu />
-            : page === 'daily-menu' ? <DailyMenu />
-            : page === 'audit' ? <AuditLogs />
-            : page === 'opening-hours' ? <OpeningHoursSettings />
-            : page === 'bookings' ? <BookingDemo focusedBookingId={focusedBookingId} />
-            : page === 'bookings'
-              ? role === 'PHUC_VU'
-                ? <TodayBookings />
-                : <BookingDemo />
-            : page === 'order-entry' ? <OrderEntry />
-            : page === 'bookings' ? <BookingDemo />
-            : <RoleWorkspace resource={page} />}
+          {accessState.loading || accessState.page !== page ? (
+            <div className="role-access-loading">Đang kiểm tra quyền truy cập...</div>
+          ) : !accessState.allowed ? (
+            <Forbidden message={accessState.message} />
+          ) : page === 'dashboard' ? (
+            <RoleWorkspace resource="dashboard" />
+          ) : page === 'employees' ? (
+            <Employees />
+          ) : page === 'areas' ? (
+            <KhuVuc />
+          ) : page === 'tables' || page === 'table-map' ? (
+            <Ban user={user} />
+          ) : page === 'menu-management' ? (
+            <Menu />
+          ) : page === 'daily-menu' ? (
+            <DailyMenu />
+          ) : page === 'audit' ? (
+            <AuditLogs />
+          ) : page === 'opening-hours' ? (
+            <OpeningHoursSettings />
+          ) : page === 'bookings' ? (
+            role === 'PHUC_VU' ? <TodayBookings /> : <BookingDemo focusedBookingId={focusedBookingId} />
+          ) : page === 'order-entry' ? (
+            <OrderEntry />
+          ) : (
+            <RoleWorkspace resource={page} />
+          )}
         </div>
       </main>
     </div>
