@@ -2,13 +2,25 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   AppstoreOutlined,
   CheckCircleOutlined,
+  FilterOutlined,
   InfoCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
   SaveOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons'
-import { App as AntdApp, Button, Modal, Segmented } from 'antd'
+import {
+  App as AntdApp,
+  Button,
+  Card,
+  Col,
+  Modal,
+  Radio,
+  Row,
+  Segmented,
+  Space,
+  Typography,
+} from 'antd'
 
 import {
   createCategory,
@@ -29,6 +41,8 @@ import CategoryFormModal from '../components/menu/CategoryFormModal'
 import CategoryList from '../components/menu/CategoryList'
 import DishFormModal from '../components/menu/DishFormModal'
 import DishList from '../components/menu/DishList'
+
+const { Title, Text, Paragraph } = Typography
 
 const FILTER_OPTIONS = [
   { label: 'Tất cả', value: 'all' },
@@ -235,8 +249,6 @@ export default function Menu() {
         message.success('Đã thêm món ăn.')
       }
 
-      // Always reload the complete dish list, even when the optional image
-      // upload fails. The dish record must never disappear from the dish tab.
       await loadDishes(false)
       setDishModalOpen(false)
       setEditingDish(null)
@@ -386,108 +398,119 @@ export default function Menu() {
   ).length
 
   return (
-    <section className="menu-page p-6 bg-slate-50 min-h-screen">
-      {/* Header Page */}
-      <div className="page-heading menu-page-heading flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <p className="eyebrow text-xs font-bold text-amber-700 tracking-wider uppercase mb-1">
+    <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
+      {/* Header trang */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: '20px' }}>
+        <Col>
+          <Text type="danger" style={{ fontWeight: 700, fontSize: '11px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             RESTAURANT MENU
-          </p>
-
-          <h1 className="text-2xl font-bold text-slate-800 m-0">Thực đơn</h1>
-
-          <p className="subheading text-sm text-slate-500 mt-1 mb-0">
+          </Text>
+          <Title level={2} style={{ margin: 0, color: '#0f172a' }}>Thực đơn</Title>
+          <Text type="secondary" style={{ fontSize: '13px' }}>
             Quản lý nhóm món và các món ăn thuộc từng nhóm.
-          </p>
-        </div>
+          </Text>
+        </Col>
 
-        <div className="menu-page-actions flex items-center gap-3">
-          {view === 'categories' && reorderDirty && (
+        <Col>
+          <Space size="middle" wrap>
+            {view === 'categories' && reorderDirty && (
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={saving}
+                onClick={handleSaveReorder}
+                style={{ backgroundColor: '#16a34a', borderColor: '#16a34a' }}
+              >
+                Lưu thứ tự
+              </Button>
+            )}
+
             <Button
               type="primary"
-              icon={<SaveOutlined />}
-              loading={saving}
-              onClick={handleSaveReorder}
-              className="bg-emerald-600 hover:bg-emerald-700 border-none shadow-sm"
+              size="large"
+              icon={<PlusOutlined />}
+              onClick={
+                view === 'categories'
+                  ? openCreateCategory
+                  : openCreateDish
+              }
+              style={{ backgroundColor: '#c2410c', borderColor: '#c2410c', borderRadius: '8px' }}
             >
-              Lưu thứ tự
+              {view === 'categories'
+                ? 'Thêm nhóm món'
+                : 'Thêm món ăn'}
             </Button>
-          )}
+          </Space>
+        </Col>
+      </Row>
 
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={
-              view === 'categories'
-                ? openCreateCategory
-                : openCreateDish
-            }
-            className="bg-amber-700 hover:bg-amber-800 border-none shadow-sm h-10 px-4 font-medium"
-          >
-            {view === 'categories'
-              ? 'Thêm nhóm món'
-              : 'Thêm món ăn'}
-          </Button>
-        </div>
-      </div>
+      {/* Thẻ thống kê */}
+      <Row gutter={[16, 16]} style={{ marginBottom: '20px' }}>
+        <Col xs={24} sm={8}>
+          <Card bordered style={{ borderRadius: '12px', borderColor: '#e2e8f0' }} bodyStyle={{ padding: '16px' }}>
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Text type="secondary" style={{ fontSize: '13px' }}>Tổng nhóm món</Text>
+                <Title level={3} style={{ margin: 0, marginTop: '4px' }}>{categories.length}</Title>
+              </Col>
+              <Col style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '10px', color: '#c2410c' }}>
+                <AppstoreOutlined style={{ fontSize: '22px' }} />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
 
-      {/* Summary Grid Cards */}
-      <div className="menu-summary-grid grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="menu-summary-card bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-slate-500">Tổng nhóm món</span>
-            <strong className="text-2xl font-bold text-slate-800 mt-1">{categories.length}</strong>
-          </div>
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
-            <AppstoreOutlined className="text-xl" />
-          </div>
-        </div>
+        <Col xs={24} sm={8}>
+          <Card bordered style={{ borderRadius: '12px', borderColor: '#e2e8f0' }} bodyStyle={{ padding: '16px' }}>
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Text type="secondary" style={{ fontSize: '13px' }}>Đang sử dụng</Text>
+                <Title level={3} style={{ margin: 0, marginTop: '4px', color: '#16a34a' }}>{activeCount}</Title>
+              </Col>
+              <Col style={{ backgroundColor: '#f0fdf4', padding: '12px', borderRadius: '10px', color: '#16a34a' }}>
+                <CheckCircleOutlined style={{ fontSize: '22px' }} />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
 
-        <div className="menu-summary-card bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-slate-500">Đang sử dụng</span>
-            <strong className="text-2xl font-bold text-emerald-600 mt-1">{activeCount}</strong>
-          </div>
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-            <CheckCircleOutlined className="text-xl" />
-          </div>
-        </div>
+        <Col xs={24} sm={8}>
+          <Card bordered style={{ borderRadius: '12px', borderColor: '#e2e8f0' }} bodyStyle={{ padding: '16px' }}>
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Text type="secondary" style={{ fontSize: '13px' }}>Tổng món ăn</Text>
+                <Title level={3} style={{ margin: 0, marginTop: '4px' }}>{dishes.length}</Title>
+              </Col>
+              <Col style={{ backgroundColor: '#eff6ff', padding: '12px', borderRadius: '10px', color: '#2563eb' }}>
+                <UnorderedListOutlined style={{ fontSize: '22px' }} />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+      </Row>
 
-        <div className="menu-summary-card bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-slate-500">Tổng món ăn</span>
-            <strong className="text-2xl font-bold text-slate-800 mt-1">{dishes.length}</strong>
-          </div>
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-            <UnorderedListOutlined className="text-xl" />
-          </div>
-        </div>
-      </div>
-
-      {/* Main Panel */}
-      <div className="panel menu-management-panel bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div className="menu-toolbar p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
-          <div>
-            <div className="menu-toolbar-title font-semibold text-slate-800 text-base flex items-center gap-2">
-              <UnorderedListOutlined className="text-amber-600" /> Thực đơn
-            </div>
-
-            <p className="text-xs text-slate-500 mt-1 mb-0">
+      {/* Panel quản lý chính */}
+      <Card
+        bordered
+        style={{ borderRadius: '12px', borderColor: '#e2e8f0', marginBottom: '20px' }}
+        bodyStyle={{ padding: '20px' }}
+        title={
+          <Space direction="vertical" size={2}>
+            <Space align="center">
+              <UnorderedListOutlined style={{ color: '#c2410c' }} />
+              <Text bold style={{ fontSize: '16px', color: '#0f172a' }}>Thực đơn</Text>
+            </Space>
+            <Text type="secondary" style={{ fontSize: '12px', fontWeight: 'normal' }}>
               Luồng dữ liệu: Nhóm món → Món ăn thuộc nhóm.
-            </p>
-          </div>
-
-          <div className="menu-toolbar-actions flex items-center gap-3 flex-wrap">
+            </Text>
+          </Space>
+        }
+        extra={
+          <Space size="middle" wrap>
             <Segmented
               options={[
-                {
-                  label: 'Nhóm món',
-                  value: 'categories',
-                },
-                {
-                  label: 'Món ăn',
-                  value: 'dishes',
-                },
+                { label: 'Nhóm món', value: 'categories' },
+                { label: 'Món ăn', value: 'dishes' },
               ]}
               value={view}
               onChange={setView}
@@ -506,44 +529,19 @@ export default function Menu() {
                   ? loadCategories()
                   : loadDishes()
               }
-              className="text-slate-600 hover:text-slate-800"
             >
               Làm mới
             </Button>
-          </div>
-        </div>
-
-        <div className="p-5">
-          {view === 'categories' ? (
-            <CategoryList
-              categories={categories}
-              loading={loading}
-              filter={filter}
-              reorderDirty={reorderDirty}
-              updatingStatusId={updatingStatusId}
-              onEdit={openEditCategory}
-              onDelete={setDeleteTarget}
-              onStatusChange={handleStatusChange}
-              dishes={dishes}
-              onReorder={(next) => {
-                setCategories(next)
-                setReorderDirty(true)
-              }}
-            />
-          ) : (
-            <DishList
-              dishes={dishes}
-              loading={dishesLoading}
-              categories={categories}
-              onEdit={openEditDish}
-              onDelete={setDeleteDishTarget}
-            />
-          )}
-        </div>
-
+          </Space>
+        }
+      >
+        {/* Bộ lọc nhóm món */}
         {view === 'categories' && (
-          <div className="menu-filter-row p-4 border-t border-slate-100 bg-slate-50/30 flex items-center gap-3">
-            <span className="text-xs font-medium text-slate-500">Lọc nhóm:</span>
+          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <Space align="center" size="small">
+              <FilterOutlined style={{ color: '#64748b' }} />
+              <Text style={{ fontSize: '13px', color: '#475569' }}>Lọc nhóm:</Text>
+            </Space>
 
             <Segmented
               options={FILTER_OPTIONS}
@@ -552,34 +550,53 @@ export default function Menu() {
             />
           </div>
         )}
-      </div>
 
-      {/* Info Banner */}
-      <div className="implementation-note bg-amber-50/60 border border-amber-200/80 rounded-xl p-4 flex gap-3 text-amber-900">
-        <div className="note-icon bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-          <InfoCircleOutlined />
-        </div>
+        {view === 'categories' ? (
+          <CategoryList
+            categories={categories}
+            loading={loading}
+            filter={filter}
+            reorderDirty={reorderDirty}
+            updatingStatusId={updatingStatusId}
+            onEdit={openEditCategory}
+            onDelete={setDeleteTarget}
+            onStatusChange={handleStatusChange}
+            dishes={dishes}
+            onReorder={(next) => {
+              setCategories(next)
+              setReorderDirty(true)
+            }}
+          />
+        ) : (
+          <DishList
+            dishes={dishes}
+            loading={dishesLoading}
+            categories={categories}
+            onEdit={openEditDish}
+            onDelete={setDeleteDishTarget}
+          />
+        )}
+      </Card>
 
-        <div className="text-xs">
-          <strong className="block font-semibold text-amber-900 mb-0.5">
-            Mỗi món ăn bắt buộc thuộc một nhóm món
-          </strong>
+      {/* Lưu ý hệ thống */}
+      <Card
+        style={{ backgroundColor: '#fffbebe6', borderColor: '#fef3c7', borderRadius: '12px' }}
+        bodyStyle={{ padding: '14px 18px' }}
+      >
+        <Space align="start" size="middle">
+          <InfoCircleOutlined style={{ fontSize: '18px', color: '#b45309', marginTop: '2px' }} />
+          <div>
+            <Text bold style={{ color: '#78350f', display: 'block', fontSize: '13px' }}>
+              Mỗi món ăn bắt buộc thuộc một nhóm món
+            </Text>
+            <Text style={{ color: '#92400e', fontSize: '12px' }}>
+              Backend lưu <code>mon_an.nhom_mon_id</code> làm khóa ngoại tới <code>nhom_mon.id</code>. Vì vậy không thể tạo món ăn mà không chọn nhóm.
+            </Text>
+          </div>
+        </Space>
+      </Card>
 
-          <p className="m-0 text-amber-800/80 leading-relaxed">
-            Backend lưu{' '}
-            <code className="bg-amber-100/80 px-1.5 py-0.5 rounded font-mono text-amber-900">
-              mon_an.nhom_mon_id
-            </code>{' '}
-            làm khóa ngoại tới
-            <code className="bg-amber-100/80 px-1.5 py-0.5 rounded font-mono text-amber-900">
-              {' '}
-              nhom_mon.id
-            </code>
-            . Vì vậy không thể tạo món ăn mà không chọn nhóm.
-          </p>
-        </div>
-      </div>
-
+      {/* Modals Form & Delete */}
       <CategoryFormModal
         open={categoryModalOpen}
         mode={categoryModalMode}
@@ -612,15 +629,12 @@ export default function Menu() {
         onOk={handleDeleteCategory}
         centered
       >
-        <p>
-          Bạn có chắc muốn xóa nhóm{' '}
-          <strong>{deleteTarget?.ten_nhom}</strong>?
-        </p>
-
-        <p className="delete-warning text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-100 mt-2">
-          Nếu nhóm đang chứa món ăn, hệ thống sẽ không cho phép
-          xóa. Hãy chuyển hoặc xóa các món trong nhóm trước.
-        </p>
+        <Paragraph style={{ margin: 0 }}>
+          Bạn có chắc muốn xóa nhóm <strong>{deleteTarget?.ten_nhom}</strong>?
+        </Paragraph>
+        <div style={{ color: '#e11d48', backgroundColor: '#fff1f2', padding: '12px', borderRadius: '8px', border: '1px solid #ffe4e6', fontSize: '13px', marginTop: '12px' }}>
+          Nếu nhóm đang chứa món ăn, hệ thống sẽ không cho phép xóa. Hãy chuyển hoặc xóa các món trong nhóm trước.
+        </div>
       </Modal>
 
       <Modal
@@ -636,10 +650,9 @@ export default function Menu() {
         onOk={handleDeleteDish}
         centered
       >
-        <p>
-          Bạn có chắc muốn xóa món{' '}
-          <strong>{deleteDishTarget?.ten_mon}</strong>?
-        </p>
+        <Paragraph style={{ margin: 0 }}>
+          Bạn có chắc muốn xóa món <strong>{deleteDishTarget?.ten_mon}</strong>?
+        </Paragraph>
       </Modal>
     </section>
   )
