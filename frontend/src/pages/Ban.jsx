@@ -1,6 +1,3 @@
-import { useEffect, useState } from 'react'
-import { AppstoreOutlined, CheckCircleOutlined, ClockCircleOutlined, TeamOutlined, PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, FilePdfOutlined } from '@ant-design/icons'
-import './RestaurantManagement.css'
 import {
   useCallback,
   useEffect,
@@ -10,9 +7,18 @@ import {
 } from 'react'
 import {
   ApartmentOutlined,
+  AppstoreOutlined,
   CalendarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
   CloseOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  FilePdfOutlined,
   MoreOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons'
 import {
@@ -26,9 +32,9 @@ import {
   Modal,
   Segmented,
   Select,
+  Slider,
   Table,
   Tag,
-  Slider,
   Space,
 } from 'antd'
 
@@ -49,32 +55,6 @@ import {
   SESSION_ENDING_EVENT,
   updateTable,
 } from '../services/api'
-
-function QRActionIcon({ rotate = false }) {
-  return (
-    <svg className="management-qr-icon" viewBox="0 0 28 28" fill="none" aria-hidden="true" focusable="false">
-      <g stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
-        <path d="M2 2h8v8H2zM15 2h8v8h-8zM2 15h8v8H2z" />
-        <path d="M5 5h2v2H5zM18 5h2v2h-2zM5 18h2v2H5z" fill="currentColor" stroke="none" />
-        <path d="M12 2v3m0 3v5H7m-5 0h2m9 3v-3h4m3 0h3M12 20v3" />
-      </g>
-      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        {rotate ? (
-          <><path d="M16 19a5 5 0 0 1 8.5-2L26 19m0-4v4h-4" /><path d="M26 22a5 5 0 0 1-8.5 3L16 23m0 4v-4h4" /></>
-        ) : (
-          <><path d="M21 15v8m-3-3 3 3 3-3" /><path d="M16 24v3h10v-3" /></>
-        )}
-      </g>
-    </svg>
-  )
-}
-
-const statuses = {
-  TRONG: 'Trống',
-  DANG_SU_DUNG: 'Đang sử dụng',
-  DA_DAT: 'Đã đặt',
-  NGUNG_SU_DUNG: 'Ngừng sử dụng',
-}
 import { formatAreaName, formatTableName } from '../utils/areaNames'
 import {
   bookingEndTime,
@@ -91,6 +71,7 @@ import {
   unconfiguredColors,
 } from '../utils/tableMapStatus'
 import './Ban.css'
+import './RestaurantManagement.css'
 
 const types = {
   THUONG: 'Bàn thường',
@@ -102,6 +83,37 @@ const options = values =>
     value,
     label,
   }))
+
+function QRActionIcon({ rotate = false }) {
+  return (
+    <svg
+      className="management-qr-icon"
+      viewBox="0 0 28 28"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+        <path d="M2 2h8v8H2zM15 2h8v8h-8zM2 15h8v8H2z" />
+        <path d="M5 5h2v2H5zM18 5h2v2h-2zM5 18h2v2H5z" fill="currentColor" stroke="none" />
+        <path d="M12 2v3m0 3v5H7m-5 0h2m9 3v-3h4m3 0h3M12 20v3" />
+      </g>
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {rotate ? (
+          <>
+            <path d="M16 19a5 5 0 0 1 8.5-2L26 19m0-4v4h-4" />
+            <path d="M26 22a5 5 0 0 1-8.5 3L16 23m0 4v-4h4" />
+          </>
+        ) : (
+          <>
+            <path d="M21 15v8m-3-3 3 3 3-3" />
+            <path d="M16 24v3h10v-3" />
+          </>
+        )}
+      </g>
+    </svg>
+  )
+}
 
 function TableTopView({ className = '' }) {
   return (
@@ -198,9 +210,6 @@ function formatVietnamDateTime(value) {
   }).format(date)
 }
 
-export default function Ban() {
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState()
 function vietnamDateInput() {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -259,6 +268,8 @@ function sortAreasByFloor(areas) {
 }
 
 export default function Ban({ user }) {
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState()
   const isManager = user?.role === 'QUAN_LY'
   const canReceiveGuests = ['QUAN_LY', 'PHUC_VU'].includes(user?.role)
   const [tables, setTables] = useState([])
@@ -1155,41 +1166,128 @@ export default function Ban({ user }) {
     {
       title: 'Mã bàn',
       dataIndex: 'ma_ban',
-      render: value => <strong className="management-table-code">{value}</strong>,
+      render: value => (
+        <strong className="management-table-code">{value}</strong>
+      ),
     },
     {
       title: 'Khu vực',
       dataIndex: 'khu_vuc_id',
-      render: id =>
-        <span className="management-table-area"><AppstoreOutlined /><span>{areas.find(
-          area => area.id === id
-        )?.ten_khu_vuc || id}</span></span>,
+      render: id => (
+        <span className="management-table-area">
+          <AppstoreOutlined />
+          <span>
+            {areas.find(area => area.id === id)?.ten_khu_vuc || id}
+          </span>
+        </span>
+      ),
     },
     {
       title: 'Sức chứa',
-      render: (_, row) =>
-        <span className="management-capacity"><TeamOutlined /><span>{row.suc_chua_toi_thieu}–{row.suc_chua_toi_da} <small>khách</small></span></span>,
+      render: (_, row) => (
+        <span className="management-capacity">
+          <TeamOutlined />
+          <span>
+            {row.suc_chua_toi_thieu}–{row.suc_chua_toi_da}{' '}
+            <small>khách</small>
+          </span>
+        </span>
+      ),
     },
     {
       title: 'Loại',
       dataIndex: 'loai_ban',
-      render: value => types[value],
+      render: value => types[value] || value || 'Chưa cấu hình',
     },
     {
       title: 'Trạng thái',
       dataIndex: 'trang_thai',
       render: value => (
-        <Tag className="management-status" color={{ TRONG: 'green', DA_DAT: 'gold', DANG_SU_DUNG: 'blue', NGUNG_SU_DUNG: 'default' }[value]}>{statuses[value]}</Tag>
+        <Tag
+          className="management-status"
+          color={
+            {
+              TRONG: 'green',
+              DA_DAT: 'gold',
+              DANG_SU_DUNG: 'blue',
+              NGUNG_SU_DUNG: 'default',
+            }[value]
+          }
+        >
+          {statuses[value] || value}
+        </Tag>
       ),
     },
     {
       title: 'Thao tác',
       render: (_, row) => (
         <div className="management-table-actions">
-          <div className="management-qr-actions" role="group" aria-label={`Thao tác QR · ${row.ma_ban}`}>
-          <Button
-            className="management-qr-download"
-            disabled={busy}
+          <div
+            className="management-qr-actions"
+            role="group"
+            aria-label={`Thao tác QR · ${row.ma_ban}`}
+          >
+            {row.da_cau_hinh && (
+              <>
+                <Button
+                  className="management-qr-download"
+                  disabled={busy}
+                  onClick={() =>
+                    run(
+                      () =>
+                        downloadQR(
+                          `/api/ban/${row.id}/qr.png`,
+                          `ban-${row.id}-qr.png`
+                        ),
+                      'Đã tải PNG.',
+                      false
+                    )
+                  }
+                  title="Tải mã QR định dạng PNG"
+                  aria-label={`Tải QR PNG · ${row.ma_ban}`}
+                  icon={<QRActionIcon />}
+                >
+                  Tải QR
+                </Button>
+                <Button
+                  className="management-qr-rotate"
+                  disabled={busy}
+                  onClick={() => rotate(row)}
+                  title="Đổi QR: sinh mã QR mới và vô hiệu hóa mã cũ"
+                  aria-label={`Sinh lại QR · ${row.ma_ban}`}
+                  icon={<QRActionIcon rotate />}
+                >
+                  Đổi QR
+                </Button>
+              </>
+            )}
+          </div>
+          <div
+            className="management-record-actions"
+            role="group"
+            aria-label={`Thông tin bàn · ${row.ma_ban}`}
+          >
+            <Button
+              disabled={busy}
+              onClick={() => edit(row)}
+              title="Sửa thông tin bàn"
+              aria-label={`Sửa · ${row.ma_ban}`}
+              icon={<EditOutlined />}
+            />
+            <Button
+              danger
+              disabled={busy}
+              onClick={() => remove(row)}
+              title="Xóa bàn"
+              aria-label={`Xóa · ${row.ma_ban}`}
+              icon={<DeleteOutlined />}
+            />
+          </div>
+        </div>
+      ),
+    },
+  ]
+
   const visibleTables = tables.filter(
     table => table.khu_vuc_id === areaId
   )
@@ -1353,83 +1451,6 @@ export default function Ban({ user }) {
                 false
               )
             }
-            title="Tải mã QR định dạng PNG"
-            aria-label={`Tải QR PNG · ${row.ma_ban}`}
-            icon={<QRActionIcon />}
-          >Tải QR</Button>
-
-          <Button
-            className="management-qr-rotate"
-            disabled={busy}
-            onClick={() => rotate(row)}
-            title="Đổi QR: sinh mã QR mới và vô hiệu hóa mã cũ"
-            aria-label={`Sinh lại QR · ${row.ma_ban}`}
-            icon={<QRActionIcon rotate />}
-          >Đổi QR</Button>
-          </div>
-          <div className="management-record-actions" role="group" aria-label={`Thông tin bàn · ${row.ma_ban}`}>
-          <Button
-            disabled={busy}
-            onClick={() => edit(row)}
-            title="Sửa thông tin bàn"
-            aria-label={`Sửa · ${row.ma_ban}`}
-            icon={<EditOutlined />}
-          />
-          <Button
-            danger
-            disabled={busy}
-            onClick={() => remove(row)}
-            title="Xóa bàn"
-            aria-label={`Xóa · ${row.ma_ban}`}
-            icon={<DeleteOutlined />}
-          />
-          </div>
-        </div>
-      ),
-    },
-  ]
-
-  return (
-    <section className="management-page tables-page">
-      <div className="page-heading">
-        <div>
-          <nav className="management-breadcrumb" aria-label="Đường dẫn">Nhà hàng <span>/</span> Bàn</nav>
-          <h1>Quản lý bàn</h1>
-          <p className="subheading">
-            Khai báo bàn, sức chứa và quản lý mã QR.
-          </p>
-        </div>
-
-        <Button
-          className="management-add"
-          icon={<PlusOutlined />}
-          type="primary"
-          disabled={
-            loading ||
-            busy ||
-            !activeAreas.length
-          }
-          onClick={() => edit()}
-        >
-          Thêm bàn
-        </Button>
-      </div>
-
-      <div className="management-stats" aria-label="Thống kê bàn">
-        {[
-          ['Tổng bàn', tables.length, <AppstoreOutlined />, 'wine', 'Toàn bộ bàn trong nhà hàng'],
-          ['Bàn trống', tables.filter(row => row.trang_thai === 'TRONG').length, <CheckCircleOutlined />, 'green', 'Sẵn sàng đón khách'],
-          ['Đã đặt trước', tables.filter(row => row.trang_thai === 'DA_DAT').length, <ClockCircleOutlined />, 'amber', 'Đang giữ chỗ cho khách'],
-          ['Đang phục vụ', tables.filter(row => row.trang_thai === 'DANG_SU_DUNG').length, <TeamOutlined />, 'blue', 'Khách đang sử dụng bàn'],
-        ].map(([label, count, icon, tone, description]) => (
-          <article className={`management-stat tone-${tone}`} key={label}>
-            <span className={`management-stat-icon ${tone}`}>{icon}</span>
-            <div><span>{label}</span><strong>{loading ? '—' : count}</strong><small>{description}</small></div>
-          </article>
-        ))}
-      </div>
-
-      {notice && (
           >
             Tải PDF QR
           </Button>
@@ -1524,64 +1545,98 @@ export default function Ban({ user }) {
       )}
 
       <article className="management-list-card">
-      <div className="management-list-heading"><div><h2>Danh sách bàn</h2><p>Theo dõi không gian phục vụ và quản lý mã QR của từng bàn.</p></div><span className="management-count-label">{loading ? 'Đang tải…' : `${tables.length} bàn`}</span></div>
-      <div className="management-toolbar">
-        <Input aria-label="Tìm mã bàn" placeholder="Tìm mã bàn…" prefix={<SearchOutlined />} allowClear value={search} onChange={e => setSearch(e.target.value)} />
-        <Select
-          aria-label="Lọc khu vực"
-          placeholder="Tất cả khu vực"
-          allowClear
-          value={areaId}
-          onChange={setAreaId}
-          className="management-filter"
-          options={areas.map(area => ({
-            value: area.id,
-            label: area.ten_khu_vuc,
-          }))}
+        <div className="management-list-heading">
+          <div>
+            <h2>Danh sách bàn</h2>
+            <p>Theo dõi không gian phục vụ và quản lý mã QR của từng bàn.</p>
+          </div>
+          <span className="management-count-label">
+            {loading ? 'Đang tải…' : `${tables.length} bàn`}
+          </span>
+        </div>
+        <div className="management-toolbar">
+          <Input
+            aria-label="Tìm mã bàn"
+            placeholder="Tìm mã bàn…"
+            prefix={<SearchOutlined />}
+            allowClear
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+          />
+          <Select
+            aria-label="Lọc khu vực"
+            placeholder="Tất cả khu vực"
+            allowClear
+            value={areaId}
+            onChange={setAreaId}
+            className="management-filter"
+            options={areas.map(area => ({
+              value: area.id,
+              label: area.ten_khu_vuc,
+            }))}
+          />
+          <Select
+            aria-label="Lọc trạng thái bàn"
+            placeholder="Tất cả trạng thái"
+            allowClear
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={options(statuses)}
+            className="management-filter"
+          />
+          <Button
+            icon={<FilePdfOutlined />}
+            title="Chọn khu vực để tải PDF QR"
+            disabled={!areaId || busy}
+            onClick={() =>
+              run(
+                () =>
+                  downloadQR(
+                    `/api/ban/khu-vuc/${areaId}/qr.pdf`,
+                    `khu-vuc-${areaId}-qr.pdf`
+                  ),
+                'Đã tải PDF QR của khu vực.',
+                false
+              )
+            }
+          >
+            Tải PDF khu vực
+          </Button>
+        </div>
+        <Table
+          className="management-operational-table"
+          rowKey="id"
+          loading={{ spinning: loading, description: 'Đang tải danh sách bàn…' }}
+          dataSource={tables.filter(
+            row =>
+              (!areaId || row.khu_vuc_id === areaId) &&
+              (!statusFilter || row.trang_thai === statusFilter) &&
+              String(row.ma_ban || '')
+                .toLocaleLowerCase('vi')
+                .includes(search.trim().toLocaleLowerCase('vi'))
+          )}
+          columns={columns}
+          scroll={{ x: 950 }}
+          locale={{
+            emptyText: (
+              <div className="management-empty">
+                <AppstoreOutlined />
+                <strong>
+                  {tables.length
+                    ? 'Không tìm thấy bàn phù hợp'
+                    : 'Chưa có bàn nào'}
+                </strong>
+                <span>
+                  {tables.length
+                    ? 'Thử mã bàn, khu vực hoặc trạng thái khác.'
+                    : 'Thêm bàn để bắt đầu quản lý không gian phục vụ.'}
+                </span>
+              </div>
+            ),
+          }}
         />
-
-        <Select aria-label="Lọc trạng thái bàn" placeholder="Tất cả trạng thái" allowClear value={statusFilter} onChange={setStatusFilter} options={options(statuses)} className="management-filter" />
-        <Button
-          icon={<FilePdfOutlined />}
-          title="Chọn khu vực để tải PDF QR"
-          disabled={!areaId || busy}
-          onClick={() =>
-            run(
-              () =>
-                downloadQR(
-                  `/api/ban/khu-vuc/${areaId}/qr.pdf`,
-                  `khu-vuc-${areaId}-qr.pdf`
-                ),
-              'Đã tải PDF QR của khu vực.',
-              false
-            )
-          }
-        >
-          Tải PDF khu vực
-        </Button>
-      </div>
-
-      <Table
-        className="management-operational-table"
-        rowKey="id"
-        loading={{ spinning: loading, description: 'Đang tải danh sách bàn…' }}
-        dataSource={tables.filter(
-          row =>
-            (!areaId || row.khu_vuc_id === areaId) &&
-            (!statusFilter || row.trang_thai === statusFilter) &&
-            row.ma_ban.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))
-        )}
-        columns={columns}
-        scroll={{ x: 950 }}
-        locale={{
-          emptyText: <div className="management-empty"><AppstoreOutlined /><strong>{tables.length ? 'Không tìm thấy bàn phù hợp' : 'Chưa có bàn nào'}</strong><span>{tables.length ? 'Thử mã bàn, khu vực hoặc trạng thái khác.' : 'Thêm bàn để bắt đầu quản lý không gian phục vụ.'}</span></div>,
-        }}
-      />
       </article>
 
-      <Modal
-        className="management-modal"
-        title={editing ? 'Sửa bàn' : 'Thêm bàn'}
       {loading ? (
         <p role="status">Đang tải sơ đồ bàn...</p>
       ) : areas.length === 0 ? (
