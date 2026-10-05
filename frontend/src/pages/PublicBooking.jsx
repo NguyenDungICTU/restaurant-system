@@ -359,6 +359,11 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
             <h1>Mã đặt bàn của bạn</h1>
             <div className="booking-code">{summary.ma_dat_ban}</div>
             <p className="booking-success-status"><span className="status-dot" /> Trạng thái: Chờ xác nhận</p>
+            <div className="booking-success-note">
+              {summary.email_xac_nhan_trang_thai === 'DA_GUI'
+                ? 'Email xác nhận đã được gửi đến địa chỉ bạn cung cấp.'
+                : 'Email xác nhận đã được ghi nhận vào hàng đợi gửi. Nếu email gặp lỗi, hệ thống sẽ tự thử lại tối đa 3 lần.'}
+            </div>
             <div className="booking-success-card">
               <div className="booking-success-row"><span>Khách hàng</span><strong>{summary.ho_ten_khach}</strong></div>
               <div className="booking-success-row"><span>Số điện thoại</span><strong>{summary.so_dien_thoai}</strong></div>
@@ -497,7 +502,7 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
             </section>
 
             <section className="booking-step">
-              <div className="booking-step-heading"><span className="booking-step-num">4</span><div><h2>Thông tin khách</h2><p>Email được lưu cùng đặt bàn để gửi xác nhận khi bạn huỷ.</p></div></div>
+              <div className="booking-step-heading"><span className="booking-step-num">4</span><div><h2>Thông tin khách</h2><p>Email được lưu để gửi xác nhận đặt bàn và thông báo nếu lượt đặt bị huỷ.</p></div></div>
               <div className="booking-step-grid booking-step-grid-stack">
                 <label className="booking-field"><span className="booking-field-label"><UserOutlined /> Họ tên khách</span><Input value={name} maxLength={100} placeholder="Nhập họ tên" onChange={(event) => setName(event.target.value)} /></label>
                 <label className="booking-field"><span className="booking-field-label"><PhoneOutlined /> Số điện thoại</span><Input value={phone} maxLength={10} placeholder="Ví dụ: 0912345678" onChange={(event) => setPhone(event.target.value)} /></label>

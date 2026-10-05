@@ -7,7 +7,8 @@ import {
   CloseCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons'
-import { cancelBooking, createBooking, getBookings, getOpeningSettings, getRestaurantTables, getAvailableTables, confirmBooking } from '../services/api'
+import { cancelBooking, createBooking, getAreas, getBookings, getOpeningSettings, getRestaurantTables, getAvailableTables, confirmBooking } from '../services/api'
+import { formatTableName } from '../utils/areaNames'
 import './BookingDemo.css'
 
 const TIME_ZONE = 'Asia/Ho_Chi_Minh'
@@ -85,7 +86,7 @@ function apiError(error) {
   return error?.message || 'Không kết nối được máy chủ.'
 }
 
-export default function BookingDemo() {
+export default function BookingDemo({ focusedBookingId = null }) {
   const [settings, setSettings] = useState(null)
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -99,6 +100,7 @@ export default function BookingDemo() {
   const [note, setNote] = useState('')
   const [result, setResult] = useState(null)
   const [tables, setTables] = useState([])
+  const [areas, setAreas] = useState([])
   const [assigningId, setAssigningId] = useState(null)
   const [availableTables, setAvailableTables] = useState([])
   const [selectedTableId, setSelectedTableId] = useState("")
@@ -107,10 +109,11 @@ export default function BookingDemo() {
     setLoading(true)
     setError('')
     try {
-      const [configuration, rows, restaurantTables] = await Promise.all([getOpeningSettings(), getBookings(), getRestaurantTables()])
+      const [configuration, rows, restaurantTables, regions] = await Promise.all([getOpeningSettings(), getBookings(), getRestaurantTables(), getAreas()])
       setSettings(fromServer(configuration))
       setBookings(rows)
       setTables(restaurantTables)
+      setAreas(regions)
     } catch (cause) {
       setError(apiError(cause))
       setSettings(null)
@@ -122,18 +125,38 @@ export default function BookingDemo() {
   useEffect(() => {
     // Read shared backend state on initial mount, never treat localStorage as the source of truth.
     let mounted = true
-    Promise.all([getOpeningSettings(), getBookings(), getRestaurantTables()])
-      .then(([configuration, rows, restaurantTables]) => {
+    Promise.all([getOpeningSettings(), getBookings(), getRestaurantTables(), getAreas()])
+      .then(([configuration, rows, restaurantTables, regions]) => {
         if (mounted) {
           setSettings(fromServer(configuration))
           setBookings(rows)
-      setTables(restaurantTables)
+          setTables(restaurantTables)
+          setAreas(regions)
         }
       })
       .catch((cause) => { if (mounted) setError(apiError(cause)) })
       .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
   }, [])
+
+  useEffect(() => {
+    if (!focusedBookingId || loading) return
+
+    document
+      .getElementById(`booking-${focusedBookingId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [bookings, focusedBookingId, loading])
+
+  const areasById = useMemo(
+    () => new Map(areas.map((area) => [area.id, area])),
+    [areas],
+  )
+  const tableDisplayName = (table) => table.ma_ban
+    ? formatTableName(
+      areasById.get(table.khu_vuc_id)?.ten_khu_vuc || '',
+      table.ma_ban,
+    )
+    : ''
 
   const weekdayIndex = getWeekdayIndex(date)
   const schedule = weekdayIndex === null ? null : settings?.week[weekdayIndex]
@@ -248,7 +271,16 @@ export default function BookingDemo() {
 
       setResult({
         ok: true,
-        message: `Đã phân ${response.ten_ban} và xác nhận đơn #${bookingId}.`,
+        message: `Đã phân ${
+          tableDisplayName(
+            availableTables.find(
+              (table) => table.id === response.ban_id,
+            ) || {
+              khu_vuc_id: null,
+              ma_ban: response.ma_ban,
+            },
+          )
+        } và xác nhận đơn #${bookingId}.`,
       })
     } catch (cause) {
       setResult({
@@ -273,6 +305,9 @@ export default function BookingDemo() {
 
       {error && <Alert showIcon type="error" className="booking-demo-alert" message="Không tải được dữ liệu" description={error} />}
       {loading && <Alert showIcon type="info" className="booking-demo-alert" message="Đang tải lịch và danh sách đặt bàn..." />}
+      {focusedBookingId && !loading && !bookings.some((booking) => String(booking.id) === String(focusedBookingId)) && (
+        <Alert showIcon type="warning" className="booking-demo-alert" message={`Không tìm thấy đặt bàn #${focusedBookingId} trong danh sách đã tải.`} />
+      )}
       {settings && !settings.configured && <Alert showIcon type="warning" className="booking-demo-alert" message="Chưa có lịch mở cửa đủ 7 ngày trong PostgreSQL. Quản lý cần lưu cấu hình trước." />}
       {settings && <Alert showIcon type="info" className="booking-demo-alert"
         message={`Múi giờ: ${TIME_ZONE} · Giữ bàn: ${settings.duration} phút · Mốc 30 phút`}
@@ -332,7 +367,7 @@ export default function BookingDemo() {
         <div className="booking-demo-table-chips">
           {tables.map((table) => (
             <Tag key={table.id} color={table.trang_thai === 'NGUNG_SU_DUNG' ? 'default' : 'green'}>
-              {table.ma_ban} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách
+              {tableDisplayName(table)} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách
             </Tag>
           ))}
           {!tables.length && <span>Chưa có bàn nào. Quản lý hãy khai báo bàn trước.</span>}
@@ -341,12 +376,25 @@ export default function BookingDemo() {
 
       <Card className="booking-demo-card booking-demo-list" title={`Yêu cầu đã lưu (${bookings.length})`}>
         {bookings.length ? bookings.map((booking) => (
-          <div key={booking.id} className="booking-demo-list-item">
+          <div
+            key={booking.id}
+            id={`booking-${booking.id}`}
+            className={`booking-demo-list-item ${
+              String(booking.id) === String(focusedBookingId)
+                ? 'booking-demo-list-item--focused'
+                : ''
+            }`}
+          >
             <div>
               <strong>#{booking.id} · {booking.ho_ten_khach}</strong>
               <p>{booking.ngay_dat} · {booking.gio_bat_dau?.slice(0, 5)} · {booking.so_luong_khach} khách · {booking.thoi_luong_giu_ban} phút</p>
               <p>Điện thoại: {booking.so_dien_thoai}{booking.ghi_chu ? ` · ${booking.ghi_chu}` : ''}</p>
-              {booking.ban_id && <p>Đã phân: <b>{booking.ten_ban || `Bàn #${booking.ban_id}`}</b></p>}
+              {booking.ban_id && <p>Đã phân: <b>{tableDisplayName(
+                tables.find((table) => table.id === booking.ban_id) || {
+                  khu_vuc_id: null,
+                  ma_ban: '',
+                },
+              ) || 'Chưa tải được thông tin bàn'}</b></p>}
             </div>
             <div className="booking-demo-list-actions">
               <Tag color={booking.trang_thai === 'DA_HUY' ? 'default' : booking.trang_thai === 'DA_XAC_NHAN' ? 'green' : 'orange'}>
@@ -358,7 +406,7 @@ export default function BookingDemo() {
                 <div className="booking-demo-assign">
                   <select value={selectedTableId} onChange={(event) => setSelectedTableId(event.target.value)} disabled={busy || !availableTables.length}>
                     <option value="">{availableTables.length ? 'Chọn bàn còn trống' : 'Không có bàn phù hợp'}</option>
-                    {availableTables.map((table) => <option key={table.id} value={table.id}>{table.ten_ban} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách</option>)}
+                    {availableTables.map((table) => <option key={table.id} value={table.id}>{tableDisplayName(table)} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách</option>)}
                   </select>
                   <Button type="primary" size="small" disabled={busy || !selectedTableId} loading={busy} onClick={() => assignTable(booking.id)}>Phân bàn & xác nhận</Button>
                 </div>

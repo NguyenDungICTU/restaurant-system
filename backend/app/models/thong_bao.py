@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
@@ -11,6 +11,7 @@ class ThongBao(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     dat_ban_id: Mapped[int] = mapped_column(ForeignKey("dat_ban.id", ondelete="CASCADE"), nullable=False, index=True)
+    dat_ban = relationship("DatBan", back_populates="thong_bao")
     loai: Mapped[str] = mapped_column(String(30), nullable=False)
     email: Mapped[str] = mapped_column(String(254), nullable=False)
     trang_thai: Mapped[str] = mapped_column(String(20), nullable=False, default="CHO_GUI")
