@@ -72,6 +72,18 @@ class Settings(BaseSettings):
 
     cookie_samesite: str = "lax"
 
+    restaurant_phone: str = ""
+    restaurant_address: str = "Địa chỉ nhà hàng chưa được cấu hình"
+    notification_worker_interval_seconds: int = Field(default=10, ge=1, le=60)
+    notification_retry_minutes: int = Field(default=5, ge=1, le=60)
+
+    smtp_host: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_use_tls: bool = True
+
     frontend_urls: CommaSeparatedUrls = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",

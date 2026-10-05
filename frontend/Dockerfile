@@ -1,10 +1,12 @@
-FROM node:20-alpine AS build
+FROM node:20-bookworm-slim AS build
 
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci
+# Vite 8 uses Rolldown native bindings. Install the Linux/glibc binding
+# explicitly so npm optional-dependency resolution cannot omit it.
+RUN npm ci --include=optional     && npm install --no-save --include=optional @rolldown/binding-linux-x64-gnu@1.2.9
 
 COPY . .
 
