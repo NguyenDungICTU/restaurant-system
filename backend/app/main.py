@@ -6,6 +6,7 @@ import shutil
 from zoneinfo import ZoneInfo
 
 from app.database.session import SessionLocal
+from app.services.booking_notifications import notification_worker
 from app.services.mon_an_availability_service import (
     next_midnight_vietnam,
     reset_expired_temporary_sold_out,
@@ -23,6 +24,7 @@ from app.core.config import settings
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
 from app.routers.ban import router as ban_router
+from app.routers.table_map_events import router as table_map_events_router
 from app.routers.employees import (
     router as employees_router,
 )
@@ -66,14 +68,17 @@ async def lifespan(app: FastAPI):
         db.close()
 
     task = asyncio.create_task(_temporary_sold_out_reset_loop())
+    notification_task = asyncio.create_task(notification_worker())
     try:
         yield
     finally:
         task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        notification_task.cancel()
+        for running_task in (task, notification_task):
+            try:
+                await running_task
+            except asyncio.CancelledError:
+                pass
 
 
 app = FastAPI(
@@ -131,6 +136,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(employees_router)
 app.include_router(khu_vuc_router)
+app.include_router(table_map_events_router)
 app.include_router(ban_router)
 app.include_router(nhom_mon_router)
 app.include_router(public_menu_router)

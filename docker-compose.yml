@@ -53,7 +53,10 @@ services:
       # Customer booking lookup/cancellation.
       # Defaults use the local Mailpit demo service so teammates
       # can test cancellation emails without personal SMTP credentials.
-      RESTAURANT_PHONE: ${RESTAURANT_PHONE:-0900000000}
+      RESTAURANT_PHONE: ${RESTAURANT_PHONE:-0963217400}
+      RESTAURANT_ADDRESS: ${RESTAURANT_ADDRESS:-Địa chỉ nhà hàng chưa được cấu hình}
+      NOTIFICATION_WORKER_INTERVAL_SECONDS: ${NOTIFICATION_WORKER_INTERVAL_SECONDS:-10}
+      NOTIFICATION_RETRY_MINUTES: ${NOTIFICATION_RETRY_MINUTES:-5}
       SMTP_HOST: ${SMTP_HOST:-mailpit}
       SMTP_PORT: ${SMTP_PORT:-1025}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
@@ -84,11 +87,48 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   mailpit:
     image: axllent/mailpit:latest
     container_name: restaurant-mailpit
     restart: unless-stopped
+
+    environment:
+      # Mailpit Web UI
+      MP_UI_BIND_ADDR: "0.0.0.0:8025"
+
+      # Mailpit SMTP server nhận email từ backend
+      MP_SMTP_BIND_ADDR: "0.0.0.0:1025"
+
+      # ============================================================
+      # SMTP RELAY
+      # Mailpit sẽ tự động gửi email ra SMTP thật
+      # đến đúng địa chỉ nằm trong trường To:
+      # ============================================================
+      MP_SMTP_RELAY_HOST: "smtp.gmail.com"
+      MP_SMTP_RELAY_PORT: "587"
+      MP_SMTP_RELAY_STARTTLS: "true"
+      MP_SMTP_RELAY_TLS: "false"
+      MP_SMTP_RELAY_AUTH: "plain"
+
+      # TÀI KHOẢN GMAIL DÙNG ĐỂ GỬI
+      MP_SMTP_RELAY_USERNAME: "${SMTP_RELAY_USERNAME}"
+      MP_SMTP_RELAY_PASSWORD: "${SMTP_RELAY_PASSWORD}"
+
+      # Tự động relay TẤT CẢ email nhận được
+      MP_SMTP_RELAY_ALL: "true"
+
+      # Giữ nguyên Message-ID
+      MP_SMTP_RELAY_PRESERVE_MESSAGE_IDS: "false"
+
+      # Cho phép Mailpit giữ lại email để xem trên localhost:8025
+      MP_SMTP_RELAY_FWD_SMTP_ERRORS: "true"
+
+      MP_SMTP_RELAY_OVERRIDE_FROM: "${SMTP_RELAY_USERNAME}"
+      MP_SMTP_RELAY_RETURN_PATH: "${SMTP_RELAY_USERNAME}"
+
     ports:
       - "8025:8025"
       - "1025:1025"

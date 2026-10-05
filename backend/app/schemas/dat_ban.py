@@ -1,4 +1,5 @@
 from datetime import date, datetime, time
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -9,6 +10,7 @@ class DatBanCreate(BaseModel):
     so_luong_khach: int = Field(ge=1, le=20)
     ngay_dat: date
     gio_bat_dau: time
+    khu_vuc_yeu_cau_id: int | None = Field(default=None, gt=0)
     khu_vuc_id: int | None = Field(default=None, gt=0)
     ghi_chu: str | None = Field(default=None, max_length=1000)
 
@@ -36,11 +38,45 @@ class DatBanResponse(DatBanCreate):
     trang_thai: str
     ban_id: int | None = None
     ten_ban: str | None = None
+    ly_do_tu_choi: str | None = None
+    thong_bao_khach: str | None = None
+    thong_bao_gui_luc: datetime | None = None
     email: str | None = None
+    email_xac_nhan_trang_thai: str | None = None
+    email_xac_nhan_so_lan_thu: int = 0
+    email_xac_nhan_gui_luc: datetime | None = None
+    email_xac_nhan_loi_cuoi: str | None = None
+    email_huy_trang_thai: str | None = None
+    email_huy_so_lan_thu: int = 0
+    email_huy_gui_luc: datetime | None = None
+    email_huy_loi_cuoi: str | None = None
     ly_do_tu_choi: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DatBanHomNayResponse(BaseModel):
+    id: int
+    ma_dat_ban: str
+    ho_ten_khach: str
+    so_dien_thoai_da_che: str
+    so_luong_khach: int
+    khung_gio: str
+    ten_ban: str | None = None
+    trang_thai: str
+    sap_den_trong_30_phut: bool
+    co_the_doi_ban: bool
+    khu_vuc_yeu_cau_id: int | None = None
+    email: str | None = None
+    email_xac_nhan_trang_thai: str | None = None
+    email_xac_nhan_so_lan_thu: int = 0
+    email_xac_nhan_gui_luc: datetime | None = None
+    email_xac_nhan_loi_cuoi: str | None = None
+    email_huy_trang_thai: str | None = None
+    email_huy_so_lan_thu: int = 0
+    email_huy_gui_luc: datetime | None = None
+    email_huy_loi_cuoi: str | None = None
 
 
 class XacNhanDatBan(BaseModel):
@@ -49,6 +85,49 @@ class XacNhanDatBan(BaseModel):
     ban_id: int = Field(gt=0)
 
 
+class DatBanChoNhanKhachResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ho_ten_khach: str
+    so_luong_khach: int
+    ngay_dat: date
+    gio_bat_dau: time
+
+
+class NhanKhachBanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dat_ban_id: int | None = Field(default=None, gt=0)
+class TuChoiDatBan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ly_do: Literal[
+        "HET_BAN",
+        "NGOAI_GIO_PHUC_VU",
+        "KHONG_LIEN_LAC_DUOC",
+    ]
+
+
+class DoiBanDatBan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ban_id: int = Field(gt=0)
+
+
+class TraCuuDatBanResponse(BaseModel):
+    ma_dat_ban: str
+    ho_ten_khach: str
+    so_dien_thoai_da_che: str
+    ngay_dat: date
+    gio_bat_dau: time
+    so_luong_khach: int
+    trang_thai: str
+    ten_ban: str | None = None
+    ly_do_tu_choi: str | None = None
+    ly_do_tu_choi_hien_thi: str | None = None
+    thong_bao_khach: str | None = None
+    thong_bao_gui_luc: datetime | None = None
 class PublicTimeSlot(BaseModel):
     gio: str
     kha_dung: bool
@@ -76,6 +155,9 @@ class PublicBookingResponse(BaseModel):
     ghi_chu: str | None = None
     trang_thai: str
     email: str | None = None
+    email_xac_nhan_trang_thai: str | None = None
+    email_xac_nhan_so_lan_thu: int = 0
+    email_huy_trang_thai: str | None = None
     ten_ban: str | None = None
 
 
