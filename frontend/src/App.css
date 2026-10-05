@@ -2095,10 +2095,17 @@
   background:#fff7e6;
 }
 @media(max-width:900px){
- .dish-row{
-  grid-template-columns:100px 1fr;
- }
- .dish-row > *:not(.dish-image-fixed):not(.category-main){
-  grid-column:2;
- }
+  .dish-row{
+    grid-template-columns:100px 1fr;
+  }
+  .dish-row > *:not(.dish-image-fixed):not(.category-main){
+    grid-column:2;
+  }
+}
+
+.page-content--table-map {
+  width: 100%;
+  max-width: none;
+  padding: 22px 20px 40px;
+}
 }

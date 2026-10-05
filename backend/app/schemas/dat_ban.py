@@ -47,8 +47,6 @@ class XacNhanDatBan(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     ban_id: int = Field(gt=0)
-
-
 class PublicTimeSlot(BaseModel):
     gio: str
     kha_dung: bool
@@ -132,3 +130,20 @@ class PublicBookingLookupResponse(BaseModel):
     phut_con_lai: int
     so_dien_thoai_quan: str | None = None
     thong_bao_huy: str | None = None
+
+class DatBanChoNhanKhachResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ho_ten_khach: str
+    so_luong_khach: int
+    ngay_dat: date
+    gio_bat_dau: time
+
+
+class NhanKhachBanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dat_ban_id: int | None = Field(default=None, gt=0)
+    ho_ten_khach: str | None = Field(default=None, min_length=1, max_length=100)
+    so_luong_khach: int | None = Field(default=None, ge=1, le=2147483647)

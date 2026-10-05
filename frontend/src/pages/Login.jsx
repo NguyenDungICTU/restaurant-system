@@ -12,6 +12,7 @@ import { login } from '../services/api'
 
 
 export default function Login({
+  notice,
   onBack,
   onSuccess,
 }) {
@@ -119,6 +120,15 @@ export default function Login({
           <p className="login-subtitle">
             Đăng nhập để truy cập khu vực làm việc đúng với vai trò của bạn.
           </p>
+
+          {notice && (
+            <div
+              className="login-error"
+              role="alert"
+            >
+              {notice}
+            </div>
+          )}
 
           <form
             onSubmit={submit}
