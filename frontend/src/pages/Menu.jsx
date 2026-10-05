@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  AppstoreOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
   SaveOutlined,
@@ -9,16 +12,16 @@ import { App as AntdApp, Button, Modal, Segmented } from 'antd'
 
 import {
   createCategory,
+  createDish,
   deleteCategory,
-  uploadCategoryImage,
+  deleteDish,
   getCategories,
+  getDishes,
   reorderCategories,
   updateCategory,
   updateCategoryStatus,
-  getDishes,
-  createDish,
   updateDish,
-  deleteDish,
+  uploadCategoryImage,
   uploadDishImage,
 } from '../services/api'
 
@@ -383,25 +386,29 @@ export default function Menu() {
   ).length
 
   return (
-    <section className="menu-page">
-      <div className="page-heading menu-page-heading">
+    <section className="menu-page p-6 bg-slate-50 min-h-screen">
+      {/* Header Page */}
+      <div className="page-heading menu-page-heading flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <p className="eyebrow">RESTAURANT MENU</p>
+          <p className="eyebrow text-xs font-bold text-amber-700 tracking-wider uppercase mb-1">
+            RESTAURANT MENU
+          </p>
 
-          <h1>Thực đơn</h1>
+          <h1 className="text-2xl font-bold text-slate-800 m-0">Thực đơn</h1>
 
-          <p className="subheading">
+          <p className="subheading text-sm text-slate-500 mt-1 mb-0">
             Quản lý nhóm món và các món ăn thuộc từng nhóm.
           </p>
         </div>
 
-        <div className="menu-page-actions">
+        <div className="menu-page-actions flex items-center gap-3">
           {view === 'categories' && reorderDirty && (
             <Button
               type="primary"
               icon={<SaveOutlined />}
               loading={saving}
               onClick={handleSaveReorder}
+              className="bg-emerald-600 hover:bg-emerald-700 border-none shadow-sm"
             >
               Lưu thứ tự
             </Button>
@@ -415,6 +422,7 @@ export default function Menu() {
                 ? openCreateCategory
                 : openCreateDish
             }
+            className="bg-amber-700 hover:bg-amber-800 border-none shadow-sm h-10 px-4 font-medium"
           >
             {view === 'categories'
               ? 'Thêm nhóm món'
@@ -423,36 +431,53 @@ export default function Menu() {
         </div>
       </div>
 
-      <div className="menu-summary-grid">
-        <div className="menu-summary-card">
-          <span>Tổng nhóm món</span>
-          <strong>{categories.length}</strong>
+      {/* Summary Grid Cards */}
+      <div className="menu-summary-grid grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="menu-summary-card bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-slate-500">Tổng nhóm món</span>
+            <strong className="text-2xl font-bold text-slate-800 mt-1">{categories.length}</strong>
+          </div>
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
+            <AppstoreOutlined className="text-xl" />
+          </div>
         </div>
 
-        <div className="menu-summary-card">
-          <span>Đang sử dụng</span>
-          <strong>{activeCount}</strong>
+        <div className="menu-summary-card bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-slate-500">Đang sử dụng</span>
+            <strong className="text-2xl font-bold text-emerald-600 mt-1">{activeCount}</strong>
+          </div>
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+            <CheckCircleOutlined className="text-xl" />
+          </div>
         </div>
 
-        <div className="menu-summary-card">
-          <span>Tổng món ăn</span>
-          <strong>{dishes.length}</strong>
+        <div className="menu-summary-card bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-slate-500">Tổng món ăn</span>
+            <strong className="text-2xl font-bold text-slate-800 mt-1">{dishes.length}</strong>
+          </div>
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+            <UnorderedListOutlined className="text-xl" />
+          </div>
         </div>
       </div>
 
-      <div className="panel menu-management-panel">
-        <div className="menu-toolbar">
+      {/* Main Panel */}
+      <div className="panel menu-management-panel bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="menu-toolbar p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
           <div>
-            <div className="menu-toolbar-title">
-              <UnorderedListOutlined /> Thực đơn
+            <div className="menu-toolbar-title font-semibold text-slate-800 text-base flex items-center gap-2">
+              <UnorderedListOutlined className="text-amber-600" /> Thực đơn
             </div>
 
-            <p>
+            <p className="text-xs text-slate-500 mt-1 mb-0">
               Luồng dữ liệu: Nhóm món → Món ăn thuộc nhóm.
             </p>
           </div>
 
-          <div className="menu-toolbar-actions">
+          <div className="menu-toolbar-actions flex items-center gap-3 flex-wrap">
             <Segmented
               options={[
                 {
@@ -481,41 +506,44 @@ export default function Menu() {
                   ? loadCategories()
                   : loadDishes()
               }
+              className="text-slate-600 hover:text-slate-800"
             >
               Làm mới
             </Button>
           </div>
         </div>
 
-        {view === 'categories' ? (
-          <CategoryList
-            categories={categories}
-            loading={loading}
-            filter={filter}
-            reorderDirty={reorderDirty}
-            updatingStatusId={updatingStatusId}
-            onEdit={openEditCategory}
-            onDelete={setDeleteTarget}
-            onStatusChange={handleStatusChange}
-            dishes={dishes}
-            onReorder={(next) => {
-              setCategories(next)
-              setReorderDirty(true)
-            }}
-          />
-        ) : (
-          <DishList
-            dishes={dishes}
-            loading={dishesLoading}
-            categories={categories}
-            onEdit={openEditDish}
-            onDelete={setDeleteDishTarget}
-          />
-        )}
+        <div className="p-5">
+          {view === 'categories' ? (
+            <CategoryList
+              categories={categories}
+              loading={loading}
+              filter={filter}
+              reorderDirty={reorderDirty}
+              updatingStatusId={updatingStatusId}
+              onEdit={openEditCategory}
+              onDelete={setDeleteTarget}
+              onStatusChange={handleStatusChange}
+              dishes={dishes}
+              onReorder={(next) => {
+                setCategories(next)
+                setReorderDirty(true)
+              }}
+            />
+          ) : (
+            <DishList
+              dishes={dishes}
+              loading={dishesLoading}
+              categories={categories}
+              onEdit={openEditDish}
+              onDelete={setDeleteDishTarget}
+            />
+          )}
+        </div>
 
         {view === 'categories' && (
-          <div className="menu-filter-row">
-            <span>Lọc nhóm:</span>
+          <div className="menu-filter-row p-4 border-t border-slate-100 bg-slate-50/30 flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500">Lọc nhóm:</span>
 
             <Segmented
               options={FILTER_OPTIONS}
@@ -526,19 +554,28 @@ export default function Menu() {
         )}
       </div>
 
-      <div className="implementation-note">
-        <div className="note-icon">i</div>
+      {/* Info Banner */}
+      <div className="implementation-note bg-amber-50/60 border border-amber-200/80 rounded-xl p-4 flex gap-3 text-amber-900">
+        <div className="note-icon bg-amber-200 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+          <InfoCircleOutlined />
+        </div>
 
-        <div>
-          <strong>
+        <div className="text-xs">
+          <strong className="block font-semibold text-amber-900 mb-0.5">
             Mỗi món ăn bắt buộc thuộc một nhóm món
           </strong>
 
-          <p>
+          <p className="m-0 text-amber-800/80 leading-relaxed">
             Backend lưu{' '}
-            <code>mon_an.nhom_mon_id</code> làm khóa ngoại tới
-            <code> nhom_mon.id</code>. Vì vậy không thể tạo món
-            ăn mà không chọn nhóm.
+            <code className="bg-amber-100/80 px-1.5 py-0.5 rounded font-mono text-amber-900">
+              mon_an.nhom_mon_id
+            </code>{' '}
+            làm khóa ngoại tới
+            <code className="bg-amber-100/80 px-1.5 py-0.5 rounded font-mono text-amber-900">
+              {' '}
+              nhom_mon.id
+            </code>
+            . Vì vậy không thể tạo món ăn mà không chọn nhóm.
           </p>
         </div>
       </div>
@@ -580,7 +617,7 @@ export default function Menu() {
           <strong>{deleteTarget?.ten_nhom}</strong>?
         </p>
 
-        <p className="delete-warning">
+        <p className="delete-warning text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-100 mt-2">
           Nếu nhóm đang chứa món ăn, hệ thống sẽ không cho phép
           xóa. Hãy chuyển hoặc xóa các món trong nhóm trước.
         </p>
@@ -628,4 +665,3 @@ function getErrorMessage(error, fallback) {
     ? detail
     : fallback
 }
-
