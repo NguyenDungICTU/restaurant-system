@@ -367,6 +367,20 @@ export async function getBookings({ signal } = {}) {
   return response.data
 }
 
+export async function getTodayBookings(status) {
+  const params =
+    status && status !== 'ALL'
+      ? { trang_thai: status }
+      : undefined
+
+  const response = await api.get(
+    '/api/dat-ban/hom-nay',
+    { params },
+  )
+
+  return response.data
+}
+
 export async function createBooking(payload) {
   const response = await api.post('/api/dat-ban', payload)
   return response.data
@@ -440,6 +454,35 @@ export async function confirmBooking(bookingId, tableId) {
   const response = await api.post(
     `/api/dat-ban/${bookingId}/xac-nhan`,
     { ban_id: tableId }
+  )
+  return response.data
+}
+
+export async function rejectBooking(bookingId, reason) {
+  const response = await api.post(
+    `/api/dat-ban/${bookingId}/tu-choi`,
+    { ly_do: reason },
+  )
+  return response.data
+}
+
+export async function moveBooking(bookingId, tableId) {
+  const response = await api.post(
+    `/api/dat-ban/${bookingId}/doi-ban`,
+    { ban_id: tableId },
+  )
+  return response.data
+}
+
+export async function lookupBooking(bookingCode, phone) {
+  const response = await api.get(
+    '/api/dat-ban/tra-cuu',
+    {
+      params: {
+        ma_dat_ban: bookingCode,
+        so_dien_thoai: phone,
+      },
+    },
   )
   return response.data
 }

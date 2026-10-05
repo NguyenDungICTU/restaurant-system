@@ -21,6 +21,7 @@ import AuditLogs from '../pages/AuditLogs'
 import Menu from '../pages/Menu'
 import OpeningHoursSettings from '../pages/OpeningHoursSettings'
 import BookingDemo from '../pages/BookingDemo'
+import TodayBookings from '../pages/TodayBookings'
 import RoleWorkspace from '../pages/RoleWorkspace'
 import DailyMenu from '../pages/DailyMenu'
 import OrderEntry from '../pages/OrderEntry'
@@ -213,8 +214,12 @@ export default function RestaurantShell({ user, onLogout }) {
             : page === 'daily-menu' ? <DailyMenu />
             : page === 'audit' ? <AuditLogs />
             : page === 'opening-hours' ? <OpeningHoursSettings />
+
             : page === 'order-entry' ? <OrderEntry />
-            : page === 'bookings' ? <BookingDemo focusedBookingId={focusedBookingId} />
+            : page === 'bookings'
+              ? role === 'PHUC_VU' && !focusedBookingId
+                ? <TodayBookings />
+                : <BookingDemo focusedBookingId={focusedBookingId} />
             : <RoleWorkspace resource={page} />}
         </div>
       </main>

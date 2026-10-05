@@ -73,6 +73,9 @@ class Settings(BaseSettings):
     cookie_samesite: str = "lax"
 
     restaurant_phone: str = ""
+    restaurant_address: str = "Địa chỉ nhà hàng chưa được cấu hình"
+    notification_worker_interval_seconds: int = Field(default=10, ge=1, le=60)
+    notification_retry_minutes: int = Field(default=5, ge=1, le=60)
 
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
