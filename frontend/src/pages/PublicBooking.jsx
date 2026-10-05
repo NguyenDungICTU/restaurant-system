@@ -368,7 +368,7 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
               <div className="booking-success-row"><span>Khu vực</span><strong>{summary.ten_khu_vuc || 'Bất kỳ'}</strong></div>
             </div>
             <p className="booking-success-note">
-              Lịch sử đặt bàn đã được lưu trên trình duyệt này. Bạn có thể vào mục “Tra cứu & huỷ” để xem trạng thái hoặc huỷ khi còn ít nhất 60 phút.
+              Lịch sử đặt bàn đã được lưu trên trình duyệt này. Bạn có thể vào mục “Tra cứu & huỷ đặt bàn” để xem trạng thái hoặc huỷ khi còn ít nhất 60 phút.
             </p>
             <div className="booking-success-actions">
               <Button type="primary" onClick={resetForm}>Đặt thêm lượt mới</Button>
@@ -409,7 +409,7 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
             <CalendarOutlined /> Đặt bàn trực tuyến
           </button>
           <button className={mode === 'lookup' ? 'active' : ''} onClick={() => { setMode('lookup'); setLookupError('') }}>
-            <HistoryOutlined /> Lịch sử & huỷ đặt bàn
+            <HistoryOutlined /> Tra cứu & huỷ đặt bàn
           </button>
         </div>
 
