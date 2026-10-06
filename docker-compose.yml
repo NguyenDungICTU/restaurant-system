@@ -114,8 +114,8 @@ services:
       MP_SMTP_RELAY_AUTH: "plain"
 
       # TÀI KHOẢN GMAIL DÙNG ĐỂ GỬI
-      MP_SMTP_RELAY_USERNAME: "${SMTP_RELAY_USERNAME}"
-      MP_SMTP_RELAY_PASSWORD: "${SMTP_RELAY_PASSWORD}"
+      MP_SMTP_RELAY_USERNAME: "${SMTP_RELAY_USERNAME:-}"
+      MP_SMTP_RELAY_PASSWORD: "${SMTP_RELAY_PASSWORD:-}"
 
       # Tự động relay TẤT CẢ email nhận được
       MP_SMTP_RELAY_ALL: "true"

@@ -11,17 +11,18 @@ from reportlab.pdfgen.canvas import Canvas
 from app.core.config import settings
 
 
-def qr_url(token: str) -> str:
-    return f"{str(settings.qr_frontend_url).rstrip('/')}/?qr={token}"
+def qr_url(token: str, frontend_origin: str | None = None) -> str:
+    base = (frontend_origin or str(settings.qr_frontend_url)).rstrip("/")
+    return f"{base}/?qr={token}"
 
 
-def qr_png(token: str) -> bytes:
+def qr_png(token: str, frontend_origin: str | None = None) -> bytes:
     output = BytesIO()
-    qrcode.make(qr_url(token)).save(output, format="PNG")
+    qrcode.make(qr_url(token, frontend_origin)).save(output, format="PNG")
     return output.getvalue()
 
 
-def area_pdf(area, tables) -> bytes:
+def area_pdf(area, tables, frontend_origin: str | None = None) -> bytes:
     font = "QRUnicode"
     if font not in pdfmetrics.getRegisteredFontNames():
         paths = [settings.qr_pdf_font_path, "C:/Windows/Fonts/arial.ttf"]
@@ -47,7 +48,7 @@ def area_pdf(area, tables) -> bytes:
         x = width / 4 + (slot % 2) * width / 2
         y = height - 100 - (slot // 2) * 240
         fitted(table.ma_ban, x, y, 13, width / 2 - 40)
-        pdf.drawImage(ImageReader(BytesIO(qr_png(table.qr_token))), x - 90, y - 190, 180, 180)
+        pdf.drawImage(ImageReader(BytesIO(qr_png(table.qr_token, frontend_origin))), x - 90, y - 190, 180, 180)
         fitted(f"{table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách", x, y - 205, 10, 240)
     pdf.save()
     return output.getvalue()

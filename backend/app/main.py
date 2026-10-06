@@ -41,6 +41,8 @@ from app.routers.nhom_mon import (
     router as nhom_mon_router,
 )
 from app.routers.public_menu import router as public_menu_router
+from app.routers.customer_order import router as customer_order_router
+from app.routers.order_ops import router as order_ops_router
 
 
 async def _temporary_sold_out_reset_loop():
@@ -140,6 +142,8 @@ app.include_router(table_map_events_router)
 app.include_router(ban_router)
 app.include_router(nhom_mon_router)
 app.include_router(public_menu_router)
+app.include_router(customer_order_router)
+app.include_router(order_ops_router)
 app.include_router(mon_an_router)
 app.include_router(dat_ban_router)
 app.include_router(lich_hoat_dong_router)

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from threading import Lock
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import delete, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -522,6 +522,8 @@ def scan_qr(
 )
 def download_area_qr(
     area_id: int,
+    request: Request,
+    frontend_origin: str | None = Query(default=None, max_length=300),
     db: Session = Depends(get_db),
 ):
     area = validate_area(
@@ -547,7 +549,7 @@ def download_area_qr(
         )
 
     return Response(
-        area_pdf(area, tables),
+        area_pdf(area, tables, frontend_origin or request.headers.get("origin")),
         media_type="application/pdf",
         headers={
             "Content-Disposition": (
@@ -895,6 +897,8 @@ def regenerate_qr(
 )
 def download_table_qr(
     table_id: int,
+    request: Request,
+    frontend_origin: str | None = Query(default=None, max_length=300),
     db: Session = Depends(get_db),
 ):
     table = get_table(
@@ -909,7 +913,7 @@ def download_table_qr(
         )
 
     return Response(
-        qr_png(table.qr_token),
+        qr_png(table.qr_token, frontend_origin or request.headers.get("origin")),
         media_type="image/png",
         headers={
             "Content-Disposition": (

@@ -1,10 +1,28 @@
 import axios from 'axios'
 
+function isLoopbackUrl(value) {
+  try {
+    const hostname = new URL(value).hostname
+    return ['localhost', '127.0.0.1', '::1'].includes(hostname)
+  } catch {
+    return false
+  }
+}
+
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL || ''
+const configuredWsBase = import.meta.env.VITE_WS_BASE_URL || ''
+
+// Keep old .env files working on a LAN: when the app is opened from a phone
+// using the laptop's LAN address, never send API requests back to localhost.
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  configuredApiBase && (!isLoopbackUrl(configuredApiBase) || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? configuredApiBase.replace(/\/$/, '')
+    : window.location.origin
 
 export const WS_BASE_URL =
-  import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000'
+  configuredWsBase && (!isLoopbackUrl(configuredWsBase) || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? configuredWsBase.replace(/\/$/, '')
+    : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -692,12 +710,57 @@ export async function scanQR(token) {
   const response = await api.get(`/api/ban/qr/${encodeURIComponent(token)}`)
   return response.data
 }
+
+export async function getCustomerTable(qrToken, phienBanId) {
+  const response = await api.get(`/api/customer/qr/${encodeURIComponent(qrToken)}`, {
+    params: phienBanId ? { phien_ban_id: phienBanId } : undefined,
+  })
+  return response.data
+}
+
+export async function createCustomerOrder(payload) {
+  const response = await api.post('/api/customer/orders', payload)
+  return response.data
+}
+
+export async function getCustomerOrders(phienBanId, qrToken) {
+  const response = await api.get(`/api/customer/orders/${phienBanId}`, {
+    params: { qr_token: qrToken },
+  })
+  return response.data
+}
+
+export async function getKitchenOrders() {
+  const response = await api.get('/api/order-ops/kitchen')
+  return response.data
+}
+
+export async function getServiceOrders() {
+  const response = await api.get('/api/order-ops/service')
+  return response.data
+}
+
+export async function closeServiceSession(sessionId) {
+  const response = await api.post(`/api/order-ops/sessions/${sessionId}/close`)
+  return response.data
+}
+
+export async function updateOrderLineStatus(lineId, status) {
+  const response = await api.patch(`/api/order-ops/lines/${lineId}/status`, {
+    trang_thai: status,
+  })
+  return response.data
+}
 export async function regenerateQR(id) {
   const response = await api.post(`/api/ban/${id}/qr/regenerate`)
   return response.data
 }
 export async function downloadQR(path, filename) {
-  const response = await api.get(path, { responseType: 'blob' })
+  const separator = path.includes('?') ? '&' : '?'
+  const qrPath = path.includes('/qr.') || path.includes('/qr/')
+    ? `${path}${separator}frontend_origin=${encodeURIComponent(window.location.origin)}`
+    : path
+  const response = await api.get(qrPath, { responseType: 'blob' })
   const url = URL.createObjectURL(response.data)
   const anchor = document.createElement('a')
   anchor.href = url
