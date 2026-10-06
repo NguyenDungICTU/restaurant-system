@@ -44,6 +44,7 @@ def get_public_menu(db: Session = Depends(get_db)):
                 mo_ta_ngan=dish.mo_ta_ngan,
                 anh_url=dish.anh_url,
                 trang_thai=dish.trang_thai,
+                thoi_gian_che_bien_phut=dish.thoi_gian_che_bien_phut,
             )
         )
 
