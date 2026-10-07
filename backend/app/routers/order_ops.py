@@ -18,7 +18,7 @@ from app.schemas.customer_order import StaffOrderLineResponse, StaffOrderStatusU
 
 router = APIRouter(prefix="/api/order-ops", tags=["Gọi món - Bếp/Phục vụ"])
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
-VALID_STATUSES = {"CHO_BEP", "DANG_CHE_BIEN", "DA_XONG", "DA_PHUC_VU", "DA_HUY"}
+VALID_STATUSES = {"CHO_BEP", "DANG_CHE_BIEN", "DA_XONG", "DA_PHUC_VU"}
 
 
 def _rows(db: Session):
@@ -100,6 +100,62 @@ def update_order_line_status(
     line.trang_thai = payload.trang_thai
     db.commit()
     db.refresh(line)
+    return _view(line, batch, session, table, dish)
+
+
+@router.patch("/lines/{line_id}/cancel", response_model=StaffOrderLineResponse)
+def cancel_order_line(
+    line_id: int,
+    db: Session = Depends(get_db),
+    _: NhanVien = Depends(require_roles("PHUC_VU", "QUAN_LY")),
+):
+    row = db.execute(
+        select(DongGoiMon, DotGoiMon, PhienBan, Ban, MonAn)
+        .join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
+        .join(PhienBan, PhienBan.id == DotGoiMon.phien_ban_id)
+        .join(Ban, Ban.id == PhienBan.ban_id)
+        .join(MonAn, MonAn.id == DongGoiMon.mon_an_id)
+        .where(DongGoiMon.id == line_id)
+        .with_for_update()
+    ).first()
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy món gọi.",
+        )
+
+    line, batch, session, table, dish = row
+
+    if session.trang_thai not in {"DANG_PHUC_VU", "CHO_THANH_TOAN"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Phiên phục vụ đã kết thúc, không thể huỷ món.",
+        )
+
+    if line.trang_thai == "DA_HUY":
+        raise HTTPException(
+            status_code=409,
+            detail="Dòng món này đã được huỷ.",
+        )
+
+    if line.trang_thai != "CHO_BEP":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Chỉ có thể huỷ món khi món đang chờ bếp. "
+                "Bếp đã bắt đầu chế biến nên không thể huỷ."
+            ),
+        )
+
+    now = datetime.now(VIETNAM_TZ)
+    line.trang_thai = "DA_HUY"
+    line.huy_at = line.huy_at or now
+    line.tinh_tien = False
+
+    db.commit()
+    db.refresh(line)
+
     return _view(line, batch, session, table, dish)
 
 

@@ -751,6 +751,10 @@ export async function updateOrderLineStatus(lineId, status) {
   })
   return response.data
 }
+export async function cancelOrderLine(lineId) {
+  const response = await api.patch(`/api/order-ops/lines/${lineId}/cancel`)
+  return response.data
+}
 export async function regenerateQR(id) {
   const response = await api.post(`/api/ban/${id}/qr/regenerate`)
   return response.data
