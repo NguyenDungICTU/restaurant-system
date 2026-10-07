@@ -19,27 +19,42 @@ import {
 import './OrderOperations.css'
 
 const CANCEL_REASONS = [
-  {
-    value: 'KHACH_DOI_Y',
-    label: 'Khách đổi ý',
-  },
-  {
-    value: 'GOI_NHAM',
-    label: 'Gọi nhầm',
-  },
-  {
-    value: 'HET_NGUYEN_LIEU',
-    label: 'Hết nguyên liệu',
-  },
+  { value: 'KHACH_DOI_Y', label: 'Khách đổi ý' },
+  { value: 'GOI_NHAM', label: 'Gọi nhầm' },
+  { value: 'HET_NGUYEN_LIEU', label: 'Hết nguyên liệu' },
 ]
+
+const TERMINAL_STATUSES = new Set([
+  'DA_XONG',
+  'DA_PHUC_VU',
+  'DA_HUY',
+])
+
+function reasonLabel(value) {
+  return (
+    CANCEL_REASONS.find((item) => item.value === value)?.label ||
+    value ||
+    'Không rõ lý do'
+  )
+}
+
+function money(value) {
+  return `${Number(value || 0).toLocaleString('vi-VN')} đ`
+}
+
+function statusMeta(status) {
+  if (status === 'DA_HUY') return { color: 'red', label: 'Đã huỷ' }
+  if (status === 'DA_XONG') return { color: 'green', label: 'Đã xong' }
+  if (status === 'DA_PHUC_VU') return { color: 'cyan', label: 'Đã phục vụ' }
+  if (status === 'DANG_CHE_BIEN') return { color: 'orange', label: 'Bếp đang làm' }
+  return { color: 'blue', label: 'Đã nhận' }
+}
 
 export default function ServiceOrders({ user }) {
   const { message } = AntdApp.useApp()
-
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(false)
   const [closing, setClosing] = useState(null)
-
   const [cancelTarget, setCancelTarget] = useState(null)
   const [cancelReason, setCancelReason] = useState('')
   const [canceling, setCanceling] = useState(null)
@@ -50,7 +65,6 @@ export default function ServiceOrders({ user }) {
 
   const load = useCallback(async () => {
     setLoading(true)
-
     try {
       setOrders(await getServiceOrders())
     } catch (error) {
@@ -64,25 +78,26 @@ export default function ServiceOrders({ user }) {
   }, [message])
 
   useEffect(() => {
-    load()
+    const runLoad = () => {
+      void load()
+    }
 
-    const timer = window.setInterval(
-      load,
-      3000,
-    )
+    const initialTimer = window.setTimeout(runLoad, 0)
+    const refreshTimer = window.setInterval(runLoad, 3000)
 
-    return () => window.clearInterval(timer)
+    return () => {
+      window.clearTimeout(initialTimer)
+      window.clearInterval(refreshTimer)
+    }
   }, [load])
 
   const grouped = useMemo(() => {
     const map = new Map()
 
     orders.forEach((item) => {
-      if (!map.has(item.ma_ban)) {
-        map.set(item.ma_ban, [])
-      }
-
-      map.get(item.ma_ban).push(item)
+      const key = item.phien_ban_id
+      if (!map.has(key)) map.set(key, [])
+      map.get(key).push(item)
     })
 
     return [...map.entries()]
@@ -90,7 +105,6 @@ export default function ServiceOrders({ user }) {
 
   async function closeSession(sessionId) {
     setClosing(sessionId)
-
     try {
       await closeServiceSession(sessionId)
       message.success('Đã kết thúc phiên phục vụ.')
@@ -111,52 +125,35 @@ export default function ServiceOrders({ user }) {
   }
 
   function closeCancelModal() {
-    if (canceling !== null) {
-      return
-    }
-
+    if (canceling !== null) return
     setCancelTarget(null)
     setCancelReason('')
   }
 
   async function confirmCancel() {
-    if (!cancelTarget) {
-      return
-    }
-
+    if (!cancelTarget) return
     if (!cancelReason) {
       message.warning('Vui lòng chọn lý do huỷ món.')
       return
     }
 
     const target = cancelTarget
-
     setCanceling(target.id)
 
     try {
-      await cancelOrderLine(
-        target.id,
-        cancelReason,
-      )
-
-      const reasonLabel =
-        CANCEL_REASONS.find(
-          (item) => item.value === cancelReason,
-        )?.label || cancelReason
-
+      await cancelOrderLine(target.id, cancelReason)
       message.success(
-        `Đã huỷ món "${target.ten_mon}" — ${reasonLabel}.`,
+        `Đã huỷ món "${target.ten_mon}" — ${reasonLabel(cancelReason)}.`,
       )
-
       setCancelTarget(null)
       setCancelReason('')
-
       await load()
     } catch (error) {
       message.error(
         error?.response?.data?.detail ||
         'Không thể huỷ món.',
       )
+      await load()
     } finally {
       setCanceling(null)
     }
@@ -169,13 +166,10 @@ export default function ServiceOrders({ user }) {
           <p className="eyebrow">
             <ShoppingCartOutlined /> PHỤC VỤ
           </p>
-
           <h1>Theo dõi món theo bàn</h1>
-
           <p>
-            Màn hình cập nhật tự động để phục vụ biết
-            bàn nào đang gọi món và món nào đã xong để
-            mang ra.
+            Cập nhật tự động mỗi 3 giây. Món chưa chế biến có thể
+            huỷ bởi Phục vụ; món đang chế biến chỉ Quản lý được huỷ.
           </p>
         </div>
 
@@ -193,168 +187,118 @@ export default function ServiceOrders({ user }) {
         </div>
       ) : (
         <div className="order-ops-grid">
-          {grouped.map(([table, lines]) => (
-            <article
-              className="order-ticket"
-              key={table}
-            >
-              <header>
-                <div>
-                  <strong>Bàn {table}</strong>
+          {grouped.map(([sessionId, lines]) => {
+            const canClose = lines.every((line) =>
+              TERMINAL_STATUSES.has(line.trang_thai)
+            )
+            const subtotal = lines.reduce((sum, line) => {
+              if (line.tinh_tien === false) return sum
+              return sum + Number(line.don_gia || 0) * Number(line.so_luong || 0)
+            }, 0)
 
-                  <span>
-                    {lines.length} món đang theo dõi ·
-                    {' '}
-                    Phiên #{lines[0].phien_ban_id}
-                  </span>
-                </div>
-
-                <div className="order-ticket-header-actions">
-                  <Tag
-                    color={
-                      lines.every((x) =>
-                        [
-                          'DA_XONG',
-                          'DA_PHUC_VU',
-                          'DA_HUY',
-                        ].includes(x.trang_thai)
-                      )
-                        ? 'green'
-                        : 'orange'
-                    }
-                  >
-                    {lines.every((x) =>
-                      [
-                        'DA_XONG',
-                        'DA_PHUC_VU',
-                        'DA_HUY',
-                      ].includes(x.trang_thai)
-                    )
-                      ? 'Có thể kết thúc'
-                      : 'Đang xử lý'}
-                  </Tag>
-
-                  <Button
-                    size="small"
-                    disabled={
-                      !lines.every((x) =>
-                        [
-                          'DA_XONG',
-                          'DA_PHUC_VU',
-                          'DA_HUY',
-                        ].includes(x.trang_thai)
-                      )
-                    }
-                    loading={
-                      closing === lines[0].phien_ban_id
-                    }
-                    onClick={() =>
-                      closeSession(
-                        lines[0].phien_ban_id,
-                      )
-                    }
-                  >
-                    Kết thúc phiên
-                  </Button>
-                </div>
-              </header>
-
-              <div className="order-ticket-lines">
-                {lines.map((line) => (
-                  <div
-                    className="order-line"
-                    key={line.id}
-                  >
-                    <div>
-                      <strong>
-                        {line.ten_mon} × {line.so_luong}
-                      </strong>
-
-                      {line.ghi_chu && (
-                        <small>
-                          Ghi chú: {line.ghi_chu}
-                        </small>
-                      )}
-                    </div>
-
-                    <div className="order-line-actions">
-                      <Tag
-                        color={
-                          line.trang_thai === 'DA_XONG'
-                            ? 'green'
-                            : line.trang_thai === 'DA_HUY'
-                              ? 'red'
-                              : 'blue'
-                        }
-                      >
-                        {line.trang_thai === 'DA_XONG'
-                          ? 'Đã xong'
-                          : line.trang_thai === 'DA_HUY'
-                            ? 'Đã huỷ'
-                            : line.trang_thai === 'DANG_CHE_BIEN'
-                              ? 'Bếp đang làm'
-                              : 'Đã nhận'}
-                      </Tag>
-
-                      {(
-                        line.trang_thai === 'CHO_BEP' ||
-                        (
-                          isManager &&
-                          line.trang_thai === 'DANG_CHE_BIEN'
-                        )
-                      ) && (
-                        <Button
-                          size="small"
-                          danger
-                          loading={
-                            canceling === line.id
-                          }
-                          onClick={() =>
-                            openCancelModal(line)
-                          }
-                        >
-                          Huỷ món
-                        </Button>
-                      )}
-
-                      {(
-                        line.trang_thai === 'DANG_CHE_BIEN' &&
-                        !isManager
-                      ) && (
-                        <Button
-                          size="small"
-                          disabled
-                          title={
-                            'Món đã bắt đầu chế biến. ' +
-                            'Phục vụ không thể huỷ món này.'
-                          }
-                        >
-                          Không thể huỷ
-                        </Button>
-                      )}
-
-                      <small>
-                        {line.trang_thai === 'DA_XONG'
-                          ? 'Mang ra bàn'
-                          : `Dự kiến ${new Date(
-                              line.du_kien_hoan_thanh_at,
-                            ).toLocaleTimeString(
-                              'vi-VN',
-                              {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              },
-                            )}`}
-                      </small>
-                    </div>
-            ORDER BY id DESC
-            LIMIT 1
-            """
+            return (
+              <article className="order-ticket" key={sessionId}>
+                <header>
+                  <div>
+                    <strong>Bàn {lines[0].ma_ban}</strong>
+                    <span>
+                      {lines.length} dòng món · Phiên #{sessionId} · Tạm tính {money(subtotal)}
+                    </span>
                   </div>
-                ))}
-              </div>
-            </article>
-          ))}
+
+                  <div className="order-ticket-header-actions">
+                    <Tag color={canClose ? 'green' : 'orange'}>
+                      {canClose ? 'Có thể kết thúc' : 'Đang xử lý'}
+                    </Tag>
+                    <Button
+                      size="small"
+                      disabled={!canClose}
+                      loading={closing === sessionId}
+                      onClick={() => closeSession(sessionId)}
+                    >
+                      Kết thúc phiên
+                    </Button>
+                  </div>
+                </header>
+
+                <div className="order-ticket-lines">
+                  {lines.map((line) => {
+                    const meta = statusMeta(line.trang_thai)
+                    const cancelled = line.trang_thai === 'DA_HUY'
+
+                    return (
+                      <div
+                        className={`order-line${cancelled ? ' is-cancelled' : ''}`}
+                        key={line.id}
+                      >
+                        <div>
+                          <strong>
+                            {line.ten_mon} × {line.so_luong}
+                          </strong>
+
+                          {line.ghi_chu && (
+                            <small>Ghi chú: {line.ghi_chu}</small>
+                          )}
+
+                          {cancelled && (
+                            <small className="cancel-detail">
+                              Lý do: {reasonLabel(line.ly_do_huy)} ·{' '}
+                              {line.tinh_tien
+                                ? 'Vẫn tính tiền (Quản lý huỷ sau khi bếp bắt đầu)'
+                                : 'Không tính tiền'}
+                            </small>
+                          )}
+                        </div>
+
+                        <div className="order-line-actions">
+                          <Tag color={meta.color}>{meta.label}</Tag>
+
+                          {(
+                            line.trang_thai === 'CHO_BEP' ||
+                            (isManager && line.trang_thai === 'DANG_CHE_BIEN')
+                          ) && (
+                            <Button
+                              size="small"
+                              danger
+                              loading={canceling === line.id}
+                              onClick={() => openCancelModal(line)}
+                            >
+                              Huỷ món
+                            </Button>
+                          )}
+
+                          {line.trang_thai === 'DANG_CHE_BIEN' && !isManager && (
+                            <Button
+                              size="small"
+                              disabled
+                              title="Món đã bắt đầu chế biến. Chỉ Quản lý mới được huỷ."
+                            >
+                              Không thể huỷ
+                            </Button>
+                          )}
+
+                          {!cancelled && (
+                            <small>
+                              {line.trang_thai === 'DA_XONG'
+                                ? 'Mang ra bàn'
+                                : line.trang_thai === 'DA_PHUC_VU'
+                                  ? 'Đã giao cho khách'
+                                  : `Dự kiến ${new Date(
+                                      line.du_kien_hoan_thanh_at,
+                                    ).toLocaleTimeString('vi-VN', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}`}
+                            </small>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </article>
+            )
+          })}
         </div>
       )}
 
@@ -366,64 +310,37 @@ export default function ServiceOrders({ user }) {
         confirmLoading={canceling !== null}
         okText="Xác nhận huỷ"
         cancelText="Không"
-        okButtonProps={{
-          danger: true,
-          disabled: !cancelReason,
-        }}
+        okButtonProps={{ danger: true, disabled: !cancelReason }}
         destroyOnClose
       >
         {cancelTarget && (
           <>
             <p>
-              Bạn đang huỷ món:
-              {' '}
-              <strong>
-                {cancelTarget.ten_mon}
-              </strong>
-              {' × '}
-              {cancelTarget.so_luong}
+              Bạn đang huỷ món:{' '}
+              <strong>{cancelTarget.ten_mon}</strong> × {cancelTarget.so_luong}
             </p>
 
             {cancelTarget.trang_thai === 'DANG_CHE_BIEN' ? (
               <p>
-                <strong>
-                  Món đã bắt đầu chế biến.
-                </strong>
-                {' '}
-                Chỉ Quản lý mới được phép thực hiện
-                thao tác này. Món vẫn giữ nguyên giá trị
-                tính tiền trên phiên.
+                <strong>Món đã bắt đầu chế biến.</strong>{' '}
+                Chỉ Quản lý mới được huỷ. Món sẽ được đánh dấu Đã huỷ
+                nhưng vẫn giữ nguyên giá trị tính tiền.
               </p>
             ) : (
               <p>
-                Món chưa được bếp bắt đầu chế biến.
-                Sau khi huỷ, món sẽ không còn được tính
-                vào tiền món của phiên.
+                Món chưa được bếp bắt đầu chế biến. Sau khi huỷ, món sẽ
+                rời hàng đợi bếp và không còn được tính tiền.
               </p>
             )}
 
-            <p>
-              <strong>Lý do huỷ bắt buộc:</strong>
-            </p>
-
+            <p><strong>Lý do huỷ bắt buộc:</strong></p>
             <Radio.Group
               value={cancelReason}
-              onChange={(event) =>
-                setCancelReason(
-                  event.target.value,
-                )
-              }
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
-              }}
+              onChange={(event) => setCancelReason(event.target.value)}
+              style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
             >
               {CANCEL_REASONS.map((reason) => (
-                <Radio
-                  key={reason.value}
-                  value={reason.value}
-                >
+                <Radio key={reason.value} value={reason.value}>
                   {reason.label}
                 </Radio>
               ))}
@@ -432,6 +349,5 @@ export default function ServiceOrders({ user }) {
         )}
       </Modal>
     </section>
-
   )
 }

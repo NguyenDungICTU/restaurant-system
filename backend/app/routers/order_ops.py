@@ -20,6 +20,12 @@ from app.schemas.customer_order import CancelOrderLineRequest, StaffOrderCreate,
 router = APIRouter(prefix="/api/order-ops", tags=["Gọi món - Bếp/Phục vụ"])
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 VALID_STATUSES = {"CHO_BEP", "DANG_CHE_BIEN", "DA_XONG", "DA_PHUC_VU"}
+STATUS_TRANSITIONS = {
+    "CHO_BEP": {"DANG_CHE_BIEN"},
+    "DANG_CHE_BIEN": {"DA_XONG"},
+    "DA_XONG": {"DA_PHUC_VU"},
+}
+KITCHEN_STATUSES = {"CHO_BEP", "DANG_CHE_BIEN"}
 
 CANCEL_REASONS = {
     "KHACH_DOI_Y": "Khách đổi ý",
@@ -28,8 +34,8 @@ CANCEL_REASONS = {
 }
 
 
-def _rows(db: Session):
-    return db.execute(
+def _rows(db: Session, statuses: set[str] | None = None):
+    statement = (
         select(DongGoiMon, DotGoiMon, PhienBan, Ban, MonAn)
         .join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
         .join(PhienBan, PhienBan.id == DotGoiMon.phien_ban_id)
@@ -37,9 +43,14 @@ def _rows(db: Session):
         .join(MonAn, MonAn.id == DongGoiMon.mon_an_id)
         .where(
             PhienBan.trang_thai.in_({"DANG_PHUC_VU", "CHO_THANH_TOAN"}),
-            DongGoiMon.trang_thai != "DA_HUY",
         )
-        .order_by(DongGoiMon.thoi_diem_tiep_nhan, DongGoiMon.id)
+    )
+
+    if statuses is not None:
+        statement = statement.where(DongGoiMon.trang_thai.in_(statuses))
+
+    return db.execute(
+        statement.order_by(DongGoiMon.thoi_diem_tiep_nhan, DongGoiMon.id)
     ).all()
 
 
@@ -51,6 +62,9 @@ def _view(line, batch, session, table, dish):
         don_gia=line.don_gia, ghi_chu=line.ghi_chu, trang_thai=line.trang_thai,
         thoi_diem_tiep_nhan=line.thoi_diem_tiep_nhan,
         du_kien_hoan_thanh_at=eta,
+        tinh_tien=bool(line.tinh_tien),
+        ly_do_huy=line.ly_do_huy,
+        huy_at=line.huy_at,
     )
 
 
@@ -59,7 +73,7 @@ def kitchen_orders(
     db: Session = Depends(get_db),
     _: NhanVien = Depends(require_roles("BEP", "QUAN_LY")),
 ):
-    return [_view(*row) for row in _rows(db)]
+    return [_view(*row) for row in _rows(db, KITCHEN_STATUSES)]
 
 
 @router.get("/service", response_model=list[StaffOrderLineResponse])
@@ -183,6 +197,29 @@ def update_order_line_status(
         raise HTTPException(status_code=404, detail="Không tìm thấy món gọi.")
 
     line, batch, session, table, dish = row
+
+    if session.trang_thai not in {"DANG_PHUC_VU", "CHO_THANH_TOAN"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Phiên phục vụ đã kết thúc, không thể cập nhật món.",
+        )
+
+    if line.trang_thai == "DA_HUY":
+        raise HTTPException(
+            status_code=409,
+            detail="Món đã được huỷ và không thể cập nhật trạng thái.",
+        )
+
+    allowed_targets = STATUS_TRANSITIONS.get(line.trang_thai, set())
+    if payload.trang_thai not in allowed_targets:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Không thể chuyển món từ {line.trang_thai} "
+                f"sang {payload.trang_thai}. Vui lòng tải lại trạng thái món."
+            ),
+        )
+
     now = datetime.now(VIETNAM_TZ)
     if payload.trang_thai == "DANG_CHE_BIEN":
         line.bat_dau_che_bien_at = line.bat_dau_che_bien_at or now
@@ -191,9 +228,6 @@ def update_order_line_status(
         line.hoan_thanh_at = line.hoan_thanh_at or now
     if payload.trang_thai == "DA_PHUC_VU":
         line.phuc_vu_at = line.phuc_vu_at or now
-    if payload.trang_thai == "DA_HUY":
-        line.huy_at = line.huy_at or now
-
     line.trang_thai = payload.trang_thai
     db.commit()
     db.refresh(line)
@@ -331,6 +365,8 @@ def cancel_order_line(
                 tong_thanh_toan
             FROM hoa_don
             WHERE phien_ban_id = :phien_ban_id
+            ORDER BY id DESC
+            LIMIT 1
             """
         ),
         {
@@ -434,6 +470,8 @@ def cancel_order_line(
         table,
         dish,
     )
+
+
 @router.post("/sessions/{session_id}/close")
 def close_service_session(
     session_id: int,

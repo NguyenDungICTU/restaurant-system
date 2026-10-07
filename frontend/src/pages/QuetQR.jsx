@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, Empty, Input, InputNumber, Spin, Tag } from 'antd'
+import { Alert, Button, Card, Empty, Input, Spin, Tag } from 'antd'
 import {
   ClockCircleOutlined,
   MinusOutlined,
@@ -68,7 +68,11 @@ export default function QuetQR({ token }) {
   }, [token, sessionId])
 
   useEffect(() => {
-    load()
+    const initialTimer = window.setTimeout(() => {
+      void load()
+    }, 0)
+
+    return () => window.clearTimeout(initialTimer)
   }, [load])
 
   const loadOrders = useCallback(async () => {
@@ -82,9 +86,18 @@ export default function QuetQR({ token }) {
 
   useEffect(() => {
     if (!sessionId) return undefined
-    loadOrders()
-    const timer = window.setInterval(loadOrders, REFRESH_MS)
-    return () => window.clearInterval(timer)
+
+    const runLoadOrders = () => {
+      void loadOrders()
+    }
+
+    const initialTimer = window.setTimeout(runLoadOrders, 0)
+    const refreshTimer = window.setInterval(runLoadOrders, REFRESH_MS)
+
+    return () => {
+      window.clearTimeout(initialTimer)
+      window.clearInterval(refreshTimer)
+    }
   }, [loadOrders, sessionId])
 
   const dishes = useMemo(
@@ -276,12 +289,24 @@ export default function QuetQR({ token }) {
                   <div className="customer-order" key={order.dot_id}>
                     <div className="customer-order-head">
                       <strong>Đợt gọi #{order.dot_id}</strong>
-                      <Tag color={order.trang_thai === 'DA_XONG' ? 'green' : 'blue'}>{order.trang_thai === 'DA_XONG' ? 'Đã hoàn thành' : order.trang_thai === 'DANG_CHE_BIEN' ? 'Đang chế biến' : 'Đã gửi bếp'}</Tag>
+                      <Tag color={order.trang_thai === 'DA_HUY' ? 'red' : order.trang_thai === 'DA_XONG' ? 'green' : order.trang_thai === 'DANG_CHE_BIEN' ? 'orange' : 'blue'}>
+                        {order.trang_thai === 'DA_HUY' ? 'Đã huỷ' : order.trang_thai === 'DA_XONG' ? 'Đã hoàn thành' : order.trang_thai === 'DANG_CHE_BIEN' ? 'Đang chế biến' : 'Đã gửi bếp'}
+                      </Tag>
                     </div>
                     {order.lines.map((line) => (
                       <div className="customer-order-line" key={line.id}>
                         <span>{line.ten_mon} × {line.so_luong}</span>
-                        <span>{line.trang_thai === 'DA_XONG' ? 'Đã xong' : line.trang_thai === 'DANG_CHE_BIEN' ? 'Đang làm' : `Dự kiến ${new Date(line.du_kien_hoan_thanh_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}</span>
+                        <span>
+                          {line.trang_thai === 'DA_HUY'
+                            ? `Đã huỷ · ${line.tinh_tien ? 'vẫn tính tiền' : 'không tính tiền'}`
+                            : line.trang_thai === 'DA_XONG'
+                              ? 'Đã xong'
+                              : line.trang_thai === 'DA_PHUC_VU'
+                                ? 'Đã phục vụ'
+                                : line.trang_thai === 'DANG_CHE_BIEN'
+                                  ? 'Đang làm'
+                                  : `Dự kiến ${new Date(line.du_kien_hoan_thanh_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
+                        </span>
                       </div>
                     ))}
                     <div className="customer-order-total">Tạm tính đợt này: {formatVnd(order.tong_tien)}</div>

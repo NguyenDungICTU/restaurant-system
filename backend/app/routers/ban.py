@@ -616,7 +616,6 @@ def build_table_details(
                   ON line.dot_goi_mon_id = dgm.id
                 WHERE dgm.phien_ban_id = :session_id
                   AND line.tinh_tien IS TRUE
-                  AND line.trang_thai <> 'DA_HUY'
                 """
             ),
             {"session_id": active_session.id},
