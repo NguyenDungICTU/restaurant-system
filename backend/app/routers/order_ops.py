@@ -331,6 +331,7 @@ def cancel_order_line(
                 tong_thanh_toan
             FROM hoa_don
             WHERE phien_ban_id = :phien_ban_id
+            """
         ),
         {
             "phien_ban_id": session.id,
