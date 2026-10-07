@@ -751,6 +751,11 @@ export async function updateOrderLineStatus(lineId, status) {
   })
   return response.data
 }
+
+export async function completeOrderBatch(batchId) {
+  const response = await api.post(`/api/order-ops/batches/${batchId}/complete`)
+  return response.data
+}
 export async function regenerateQR(id) {
   const response = await api.post(`/api/ban/${id}/qr/regenerate`)
   return response.data

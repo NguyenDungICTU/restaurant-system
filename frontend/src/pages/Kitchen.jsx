@@ -5,6 +5,7 @@ import {
   Spin,
   Tag,
   Tooltip,
+  message,
 } from 'antd'
 import {
   ArrowsAltOutlined,
@@ -15,7 +16,7 @@ import {
   WifiOutlined,
   DisconnectOutlined,
 } from '@ant-design/icons'
-import { getKitchenOrders, updateOrderLineStatus } from '../services/api'
+import { completeOrderBatch, getKitchenOrders, updateOrderLineStatus } from '../services/api'
 import './OrderOperations.css'
 
 const POLL_INTERVAL_MS = 3000
@@ -56,6 +57,7 @@ export default function Kitchen() {
   const [orders, setOrders] = useState([])
   const [initialLoading, setInitialLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
+  const [completingBatch, setCompletingBatch] = useState(null)
   const [connection, setConnection] = useState('connecting')
   const [largeText, setLargeText] = useState(false)
   const [now, setNow] = useState(() => Date.now())
@@ -87,11 +89,8 @@ export default function Kitchen() {
 
       // Only show work that is still relevant to the kitchen.
       // Completed/served/cancelled lines are not presented as fresh work.
-      const activeOrders = Array.isArray(data)
-        ? data.filter((item) => ACTIVE_STATUSES.has(item.trang_thai))
-        : []
-
-      setOrders(activeOrders)
+      const allOrders = Array.isArray(data) ? data : []
+      setOrders(allOrders)
       connectionRef.current = 'connected'
       setConnection('connected')
     } catch (error) {
@@ -143,7 +142,7 @@ export default function Kitchen() {
   const grouped = useMemo(() => {
     const map = new Map()
 
-    orders.forEach((item) => {
+    orders.filter((item) => ACTIVE_STATUSES.has(item.trang_thai)).forEach((item) => {
       const key = `${item.phien_ban_id}-${item.dot_id}`
       if (!map.has(key)) map.set(key, [])
       map.get(key).push(item)
@@ -158,6 +157,18 @@ export default function Kitchen() {
       ))
   }, [orders])
 
+  const completedGrouped = useMemo(() => {
+    const map = new Map()
+    orders.filter((item) => item.trang_thai === 'DA_XONG').forEach((item) => {
+      const key = `${item.phien_ban_id}-${item.dot_id}`
+      if (!map.has(key)) map.set(key, [])
+      map.get(key).push(item)
+    })
+    return [...map.values()]
+      .map((lines) => [...lines].sort((a, b) => a.id - b.id))
+      .sort((a, b) => receivedAtOf(a[0]) - receivedAtOf(b[0]) || a[0].id - b[0].id)
+  }, [orders])
+
   async function update(lineId, status) {
     setUpdating(lineId)
     try {
@@ -165,6 +176,19 @@ export default function Kitchen() {
       await load()
     } finally {
       setUpdating(null)
+    }
+  }
+
+  async function completeBatch(batchId) {
+    setCompletingBatch(batchId)
+    try {
+      await completeOrderBatch(batchId)
+      message.success('Phiếu đã được xác nhận hoàn thành.')
+      await load()
+    } catch (error) {
+      message.error(error.response?.data?.detail || 'Không thể đánh dấu phiếu đã xong.')
+    } finally {
+      setCompletingBatch(null)
     }
   }
 
@@ -242,7 +266,7 @@ export default function Kitchen() {
           <Spin size="large" />
           <strong>Đang tải phiếu bếp...</strong>
         </div>
-      ) : !grouped.length && connection === 'connected' ? (
+      ) : !grouped.length && !completedGrouped.length && connection === 'connected' ? (
         <div className="kitchen-state">
           <Empty description="Hiện không có món cần làm." />
         </div>
@@ -270,8 +294,21 @@ export default function Kitchen() {
                   </div>
 
                   <div className="kitchen-ticket-age">
-                    <ClockCircleOutlined />
-                    <strong>{formatAge(receivedAt, now)}</strong>
+                    {lines.every((line) => line.trang_thai === 'DA_XONG') ? (
+                      <Button
+                        type="primary"
+                        size="large"
+                        loading={completingBatch === first.dot_id}
+                        onClick={() => completeBatch(first.dot_id)}
+                      >
+                        Đánh dấu phiếu đã xong
+                      </Button>
+                    ) : (
+                      <>
+                        <ClockCircleOutlined />
+                        <strong>{formatAge(receivedAt, now)}</strong>
+                      </>
+                    )}
                   </div>
                 </header>
 
@@ -326,6 +363,37 @@ export default function Kitchen() {
           })}
         </div>
       ) : null}
+
+      {completedGrouped.length > 0 && (
+        <section className="kitchen-ready-area">
+          <div className="kitchen-ready-heading">
+            <div>
+              <p className="eyebrow">ĐÃ HOÀN THÀNH</p>
+              <h2>Chờ mang ra</h2>
+            </div>
+            <Tag color="green">{completedGrouped.reduce((total, lines) => total + lines.length, 0)} món</Tag>
+          </div>
+
+          <div className="kitchen-ready-list">
+            {completedGrouped.map((lines) => {
+              const first = lines[0]
+              return (
+                <article className="kitchen-ready-ticket" key={`${first.phien_ban_id}-${first.dot_id}`}>
+                  <div>
+                    <strong>Bàn {first.ma_ban}</strong>
+                    <span>Đợt gọi #{first.dot_id} · hoàn thành {formatTime(first.hoan_thanh_at)}</span>
+                  </div>
+                  <div className="kitchen-ready-items">
+                    {lines.map((line) => (
+                      <span key={line.id}>{line.so_luong}× {line.ten_mon}</span>
+                    ))}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      )}
     </section>
   )
 }
