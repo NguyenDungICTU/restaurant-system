@@ -62,6 +62,8 @@ def _view(line, batch, session, table, dish):
         don_gia=line.don_gia, ghi_chu=line.ghi_chu, trang_thai=line.trang_thai,
         thoi_diem_tiep_nhan=line.thoi_diem_tiep_nhan,
         du_kien_hoan_thanh_at=eta,
+        hoan_thanh_at=line.hoan_thanh_at,
+        phuc_vu_at=line.phuc_vu_at,
         tinh_tien=bool(line.tinh_tien),
         ly_do_huy=line.ly_do_huy,
         huy_at=line.huy_at,
@@ -179,7 +181,9 @@ def update_order_line_status(
     line_id: int,
     payload: StaffOrderStatusUpdate,
     db: Session = Depends(get_db),
-    _: NhanVien = Depends(require_roles("BEP", "QUAN_LY")),
+    current_user: NhanVien = Depends(
+        require_roles("BEP", "PHUC_VU", "QUAN_LY")
+    ),
 ):
     if payload.trang_thai not in VALID_STATUSES:
         raise HTTPException(status_code=422, detail="Trạng thái món không hợp lệ.")
@@ -210,8 +214,33 @@ def update_order_line_status(
             detail="Món đã được huỷ và không thể cập nhật trạng thái.",
         )
 
+    if payload.trang_thai == "DA_PHUC_VU" and line.trang_thai == "DA_PHUC_VU":
+        raise HTTPException(
+            status_code=409,
+            detail="Món đã được bạn khác mang ra.",
+        )
+
+    role = current_user.vai_tro
+    if payload.trang_thai in {"DANG_CHE_BIEN", "DA_XONG"}:
+        if role not in {"BEP", "QUAN_LY"}:
+            raise HTTPException(
+                status_code=403,
+                detail="Chỉ Bếp hoặc Quản lý được cập nhật trạng thái chế biến.",
+            )
+    elif payload.trang_thai == "DA_PHUC_VU":
+        if role not in {"PHUC_VU", "QUAN_LY"}:
+            raise HTTPException(
+                status_code=403,
+                detail="Chỉ Phục vụ hoặc Quản lý được xác nhận đã mang món ra.",
+            )
+
     allowed_targets = STATUS_TRANSITIONS.get(line.trang_thai, set())
     if payload.trang_thai not in allowed_targets:
+        if payload.trang_thai == "DA_PHUC_VU":
+            raise HTTPException(
+                status_code=409,
+                detail="Món đã được bạn khác mang ra hoặc không còn chờ phục vụ.",
+            )
         raise HTTPException(
             status_code=409,
             detail=(
@@ -221,14 +250,46 @@ def update_order_line_status(
         )
 
     now = datetime.now(VIETNAM_TZ)
+    old_status = line.trang_thai
+
     if payload.trang_thai == "DANG_CHE_BIEN":
         line.bat_dau_che_bien_at = line.bat_dau_che_bien_at or now
-    if payload.trang_thai == "DA_XONG":
+    elif payload.trang_thai == "DA_XONG":
         line.bat_dau_che_bien_at = line.bat_dau_che_bien_at or now
         line.hoan_thanh_at = line.hoan_thanh_at or now
-    if payload.trang_thai == "DA_PHUC_VU":
+    elif payload.trang_thai == "DA_PHUC_VU":
         line.phuc_vu_at = line.phuc_vu_at or now
+
     line.trang_thai = payload.trang_thai
+
+    if payload.trang_thai == "DA_PHUC_VU":
+        db.add(
+            NhatKyThaoTac(
+                nhan_vien_id=current_user.id,
+                hanh_dong="XAC_NHAN_PHUC_VU_MON",
+                doi_tuong="DONG_GOI_MON",
+                doi_tuong_id=line.id,
+                du_lieu_cu={
+                    "trang_thai": old_status,
+                    "ban_id": table.id,
+                    "ma_ban": table.ma_ban,
+                    "ten_mon": dish.ten_mon,
+                    "so_luong": line.so_luong,
+                    "hoan_thanh_at": (
+                        line.hoan_thanh_at.isoformat()
+                        if line.hoan_thanh_at
+                        else None
+                    ),
+                },
+                du_lieu_moi={
+                    "trang_thai": "DA_PHUC_VU",
+                    "phuc_vu_at": now.isoformat(),
+                    "nhan_vien_phuc_vu_id": current_user.id,
+                    "nhan_vien_phuc_vu": current_user.ho_ten,
+                },
+            )
+        )
+
     db.commit()
     db.refresh(line)
     return _view(line, batch, session, table, dish)
@@ -493,7 +554,7 @@ def close_service_session(
         .join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
         .where(
             DotGoiMon.phien_ban_id == session.id,
-            DongGoiMon.trang_thai.not_in({"DA_XONG", "DA_PHUC_VU", "DA_HUY"}),
+            DongGoiMon.trang_thai.not_in({"DA_PHUC_VU", "DA_HUY"}),
         )
         .limit(1)
     )
