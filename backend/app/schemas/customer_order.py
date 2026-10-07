@@ -16,6 +16,10 @@ class CustomerOrderCreate(BaseModel):
     items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)
 
 
+class StaffOrderCreate(BaseModel):
+    items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)
+
+
 class CustomerTableResponse(BaseModel):
     qr_token: str
     ban_id: int
@@ -72,3 +76,7 @@ class StaffOrderLineResponse(BaseModel):
 
 class StaffOrderStatusUpdate(BaseModel):
     trang_thai: str
+
+
+class CancelOrderLineRequest(BaseModel):
+    ly_do_huy: str = Field(min_length=1, max_length=100)

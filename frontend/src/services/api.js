@@ -740,6 +740,11 @@ export async function getServiceOrders() {
   return response.data
 }
 
+export async function createStaffOrder(tableId, payload) {
+  const response = await api.post(`/api/order-ops/tables/${tableId}/orders`, payload)
+  return response.data
+}
+
 export async function closeServiceSession(sessionId) {
   const response = await api.post(`/api/order-ops/sessions/${sessionId}/close`)
   return response.data
@@ -751,8 +756,11 @@ export async function updateOrderLineStatus(lineId, status) {
   })
   return response.data
 }
-export async function cancelOrderLine(lineId) {
-  const response = await api.patch(`/api/order-ops/lines/${lineId}/cancel`)
+export async function cancelOrderLine(lineId, lyDoHuy) {
+  const response = await api.patch(
+    `/api/order-ops/lines/${lineId}/cancel`,
+    { ly_do_huy: lyDoHuy },
+  )
   return response.data
 }
 export async function regenerateQR(id) {
