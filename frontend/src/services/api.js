@@ -730,8 +730,8 @@ export async function getCustomerOrders(phienBanId, qrToken) {
   return response.data
 }
 
-export async function getKitchenOrders() {
-  const response = await api.get('/api/order-ops/kitchen')
+export async function getKitchenOrders({ signal } = {}) {
+  const response = await api.get('/api/order-ops/kitchen', { signal })
   return response.data
 }
 
