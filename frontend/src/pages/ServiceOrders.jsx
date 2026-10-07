@@ -57,10 +57,10 @@ function money(value) {
 
 function statusMeta(status) {
   if (status === 'DA_HUY') return { color: 'red', label: 'Đã huỷ' }
-  if (status === 'DA_XONG') return { color: 'green', label: 'Đã xong' }
+  if (status === 'DA_XONG') return { color: 'green', label: 'Chờ mang ra' }
   if (status === 'DA_PHUC_VU') return { color: 'cyan', label: 'Đã phục vụ' }
-  if (status === 'DANG_CHE_BIEN') return { color: 'orange', label: 'Bếp đang làm' }
-  return { color: 'blue', label: 'Đã nhận' }
+  if (status === 'DANG_CHE_BIEN') return { color: 'orange', label: 'Đang chế biến' }
+  return { color: 'blue', label: 'Chưa chế biến' }
 }
 
 function completionTime(line) {
@@ -487,6 +487,18 @@ export default function ServiceOrders({ user }) {
 
                         <div className="order-line-actions">
                           <Tag color={meta.color}>{meta.label}</Tag>
+
+                          {line.trang_thai === 'CHO_BEP' && (
+                            <small className="processing-hint">
+                              Bếp chưa bắt đầu chế biến
+                            </small>
+                          )}
+
+                          {line.trang_thai === 'DANG_CHE_BIEN' && (
+                            <small className="processing-hint">
+                              Bếp đang chế biến món này
+                            </small>
+                          )}
 
                           {(
                             line.trang_thai === 'CHO_BEP' ||
