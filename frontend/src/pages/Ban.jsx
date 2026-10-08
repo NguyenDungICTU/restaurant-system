@@ -1870,6 +1870,11 @@ export default function Ban({ user }) {
                           : 'Chưa cấu hình sức chứa'}
                       </p>
                       <TableTopView className="table-map-card-table" />
+                      {table.qua_gio_hen && (
+                        <Tag color="red" className="table-map-overdue-tag" onClick={event => event.stopPropagation()}>
+                          <ClockCircleOutlined /> Quá giờ 15 phút
+                        </Tag>
+                      )}
                       <span className="table-map-card-status">
                         <i
                           style={{

@@ -487,6 +487,22 @@ export async function rejectBooking(bookingId, reason) {
   return response.data
 }
 
+// S3-09 - Booking timeout / no-show
+export async function extendBookingHold(bookingId) {
+  const response = await api.post(`/api/dat-ban/${bookingId}/gia-han`)
+  return response.data
+}
+
+export async function markBookingNoShow(bookingId) {
+  const response = await api.post(`/api/dat-ban/${bookingId}/khong-toi`)
+  return response.data
+}
+
+export async function getNoShowHistory(phone) {
+  const response = await api.get('/api/dat-ban/lich-su-khong-toi', { params: { so_dien_thoai: phone } })
+  return response.data
+}
+
 export async function moveBooking(bookingId, tableId) {
   const response = await api.post(
     `/api/dat-ban/${bookingId}/doi-ban`,
