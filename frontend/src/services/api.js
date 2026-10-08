@@ -748,6 +748,14 @@ export async function closeServiceSession(sessionId) {
   return response.data
 }
 
+export async function createAdditionalOrder(sessionId, payload) {
+  const response = await api.post(
+    `/api/order-ops/sessions/${sessionId}/additional-order`,
+    payload
+  )
+  return response.data
+}
+
 export async function updateOrderLineStatus(lineId, status) {
   const response = await api.patch(`/api/order-ops/lines/${lineId}/status`, {
     trang_thai: status,

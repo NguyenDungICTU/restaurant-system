@@ -75,3 +75,7 @@ class StaffOrderLineResponse(BaseModel):
 
 class StaffOrderStatusUpdate(BaseModel):
     trang_thai: str
+
+class StaffAdditionalOrderCreate(BaseModel):
+    phien_ban_id: int = Field(gt=0)
+    items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)
