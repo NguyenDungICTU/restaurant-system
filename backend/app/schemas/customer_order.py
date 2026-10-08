@@ -67,6 +67,9 @@ class StaffOrderLineResponse(BaseModel):
     ghi_chu: str | None
     trang_thai: str
     thoi_diem_tiep_nhan: datetime
+    bat_dau_che_bien_at: datetime | None = None
+    hoan_thanh_at: datetime | None = None
+    phuc_vu_at: datetime | None = None
     du_kien_hoan_thanh_at: datetime | None
 
 

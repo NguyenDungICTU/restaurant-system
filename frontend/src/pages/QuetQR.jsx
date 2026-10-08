@@ -46,11 +46,12 @@ export default function QuetQR({ token }) {
       const state = await getCustomerTable(token, sessionId)
       setTable(state)
       setError('')
-      if (state.phien_ban_id && !sessionId) {
+      if (state.phien_ban_id && state.phien_ban_id !== sessionId) {
+        // The QR belongs to the table, not to one phone. Always accept the
+        // server's active session so a second phone joins the same session.
         setSessionId(state.phien_ban_id)
         localStorage.setItem(sessionKey(token), String(state.phien_ban_id))
-      }
-      if (sessionId && !state.phien_ban_id) {
+      } else if (!state.phien_ban_id && sessionId) {
         setSessionId(null)
         localStorage.removeItem(sessionKey(token))
       }
@@ -182,6 +183,15 @@ export default function QuetQR({ token }) {
                 showIcon
                 message="Bàn hiện không thể nhận khách tự gọi món"
                 description={table.message}
+              />
+            )}
+
+            {table.status === 'IN_SERVICE' && table.phien_ban_id && (
+              <Alert
+                type="success"
+                showIcon
+                message={`Đang ở chung phiên gọi món của bàn ${table.ma_ban}`}
+                description="Bạn có thể xem các món bàn đã gọi trước đó và gọi thêm món."
               />
             )}
 

@@ -12,15 +12,18 @@ function isLoopbackUrl(value) {
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL || ''
 const configuredWsBase = import.meta.env.VITE_WS_BASE_URL || ''
 
-// Keep old .env files working on a LAN: when the app is opened from a phone
-// using the laptop's LAN address, never send API requests back to localhost.
+// LAN-safe default:
+// - The browser always talks to the same origin that served the frontend.
+// - Nginx proxies /api and /ws to the backend container.
+// This means the phone automatically follows the laptop's current LAN IP;
+// no VITE_* value contains a machine-specific IP.
 export const API_BASE_URL =
-  configuredApiBase && (!isLoopbackUrl(configuredApiBase) || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  configuredApiBase && !isLoopbackUrl(configuredApiBase)
     ? configuredApiBase.replace(/\/$/, '')
     : window.location.origin
 
 export const WS_BASE_URL =
-  configuredWsBase && (!isLoopbackUrl(configuredWsBase) || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  configuredWsBase && !isLoopbackUrl(configuredWsBase)
     ? configuredWsBase.replace(/\/$/, '')
     : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
 
@@ -730,8 +733,8 @@ export async function getCustomerOrders(phienBanId, qrToken) {
   return response.data
 }
 
-export async function getKitchenOrders() {
-  const response = await api.get('/api/order-ops/kitchen')
+export async function getKitchenOrders({ signal } = {}) {
+  const response = await api.get('/api/order-ops/kitchen', { signal })
   return response.data
 }
 
@@ -749,6 +752,11 @@ export async function updateOrderLineStatus(lineId, status) {
   const response = await api.patch(`/api/order-ops/lines/${lineId}/status`, {
     trang_thai: status,
   })
+  return response.data
+}
+
+export async function completeOrderBatch(batchId) {
+  const response = await api.post(`/api/order-ops/batches/${batchId}/complete`)
   return response.data
 }
 export async function regenerateQR(id) {

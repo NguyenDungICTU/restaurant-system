@@ -549,7 +549,16 @@ def download_area_qr(
         )
 
     return Response(
-        area_pdf(area, tables, frontend_origin or request.headers.get("origin")),
+        area_pdf(
+            area,
+            tables,
+            frontend_origin=frontend_origin,
+            host=(
+                request.headers.get("x-forwarded-host")
+                or request.headers.get("host")
+            ),
+            forwarded_proto=request.headers.get("x-forwarded-proto"),
+        ),
         media_type="application/pdf",
         headers={
             "Content-Disposition": (
@@ -913,7 +922,15 @@ def download_table_qr(
         )
 
     return Response(
-        qr_png(table.qr_token, frontend_origin or request.headers.get("origin")),
+        qr_png(
+            table.qr_token,
+            frontend_origin=frontend_origin,
+            host=(
+                request.headers.get("x-forwarded-host")
+                or request.headers.get("host")
+            ),
+            forwarded_proto=request.headers.get("x-forwarded-proto"),
+        ),
         media_type="image/png",
         headers={
             "Content-Disposition": (

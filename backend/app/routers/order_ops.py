@@ -19,6 +19,26 @@ from app.schemas.customer_order import StaffOrderLineResponse, StaffOrderStatusU
 router = APIRouter(prefix="/api/order-ops", tags=["Gọi món - Bếp/Phục vụ"])
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 VALID_STATUSES = {"CHO_BEP", "DANG_CHE_BIEN", "DA_XONG", "DA_PHUC_VU", "DA_HUY"}
+STATUS_ORDER = {
+    "CHO_BEP": 0,
+    "DANG_CHE_BIEN": 1,
+    "DA_XONG": 2,
+    "DA_PHUC_VU": 3,
+}
+
+def _validate_forward_transition(current: str, target: str) -> None:
+    # Kitchen workflow is strictly forward: CHO_BEP -> DANG_CHE_BIEN -> DA_XONG.
+    # DA_PHUC_VU is the next service state after DA_XONG. Cancellation remains
+    # a terminal exception for compatibility with the existing ordering flow.
+    if target == "DA_HUY":
+        return
+    if current not in STATUS_ORDER or target not in STATUS_ORDER:
+        raise HTTPException(status_code=422, detail="Trạng thái chuyển món không hợp lệ.")
+    if STATUS_ORDER[target] <= STATUS_ORDER[current]:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Không thể chuyển món lùi từ {current} sang {target}.",
+        )
 
 
 def _rows(db: Session):
@@ -43,6 +63,9 @@ def _view(line, batch, session, table, dish):
         ma_ban=table.ma_ban, ten_mon=dish.ten_mon, so_luong=line.so_luong,
         don_gia=line.don_gia, ghi_chu=line.ghi_chu, trang_thai=line.trang_thai,
         thoi_diem_tiep_nhan=line.thoi_diem_tiep_nhan,
+        bat_dau_che_bien_at=line.bat_dau_che_bien_at,
+        hoan_thanh_at=line.hoan_thanh_at,
+        phuc_vu_at=line.phuc_vu_at,
         du_kien_hoan_thanh_at=eta,
     )
 
@@ -86,6 +109,16 @@ def update_order_line_status(
         raise HTTPException(status_code=404, detail="Không tìm thấy món gọi.")
 
     line, batch, session, table, dish = row
+    if session.trang_thai not in {"DANG_PHUC_VU", "CHO_THANH_TOAN"}:
+        raise HTTPException(status_code=409, detail="Phiên phục vụ không còn hoạt động.")
+    if payload.trang_thai == line.trang_thai:
+        raise HTTPException(status_code=409, detail="Món đã ở trạng thái này.")
+    _validate_forward_transition(line.trang_thai, payload.trang_thai)
+
+    # A kitchen user can only advance the three kitchen states.
+    if _.vai_tro == "BEP" and payload.trang_thai not in {"DANG_CHE_BIEN", "DA_XONG"}:
+        raise HTTPException(status_code=403, detail="Bếp chỉ được chuyển món sang Đang chế biến hoặc Đã xong.")
+
     now = datetime.now(VIETNAM_TZ)
     if payload.trang_thai == "DANG_CHE_BIEN":
         line.bat_dau_che_bien_at = line.bat_dau_che_bien_at or now
@@ -101,6 +134,45 @@ def update_order_line_status(
     db.commit()
     db.refresh(line)
     return _view(line, batch, session, table, dish)
+
+
+@router.post("/batches/{batch_id}/complete")
+def complete_order_batch(
+    batch_id: int,
+    db: Session = Depends(get_db),
+    _: NhanVien = Depends(require_roles("BEP", "QUAN_LY")),
+):
+    """Confirm a kitchen ticket only after every non-cancelled line is done."""
+    rows = db.execute(
+        select(DongGoiMon, DotGoiMon, PhienBan)
+        .join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
+        .join(PhienBan, PhienBan.id == DotGoiMon.phien_ban_id)
+        .where(DotGoiMon.id == batch_id)
+        .with_for_update()
+    ).all()
+    if not rows:
+        raise HTTPException(status_code=404, detail="Không tìm thấy phiếu gọi món.")
+
+    session = rows[0][2]
+    lines = [row[0] for row in rows]
+    active_lines = [line for line in lines if line.trang_thai != "DA_HUY"]
+
+    if session.trang_thai not in {"DANG_PHUC_VU", "CHO_THANH_TOAN"}:
+        raise HTTPException(status_code=409, detail="Phiên phục vụ không còn hoạt động.")
+    if not active_lines:
+        raise HTTPException(status_code=409, detail="Phiếu không có món cần hoàn thành.")
+    if any(line.trang_thai != "DA_XONG" for line in active_lines):
+        raise HTTPException(
+            status_code=409,
+            detail="Chỉ có thể đánh dấu phiếu đã xong khi toàn bộ món trong phiếu đã xong.",
+        )
+
+    return {
+        "batch_id": batch_id,
+        "trang_thai": "DA_XONG",
+        "so_mon": len(active_lines),
+        "hoan_thanh_at": max(line.hoan_thanh_at for line in active_lines if line.hoan_thanh_at),
+    }
 
 
 @router.post("/sessions/{session_id}/close")
