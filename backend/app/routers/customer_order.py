@@ -19,7 +19,7 @@ from app.schemas.customer_order import (
     CustomerTableResponse,
 )
 from app.services.booking_decision import appointment_at
-
+from app.services.mon_an_availability_service import validate_mon_an_availability
 router = APIRouter(prefix="/api/customer", tags=["Khách hàng - QR"])
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 RESERVATION_GUARD_MINUTES = 90
@@ -221,6 +221,8 @@ def scan_customer_qr(
 
 @router.post("/orders", response_model=CustomerOrderResponse, status_code=201)
 def create_customer_order(payload: CustomerOrderCreate, db: Session = Depends(get_db)):
+    mon_an_ids = [item.mon_an_id for item in payload.items]
+    validate_mon_an_availability(db, mon_an_ids)
     table = _get_table_by_qr(db, payload.qr_token, lock=True)
     if table.trang_thai == "DANG_DON":
         db.rollback()

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.mon_an import MonAn
 
+from fastapi import HTTPException
 HO_CHI_MINH = ZoneInfo("Asia/Ho_Chi_Minh")
 
 
@@ -61,3 +62,45 @@ def set_temporary_sold_out(
 
     dish.trang_thai = "TAM_HET" if sold_out else "DANG_BAN"
     return old_status, None
+# --- BỔ SUNG CHO S3-10 VÀO CUỐI FILE ---
+
+def validate_mon_an_availability(db: Session, mon_an_ids: list[int]) -> None:
+    if not mon_an_ids:
+        return
+
+    # Tự động reset các món tạm hết đã qua ngày mới trước khi kiểm tra
+    reset_expired_temporary_sold_out(db)
+
+    # Truy vấn trạng thái các món từ Database
+    dishes = db.scalars(
+        select(MonAn).where(MonAn.id.in_(mon_an_ids))
+    ).all()
+    dish_map = {dish.id: dish for dish in dishes}
+
+    unavailable_dishes = []
+    for dish_id in mon_an_ids:
+        dish = dish_map.get(dish_id)
+        if not dish:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Món ăn ID {dish_id} không tồn tại."
+            )
+        # Kiểm tra nếu trạng thái là TAM_HET
+        if dish.trang_thai == "TAM_HET":
+            unavailable_dishes.append(dish)
+
+    # Ném lỗi 400 kèm thông tin chi tiết nếu có món tạm hết
+    if unavailable_dishes:
+        unavailable_ids = [d.id for d in unavailable_dishes]
+        unavailable_names = [getattr(d, 'ten_mon', getattr(d, 'name', f"Món #{d.id}")) for d in unavailable_dishes]
+        names_str = ", ".join([f"'{name}'" for name in unavailable_names])
+
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "ITEM_UNAVAILABLE",
+                "message": f"Món {names_str} hiện đã tạm hết.",
+                "unavailable_item_ids": unavailable_ids,
+                "unavailable_item_names": unavailable_names
+            }
+        )

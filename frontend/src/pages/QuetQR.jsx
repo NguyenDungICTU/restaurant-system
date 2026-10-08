@@ -119,7 +119,7 @@ export default function QuetQR({ token }) {
     })
   }
 
-  async function submitOrder() {
+async function submitOrder() {
     if (!selected.length) return
     setSubmitting(true)
     setError('')
@@ -138,11 +138,33 @@ export default function QuetQR({ token }) {
       localStorage.setItem(sessionKey(token), String(result.phien_ban_id))
       setCart({})
       setNotes({})
-      setMessage(`Đã gửi ${result.lines.length} món cho bếp. Dự kiến hoàn thành khoảng ${new Date(result.du_kien_hoan_thanh_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}.`)
+      setMessage(`Đã gửi ${result.lines.length} món cho bếp...`)
       await loadOrders()
       await load()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Không thể gửi món. Vui lòng thử lại.')
+      const detail = err.response?.data?.detail
+      
+      // Xử lý khi Backend chặn do có món bị tạm hết (AC2 & AC3)
+      if (typeof detail === 'object' && detail?.code === 'ITEM_UNAVAILABLE') {
+        const unavailableIds = detail.unavailable_item_ids || []
+        const unavailableNames = detail.unavailable_item_names || []
+
+        // 1. Tự động loại bỏ các món bị tạm hết khỏi giỏ hàng
+        setCart((current) => {
+          const next = { ...current }
+          unavailableIds.forEach((id) => delete next[id])
+          return next
+        })
+
+        // 2. Thông báo rõ tên món bị tạm hết cho khách hàng
+        setError(`Món [${unavailableNames.join(', ')}] vừa tạm hết và đã được tự động loại khỏi giỏ. Vui lòng kiểm tra lại đơn!`)
+        
+        // Tải lại menu để cập nhật trạng thái mới nhất
+        load()
+        return
+      }
+
+      setError(typeof detail === 'string' ? detail : 'Không thể gửi món. Vui lòng thử lại.')
     } finally {
       setSubmitting(false)
     }
