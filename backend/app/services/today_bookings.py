@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from app.services.booking_timeout import timeout_view
 
 
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
@@ -39,6 +40,10 @@ def booking_to_staff_view(booking, now: datetime) -> dict:
     start = booking_start(booking)
 
     return {
+        "so_lan_khong_toi_90_ngay": getattr(booking, "so_lan_khong_toi_90_ngay", 0),
+        "canh_bao_khong_toi": getattr(booking, "canh_bao_khong_toi", False),
+        **timeout_view(booking, now),
+        "ban_id": getattr(booking, "ban_id", None),
         "id": booking.id,
         "ma_dat_ban": f"DB-{booking.id:06d}",
         "ho_ten_khach": booking.ho_ten_khach,

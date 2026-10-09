@@ -52,6 +52,9 @@ from app.services.booking_notifications import (
     queue_booking_notification,
 )
 from app.services.today_bookings import build_today_booking_list
+from app.services.booking_timeout import (
+    timeout_view, no_show_warning, lock_timeout_booking, release_no_show_table, attach_history_warnings,
+)
 
 
 router = APIRouter(prefix="/api/dat-ban", tags=["Đặt bàn"])
@@ -353,7 +356,9 @@ def lay_danh_sach_dat_ban(
         DatBan.gio_bat_dau.desc(),
         DatBan.id.desc(),
     )
-    return list(db.scalars(statement).all())
+    bookings = list(db.scalars(statement).all())
+    attach_history_warnings(db, bookings, datetime.now(VIETNAM_TZ))
+    return bookings
 
 
 @router.get(
@@ -390,7 +395,17 @@ def lay_danh_sach_dat_ban_hom_nay(
     )
 
     rows = list(db.scalars(statement).all())
+    attach_history_warnings(db, rows, now)
     return build_today_booking_list(rows, now, trang_thai)
+
+
+@router.get("/lich-su-khong-toi")
+def lich_su_khong_toi(
+    so_dien_thoai: str = Query(pattern=r"^0\d{9}$"),
+    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
+    db: Session = Depends(get_db),
+):
+    return no_show_warning(db, so_dien_thoai, datetime.now(VIETNAM_TZ))
 
 
 @router.post("", response_model=DatBanResponse, status_code=201)
@@ -421,6 +436,8 @@ def tao_yeu_cau_dat_ban(
     queue_booking_notification(db, booking, CONFIRMATION)
     db.commit()
     db.refresh(booking)
+    for key, value in no_show_warning(db, booking.so_dien_thoai, datetime.now(VIETNAM_TZ)).items():
+        setattr(booking, key, value)
     return booking
 
 
@@ -578,6 +595,7 @@ def tao_dat_ban_cong_khai(
     db.refresh(booking)
 
     return PublicBookingResponse(
+        **no_show_warning(db, booking.so_dien_thoai, datetime.now(VIETNAM_TZ)),
         ma_dat_ban=booking.ma_dat_ban,
         ho_ten_khach=booking.ho_ten_khach,
         so_dien_thoai=booking.so_dien_thoai,
@@ -1174,3 +1192,41 @@ def tra_cuu_dat_ban_cho_khach(
         thong_bao_khach=booking.thong_bao_khach,
         thong_bao_gui_luc=booking.thong_bao_gui_luc,
     )
+
+@router.post("/{booking_id}/gia-han")
+def gia_han_dat_ban(
+    booking_id: int,
+    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(VIETNAM_TZ)
+    booking, _ = lock_timeout_booking(db, booking_id, now)
+    if booking.gia_han_giu_ban_at is not None:
+        raise HTTPException(409, "Chỉ được gia hạn giữ bàn một lần.")
+    booking.gia_han_giu_ban_at = now
+    _audit(db, current_user, "GIA_HAN_GIU_BAN", booking.id, None,
+           {"gia_han_giu_ban_at": now.isoformat()})
+    db.commit()
+    return {"id": booking.id, "trang_thai": booking.trang_thai, **timeout_view(booking, now)}
+
+
+@router.post("/{booking_id}/khong-toi")
+def danh_dau_khong_toi(
+    booking_id: int,
+    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(VIETNAM_TZ)
+    booking, table = lock_timeout_booking(db, booking_id, now)
+    release_no_show_table(db, table)
+    old_status = booking.trang_thai
+    booking.trang_thai = "KHACH_KHONG_TOI"
+    booking.khong_toi_at = now
+    _audit(db, current_user, "KHACH_KHONG_TOI", booking.id,
+           {"trang_thai": old_status}, {"trang_thai": booking.trang_thai, "ban_id": booking.ban_id,
+                                       "khong_toi_at": now.isoformat()})
+    db.commit()
+    return {"id": booking.id, "ban_id": booking.ban_id,
+            "trang_thai": booking.trang_thai, "khong_toi_at": booking.khong_toi_at,
+            "trang_thai_ban": table.trang_thai if table else None,
+            **no_show_warning(db, booking.so_dien_thoai, now)}
