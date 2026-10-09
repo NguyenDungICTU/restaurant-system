@@ -45,6 +45,8 @@ class CustomerOrderLineResponse(BaseModel):
     ghi_chu: str | None
     trang_thai: str
     du_kien_hoan_thanh_at: datetime | None
+    hoan_thanh_at: datetime | None = None
+    phuc_vu_at: datetime | None = None
     tinh_tien: bool = True
     ly_do_huy: str | None = None
     huy_at: datetime | None = None
@@ -78,6 +80,8 @@ class StaffOrderLineResponse(BaseModel):
     hoan_thanh_at: datetime | None = None
     phuc_vu_at: datetime | None = None
     du_kien_hoan_thanh_at: datetime | None
+    hoan_thanh_at: datetime | None = None
+    phuc_vu_at: datetime | None = None
     tinh_tien: bool = True
     ly_do_huy: str | None = None
     huy_at: datetime | None = None
