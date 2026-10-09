@@ -1,19 +1,56 @@
+jsx
 import { useCallback, useEffect, useState } from 'react'
 import { ReloadOutlined } from '@ant-design/icons'
-import { Alert, Button, Select, Table, Tag, Tabs } from 'antd'
-import { getAuditActions, getLoginSessions } from '../services/api'
+import {
+  Alert,
+  Button,
+  Select,
+  Table,
+  Tag,
+  Tabs,
+} from 'antd'
+import {
+  getAuditActions,
+  getLoginSessions,
+} from '../services/api'
+
+const CANCEL_ACTIONS = ['HUY_MON', 'HUY_DONG_GOI_MON']
 
 const actionNames = {
   DANG_NHAP: 'Đăng nhập',
   DANG_XUAT: 'Đăng xuất',
   CAP_NHAT_GIA_MON: 'Đổi giá món',
+  HUY_MON: 'Huỷ món',
   HUY_DONG_GOI_MON: 'Huỷ dòng món',
 }
 
-const date = (value) => value ? new Date(value).toLocaleString('vi-VN') : '—'
+const date = (value) =>
+  value ? new Date(value).toLocaleString('vi-VN') : '—'
+
+const money = (value) =>
+  value == null ? '—' : `${Number(value).toLocaleString('vi-VN')} đ`
+
+const getCancellationReason = (data = {}) => {
+  const reasons = {
+    KHACH_DOI_Y: 'Khách đổi ý',
+    GOI_NHAM: 'Gọi nhầm',
+    HET_NGUYEN_LIEU: 'Hết nguyên liệu',
+  }
+
+  return (
+    data.ly_do_huy_text ||
+    reasons[data.ly_do_huy] ||
+    data.ly_do_huy ||
+    '—'
+  )
+}
+
+const isCancellation = (action) =>
+  CANCEL_ACTIONS.includes(action)
 
 export default function AuditLogs() {
   const [actions, setActions] = useState([])
+  const [cancellations, setCancellations] = useState([])
   const [sessions, setSessions] = useState([])
   const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(true)
@@ -22,13 +59,40 @@ export default function AuditLogs() {
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
+
     try {
-      const [actionRows, sessionRows] = await Promise.all([
-        getAuditActions(filter === 'all' ? {} : { action: filter }),
-        getLoginSessions(),
-      ])
-      setActions(actionRows)
-      setSessions(sessionRows)
+      const [actionRows, cancellationRows, sessionRows] =
+        await Promise.all([
+          getAuditActions(
+            filter === 'all' || filter === 'CANCEL_ACTIONS'
+              ? {}
+              : { action: filter },
+          ),
+          getAuditActions({ action: 'HUY_MON' }).catch(() => []),
+          getLoginSessions(),
+        ])
+
+      const allActions = Array.isArray(actionRows)
+        ? actionRows
+        : []
+      const oldCancellationRows = await getAuditActions({
+        action: 'HUY_DONG_GOI_MON',
+      }).catch(() => [])
+
+      const allCancellations = [
+        ...(Array.isArray(cancellationRows) ? cancellationRows : []),
+        ...(Array.isArray(oldCancellationRows)
+          ? oldCancellationRows
+          : []),
+      ]
+
+      setActions(
+        filter === 'CANCEL_ACTIONS'
+          ? allActions.filter((row) => isCancellation(row.action))
+          : allActions,
+      )
+      setCancellations(allCancellations)
+      setSessions(Array.isArray(sessionRows) ? sessionRows : [])
     } catch {
       setError('Không thể tải nhật ký. Vui lòng thử lại.')
     } finally {
@@ -36,29 +100,199 @@ export default function AuditLogs() {
     }
   }, [filter])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+  }, [load])
 
   const actionColumns = [
-    { title: 'Thời gian', dataIndex: 'created_at', render: date },
-    { title: 'Người thực hiện', dataIndex: 'actor_name' },
-    { title: 'Thao tác', dataIndex: 'action', render: (value) => <Tag color={value === 'CAP_NHAT_GIA_MON' ? 'orange' : 'blue'}>{actionNames[value] || value}</Tag> },
+    {
+      title: 'Thời gian',
+      dataIndex: 'created_at',
+      render: date,
+    },
+    {
+      title: 'Người thực hiện',
+      dataIndex: 'actor_name',
+      render: (value) => value || '—',
+    },
+    {
+      title: 'Thao tác',
+      dataIndex: 'action',
+      render: (value) => (
+        <Tag
+          color={
+            isCancellation(value)
+              ? 'red'
+              : value === 'CAP_NHAT_GIA_MON'
+                ? 'orange'
+                : 'blue'
+          }
+        >
+          {actionNames[value] || value}
+        </Tag>
+      ),
+    },
     {
       title: 'Món / đối tượng',
-      render: (_, row) =>
-        row.object_name ||
-        (row.object_id
-          ? `${row.object_type} #${row.object_id}`
-          : row.object_type),
+      render: (_, row) => {
+        if (isCancellation(row.action)) {
+          return (
+            row.new_data?.ten_mon ||
+            `Dòng món #${row.object_id ?? '—'}`
+          )
+        }
+
+        return (
+          row.object_name ||
+          (row.object_id
+            ? `${row.object_type || 'Đối tượng'} #${row.object_id}`
+            : row.object_type || '—')
+        )
+      },
     },
-    { title: 'Chi tiết', render: (_, row) => row.action === 'CAP_NHAT_GIA_MON' ? `${row.old_data?.gia || '—'} → ${row.new_data?.gia || '—'}` : row.action === 'HUY_DONG_GOI_MON' ? `Lý do: ${{KHACH_DOI_Y: 'Khách đổi ý', GOI_NHAM: 'Gọi nhầm', HET_NGUYEN_LIEU: 'Hết nguyên liệu'}[row.new_data?.ly_do_huy] || row.new_data?.ly_do_huy || '—'} · ${row.new_data?.tinh_tien ? 'Có tính tiền' : 'Không tính tiền'}` : '—' },
-    { title: 'IP', dataIndex: 'ip_address', render: (value) => value || '—' },
+    {
+      title: 'Chi tiết',
+      render: (_, row) => {
+        const data = row.new_data || {}
+
+        if (isCancellation(row.action)) {
+          return (
+            <div>
+              <div>
+                Lý do: {getCancellationReason(data)}
+              </div>
+              <div>
+                SL: {data.so_luong ?? '—'}
+                {' · '}
+                Tiền: {money(data.thanh_tien)}
+              </div>
+              <div>
+                {data.tinh_tien
+                  ? 'Vẫn tính tiền'
+                  : 'Không tính tiền'}
+              </div>
+            </div>
+          )
+        }
+
+        if (row.action === 'CAP_NHAT_GIA_MON') {
+          return (
+            `${row.old_data?.gia ?? '—'} → ` +
+            `${row.new_data?.gia ?? '—'}`
+          )
+        }
+
+        return '—'
+      },
+    },
+    {
+      title: 'IP',
+      dataIndex: 'ip_address',
+      render: (value) => value || '—',
+    },
   ]
+
+  const cancellationColumns = [
+    {
+      title: 'Thời gian',
+      dataIndex: 'created_at',
+      render: date,
+    },
+    {
+      title: 'Người huỷ',
+      dataIndex: 'actor_name',
+      render: (value) => value || '—',
+    },
+    {
+      title: 'Quyền',
+      render: (_, row) => {
+        const role = row.new_data?.quyen_huy
+
+        return (
+          <Tag color={role === 'QUAN_LY' ? 'red' : 'blue'}>
+            {role === 'QUAN_LY' ? 'Quản lý' : 'Phục vụ'}
+          </Tag>
+        )
+      },
+    },
+    {
+      title: 'Món',
+      render: (_, row) =>
+        row.new_data?.ten_mon ||
+        `Dòng món #${row.object_id ?? '—'}`,
+    },
+    {
+      title: 'Số lượng',
+      render: (_, row) => row.new_data?.so_luong ?? '—',
+    },
+    {
+      title: 'Lý do',
+      render: (_, row) => getCancellationReason(row.new_data),
+    },
+    {
+      title: 'Bàn',
+      render: (_, row) => row.new_data?.ma_ban || '—',
+    },
+    {
+      title: 'Hoá đơn',
+      render: (_, row) =>
+        row.new_data?.so_hoa_don ||
+        (row.new_data?.hoa_don_id
+          ? `#${row.new_data.hoa_don_id}`
+          : 'Chưa có'),
+    },
+    {
+      title: 'Ca',
+      render: (_, row) =>
+        row.new_data?.ca_lam_viec_id
+          ? `#${row.new_data.ca_lam_viec_id}`
+          : '—',
+    },
+    {
+      title: 'Giá trị',
+      render: (_, row) => money(row.new_data?.thanh_tien),
+    },
+    {
+      title: 'Tính tiền',
+      render: (_, row) =>
+        row.new_data?.tinh_tien ? (
+          <Tag color="green">Vẫn tính</Tag>
+        ) : (
+          <Tag>Không tính</Tag>
+        ),
+    },
+  ]
+
   const sessionColumns = [
-    { title: 'Đăng nhập lúc', dataIndex: 'created_at', render: date },
-    { title: 'Nhân viên', render: (_, row) => `${row.employee_name} (${row.username})` },
-    { title: 'IP', dataIndex: 'ip_address', render: (value) => value || '—' },
-    { title: 'Trạng thái', dataIndex: 'revoked_at', render: (value) => <Tag color={value ? 'default' : 'green'}>{value ? 'Đã kết thúc' : 'Đang hoạt động'}</Tag> },
-    { title: 'Kết thúc lúc', dataIndex: 'revoked_at', render: date },
+    {
+      title: 'Đăng nhập lúc',
+      dataIndex: 'created_at',
+      render: date,
+    },
+    {
+      title: 'Nhân viên',
+      render: (_, row) =>
+        `${row.employee_name || '—'} (${row.username || '—'})`,
+    },
+    {
+      title: 'IP',
+      dataIndex: 'ip_address',
+      render: (value) => value || '—',
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'revoked_at',
+      render: (value) => (
+        <Tag color={value ? 'default' : 'green'}>
+          {value ? 'Đã kết thúc' : 'Đang hoạt động'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Kết thúc lúc',
+      dataIndex: 'revoked_at',
+      render: date,
+    },
   ]
 
   return (
@@ -67,40 +301,98 @@ export default function AuditLogs() {
         <div>
           <p className="eyebrow">SECURITY & AUDIT</p>
           <h1>Nhật ký hệ thống</h1>
-          <p className="subheading">Tra cứu đăng nhập, thay đổi giá và huỷ dòng món.</p>
+          <p className="subheading">
+            Tra cứu thao tác hệ thống, lịch sử huỷ dòng món
+            và dữ liệu phục vụ đối soát cuối ca.
+          </p>
         </div>
-        <Button icon={<ReloadOutlined />} loading={loading} onClick={load}>Làm mới</Button>
+
+        <Button
+          icon={<ReloadOutlined />}
+          loading={loading}
+          onClick={load}
+        >
+          Làm mới
+        </Button>
       </div>
-      {error && <Alert type="error" message={error} showIcon />}
+
+      {error && (
+        <Alert
+          type="error"
+          message={error}
+          showIcon
+          style={{ marginTop: 16 }}
+        />
+      )}
+
       <div className="panel" style={{ marginTop: 24 }}>
-        <Tabs items={[
-          {
-            key: 'actions',
-            label: 'Thay đổi giá & thao tác',
-            children: (
-              <>
-                <Select
-                  value={filter}
-                  onChange={setFilter}
-                  style={{ width: 220, marginBottom: 16 }}
-                  options={[
-                    { value: 'all', label: 'Tất cả thao tác' },
-                    { value: 'CAP_NHAT_GIA_MON', label: 'Chỉ thay đổi giá' },
-                    { value: 'HUY_DONG_GOI_MON', label: 'Huỷ dòng món' },
-                    { value: 'DANG_NHAP', label: 'Đăng nhập' },
-                    { value: 'DANG_XUAT', label: 'Đăng xuất' }
-                  ]}
+        <Tabs
+          items={[
+            {
+              key: 'actions',
+              label: 'Thao tác hệ thống',
+              children: (
+                <>
+                  <Select
+                    value={filter}
+                    onChange={setFilter}
+                    style={{ width: 250, marginBottom: 16 }}
+                    options={[
+                      { value: 'all', label: 'Tất cả thao tác' },
+                      {
+                        value: 'CAP_NHAT_GIA_MON',
+                        label: 'Chỉ thay đổi giá',
+                      },
+                      {
+                        value: 'CANCEL_ACTIONS',
+                        label: 'Huỷ món / huỷ dòng món',
+                      },
+                      { value: 'DANG_NHAP', label: 'Đăng nhập' },
+                      { value: 'DANG_XUAT', label: 'Đăng xuất' },
+                    ]}
+                  />
+
+                  <Table
+                    rowKey="id"
+                    loading={loading}
+                    columns={actionColumns}
+                    dataSource={actions}
+                    pagination={{ pageSize: 10 }}
+                  />
+                </>
+              ),
+            },
+            {
+              key: 'cancellations',
+              label: 'Huỷ món / cuối ca',
+              children: (
+                <Table
+                  rowKey="id"
+                  loading={loading}
+                  columns={cancellationColumns}
+                  dataSource={cancellations}
+                  pagination={{ pageSize: 10 }}
+                  locale={{
+                    emptyText: 'Chưa có lịch sử huỷ món.',
+                  }}
                 />
-                <Table rowKey="id" loading={loading} columns={actionColumns} dataSource={actions} pagination={{ pageSize: 10 }} />
-              </>
-            )
-          },
-          {
-            key: 'sessions',
-            label: 'Phiên đăng nhập',
-            children: <Table rowKey="id" loading={loading} columns={sessionColumns} dataSource={sessions} pagination={{ pageSize: 10 }} />
-          },
-        ]} />
+              ),
+            },
+            {
+              key: 'sessions',
+              label: 'Phiên đăng nhập',
+              children: (
+                <Table
+                  rowKey="id"
+                  loading={loading}
+                  columns={sessionColumns}
+                  dataSource={sessions}
+                  pagination={{ pageSize: 10 }}
+                />
+              ),
+            },
+          ]}
+        />
       </div>
     </section>
   )
