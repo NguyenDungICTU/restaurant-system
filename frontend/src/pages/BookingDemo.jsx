@@ -1,12 +1,14 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, Empty, Input, InputNumber } from 'antd'
+import { Alert, Button, Card, Empty, Input, InputNumber, Select } from 'antd'
 import {
   CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
   InfoCircleOutlined,
+  LeftOutlined,
   PhoneOutlined,
+  RightOutlined,
   SearchOutlined,
   TableOutlined,
   TeamOutlined,
@@ -86,10 +88,11 @@ function toTime(value) {
   return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
 }
 
-function timeValidationMessage(start, end) {
+function timeValidationMessage(start, end, close) {
   if (start && toMinutes(start) === null) return 'Giờ bắt đầu không hợp lệ. Vui lòng nhập đúng định dạng HH:mm.'
   if (end && toMinutes(end) === null) return 'Giờ kết thúc không hợp lệ. Vui lòng nhập đúng định dạng HH:mm.'
   if (start && end && toMinutes(end) <= toMinutes(start)) return 'Giờ kết thúc phải lớn hơn giờ bắt đầu.'
+  if (end && close && toMinutes(end) > toMinutes(close)) return 'Giờ kết thúc không được sau giờ đóng cửa.'
   return ''
 }
 
@@ -99,7 +102,7 @@ function slotsFor(day, duration) {
   const close = toMinutes(day.close)
   if (open === null || close === null || close <= open || !Number.isInteger(duration) || duration <= 0) return []
   const slots = []
-  for (let current = open; current + duration <= close; current += 30) slots.push(toTime(current))
+  for (let current = open; current + duration <= close; current += 1) slots.push(toTime(current))
   return slots
 }
 
@@ -145,9 +148,14 @@ export default function BookingDemo({ focusedBookingId = null }) {
   const [result, setResult] = useState(null)
   const [tables, setTables] = useState([])
   const [areas, setAreas] = useState([])
+  const [tableSearch, setTableSearch] = useState('')
+  const [tableAreaFilter, setTableAreaFilter] = useState('all')
+  const [tablesPerPage, setTablesPerPage] = useState(10)
+  const [tablePage, setTablePage] = useState(1)
   const [assigningId, setAssigningId] = useState(null)
   const [availableTables, setAvailableTables] = useState([])
   const [selectedTableId, setSelectedTableId] = useState("")
+  const [availableAreaFilter, setAvailableAreaFilter] = useState('all')
 
   useEffect(() => {
     // Read shared backend state on initial mount, never treat localStorage as the source of truth.
@@ -184,6 +192,25 @@ export default function BookingDemo({ focusedBookingId = null }) {
       table.ma_ban,
     )
     : ''
+  const filteredTables = useMemo(() => {
+    const normalizedSearch = tableSearch.trim().toLocaleLowerCase('vi')
+    return tables.filter((table) => {
+      const searchableName = `${table.ma_ban || ''} ${tableDisplayName(table)}`
+        .toLocaleLowerCase('vi')
+      const matchesSearch = !normalizedSearch || searchableName.includes(normalizedSearch)
+      const matchesArea = tableAreaFilter === 'all'
+        || String(table.khu_vuc_id) === tableAreaFilter
+      return matchesSearch && matchesArea
+    })
+  }, [tables, tableSearch, tableAreaFilter])
+  const totalTablePages = Math.max(1, Math.ceil(filteredTables.length / tablesPerPage))
+  const currentTables = filteredTables.slice(
+    (tablePage - 1) * tablesPerPage,
+    tablePage * tablesPerPage,
+  )
+  const filteredAvailableTables = availableAreaFilter === 'all'
+    ? availableTables
+    : availableTables.filter((table) => String(table.khu_vuc_id) === availableAreaFilter)
 
   const weekdayIndex = getWeekdayIndex(date)
   const schedule = weekdayIndex === null ? null : settings?.week[weekdayIndex]
@@ -195,7 +222,7 @@ export default function BookingDemo({ focusedBookingId = null }) {
       : slotsFor(schedule, settings.duration).filter((slot) => date !== now.date || slot > now.time)
   }, [date, holiday, schedule, settings])
 
-  const timeError = timeValidationMessage(time, endTime)
+  const timeError = timeValidationMessage(time, endTime, schedule?.close)
 
   async function submitBooking(event) {
     event.preventDefault()
@@ -215,8 +242,10 @@ export default function BookingDemo({ focusedBookingId = null }) {
       setResult({ ok: false, message: 'Giờ kết thúc không hợp lệ. Vui lòng nhập đúng định dạng HH:mm.' })
     } else if (toMinutes(endTime) <= toMinutes(time)) {
       setResult({ ok: false, message: 'Giờ kết thúc phải lớn hơn giờ bắt đầu.' })
+    } else if (toMinutes(endTime) > toMinutes(schedule.close)) {
+      setResult({ ok: false, message: 'Giờ kết thúc không được sau giờ đóng cửa.' })
     } else if (!slots.includes(time)) {
-      setResult({ ok: false, message: 'Giờ bắt đầu phải nằm trong giờ mở cửa, đúng mốc 30 phút và đủ thời lượng trước giờ đóng.' })
+      setResult({ ok: false, message: 'Giờ bắt đầu phải nằm trong giờ mở cửa và đủ thời lượng trước giờ đóng.' })
     } else if (!customerName.trim()) {
       setResult({ ok: false, message: 'Vui lòng nhập tên khách hàng.' })
     } else if (!/^0\d{9}$/.test(phone.trim())) {
@@ -268,6 +297,7 @@ export default function BookingDemo({ focusedBookingId = null }) {
     setResult(null)
     setAssigningId(null)
     setSelectedTableId('')
+    setAvailableAreaFilter('all')
     setAvailableTables([])
 
     try {
@@ -367,18 +397,18 @@ export default function BookingDemo({ focusedBookingId = null }) {
               <div className="booking-demo-time-row">
                 <div className="booking-demo-control booking-demo-control--time">
                   <ClockCircleOutlined className="booking-demo-control-icon" />
-                  <input type="time" step="1800" value={time} onChange={(event) => {
-                    const value = event.target.value
+                  <input type="time" step="60" value={time} onChange={(event) => {
+                    const nextTime = event.target.value
                     const duration = settings?.duration
-                    setTime(value)
-                    setEndTime(value && toMinutes(value) !== null && duration ? toTime(toMinutes(value) + duration) : '')
+                    setTime(nextTime)
+                    setEndTime(nextTime && duration ? toTime(toMinutes(nextTime) + duration) : '')
                     setResult(null)
                   }} />
                 </div>
                 <span className="booking-demo-time-sep">–</span>
                 <div className="booking-demo-control booking-demo-control--time">
                   <ClockCircleOutlined className="booking-demo-control-icon" />
-                  <input type="time" step="1800" value={endTime} onChange={(event) => { setEndTime(event.target.value); setResult(null) }} />
+                  <input type="time" step="60" value={endTime} onChange={(event) => { setEndTime(event.target.value); setResult(null) }} />
                 </div>
               </div>
               {timeError
@@ -425,7 +455,7 @@ export default function BookingDemo({ focusedBookingId = null }) {
 
         <Card
           className="booking-demo-card booking-demo-tables-card"
-          title={<span className="booking-demo-card-title"><TableOutlined /> Danh sách bàn <span className="booking-demo-card-count">{tables.length}</span></span>}
+          title={<span className="booking-demo-card-title"><TableOutlined /> Danh sách bàn <span className="booking-demo-card-count">{filteredTables.length}{filteredTables.length !== tables.length ? `/${tables.length}` : ''}</span></span>}
           extra={
             <div className="booking-demo-legend">
               <span className="booking-demo-legend-item"><i className="booking-demo-legend-dot booking-demo-legend-dot--success" />Trống</span>
@@ -434,8 +464,26 @@ export default function BookingDemo({ focusedBookingId = null }) {
             </div>
           }
         >
+          <div className="booking-demo-table-toolbar">
+            <Input
+              allowClear
+              aria-label="Tìm bàn theo mã hoặc tên"
+              placeholder="Tìm mã/tên bàn"
+              value={tableSearch}
+              onChange={(event) => { setTableSearch(event.target.value); setTablePage(1) }}
+            />
+            <Select
+              aria-label="Lọc bàn theo khu vực"
+              value={tableAreaFilter}
+              onChange={(value) => { setTableAreaFilter(value); setTablePage(1) }}
+              options={[
+                { value: 'all', label: 'Tất cả khu vực' },
+                ...areas.map((area) => ({ value: String(area.id), label: area.ten_khu_vuc })),
+              ]}
+            />
+          </div>
           <div className="booking-demo-table-grid">
-            {tables.map((table) => {
+            {currentTables.map((table) => {
               const meta = tableStatusMeta(table)
               const areaName = formatAreaName(areasById.get(table.khu_vuc_id)?.ten_khu_vuc || 'Chưa xác định')
               return (
@@ -456,8 +504,38 @@ export default function BookingDemo({ focusedBookingId = null }) {
                 </div>
               )
             })}
-            {!tables.length && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có bàn nào. Quản lý hãy khai báo bàn trước." />}
+            {!filteredTables.length && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={tables.length ? 'Không tìm thấy bàn phù hợp' : 'Chưa có bàn nào. Quản lý hãy khai báo bàn trước.'} />}
           </div>
+          {filteredTables.length > 0 && (
+            <div className="booking-demo-table-pagination" aria-label="Phân trang danh sách bàn">
+              <label className="booking-demo-page-size">
+                <span>Bàn mỗi trang</span>
+                <Select
+                  size="small"
+                  value={tablesPerPage}
+                  onChange={(value) => { setTablesPerPage(value); setTablePage(1) }}
+                  options={[10, 15, 20].map((value) => ({ value, label: String(value) }))}
+                />
+              </label>
+              <span className="booking-demo-page-indicator">Trang {tablePage} / {totalTablePages}</span>
+              <div className="booking-demo-page-controls">
+                <Button
+                  size="small"
+                  aria-label="Trang trước"
+                  icon={<LeftOutlined />}
+                  disabled={tablePage <= 1}
+                  onClick={() => setTablePage((page) => Math.max(1, page - 1))}
+                />
+                <Button
+                  size="small"
+                  aria-label="Trang sau"
+                  icon={<RightOutlined />}
+                  disabled={tablePage >= totalTablePages}
+                  onClick={() => setTablePage((page) => Math.min(totalTablePages, page + 1))}
+                />
+              </div>
+            </div>
+          )}
           <div className="booking-demo-tables-note">
             <InfoCircleOutlined />
             <span>Chọn bàn phù hợp với số lượng khách và thời gian đặt.</span>
@@ -480,8 +558,8 @@ export default function BookingDemo({ focusedBookingId = null }) {
                   <th>Giờ</th>
                   <th>Số khách</th>
                   <th>Bàn</th>
-                  <th>Trạng thái</th>
                   <th>Thao tác</th>
+                  <th>Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
@@ -508,40 +586,96 @@ export default function BookingDemo({ focusedBookingId = null }) {
                         <td>
                           {booking.ban_id ? (assignedName || 'Chưa tải được thông tin bàn') : <span className="booking-demo-muted">Chưa xếp bàn</span>}
                         </td>
+                        <td className="booking-demo-cell-actions">
+                          {booking.trang_thai === 'CHO_XAC_NHAN' && (
+                            <div className="booking-demo-row-actions">
+                              <span className="booking-demo-check-wrap">
+                                <Button size="small" icon={<SearchOutlined />} disabled={busy} aria-label="Kiểm tra bàn trống" className="booking-demo-check-button" onClick={() => checkAvailable(booking.id)} />
+                                <span className="booking-demo-check-tooltip" role="tooltip">Kiểm tra bàn trống</span>
+                              </span>
+                              <Button danger size="small" disabled={busy} onClick={() => cancel(booking.id)}>Hủy</Button>
+                            </div>
+                          )}
+                        </td>
                         <td>
                           <span className={`booking-demo-status booking-demo-status--${meta.tone}`}>
                             <i className="booking-demo-status-dot" />
                             {meta.label}
                           </span>
                         </td>
-                        <td className="booking-demo-cell-actions">
-                          {booking.trang_thai === 'CHO_XAC_NHAN' && (
-                            <Button size="small" icon={<SearchOutlined />} disabled={busy} onClick={() => checkAvailable(booking.id)}>
-                              Kiểm tra bàn trống
-                            </Button>
-                          )}
-                          {booking.trang_thai === 'CHO_XAC_NHAN' && (
-                            <Button danger size="small" disabled={busy} onClick={() => cancel(booking.id)}>
-                              Hủy
-                            </Button>
-                          )}
-                        </td>
                       </tr>
                       {booking.trang_thai === 'CHO_XAC_NHAN' && assigningId === booking.id && (
                         <tr className="booking-demo-assign-row">
                           <td colSpan={8}>
-                            <div className="booking-demo-assign">
-                              <span className="booking-demo-assign-label">Phân bàn cho đơn #{booking.id}:</span>
-                              <select value={selectedTableId} onChange={(event) => setSelectedTableId(event.target.value)} disabled={busy || !availableTables.length}>
-                                <option value="">{availableTables.length ? 'Chọn bàn còn trống' : 'Không có bàn phù hợp'}</option>
-                                {availableTables.map((table) => (
-                                  <option key={table.id} value={table.id}>{tableDisplayName(table)} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách</option>
-                                ))}
-                              </select>
-                              <Button type="primary" size="small" disabled={busy || !selectedTableId} loading={busy} onClick={() => assignTable(booking.id)}>
-                                Phân bàn & xác nhận
-                              </Button>
-                            </div>
+                            <section className="booking-demo-assign-panel" aria-label={`Chọn bàn cho yêu cầu ${booking.id}`}>
+                              <div className="booking-demo-assign-heading">
+                                <div className="booking-demo-assign-title">
+                                  <span className="booking-demo-assign-eyebrow">PHÂN BÀN</span>
+                                  <h3>Chọn bàn phù hợp</h3>
+                                  <p>Yêu cầu #{booking.id} · {booking.ho_ten_khach}</p>
+                                </div>
+                                <div className="booking-demo-assign-meta">
+                                  <span><TeamOutlined /> {booking.so_luong_khach} khách</span>
+                                  <span><CalendarOutlined /> {formatDateVN(booking.ngay_dat)} · {booking.gio_bat_dau?.slice(0, 5)}</span>
+                                </div>
+                              </div>
+                              <div className="booking-demo-assign-toolbar">
+                                <span>Bàn trống phù hợp <b>{filteredAvailableTables.length}</b></span>
+                                <Select
+                                  aria-label="Lọc bàn theo khu vực"
+                                  value={availableAreaFilter}
+                                  onChange={(value) => {
+                                    setAvailableAreaFilter(value)
+                                    setSelectedTableId('')
+                                  }}
+                                  options={[
+                                    { value: 'all', label: 'Tất cả khu vực' },
+                                    ...areas
+                                      .filter((area) => availableTables.some((table) => String(table.khu_vuc_id) === String(area.id)))
+                                      .map((area) => ({ value: String(area.id), label: formatAreaName(area.ten_khu_vuc) })),
+                                  ]}
+                                />
+                              </div>
+                              {availableTables.length ? (
+                                filteredAvailableTables.length ? (
+                                  <div className="booking-demo-assign-grid">
+                                    {filteredAvailableTables.map((table) => {
+                                        const areaName = formatAreaName(areasById.get(table.khu_vuc_id)?.ten_khu_vuc || 'Chưa xác định')
+                                        const isSelected = String(selectedTableId) === String(table.id)
+                                        return (
+                                          <button
+                                            type="button"
+                                            key={table.id}
+                                            className={`booking-demo-assign-table${isSelected ? ' is-selected' : ''}`}
+                                            aria-pressed={isSelected}
+                                            disabled={busy}
+                                            onClick={() => setSelectedTableId(String(table.id))}
+                                          >
+                                            <span className="booking-demo-assign-table-name"><TableOutlined /> {table.ma_ban || tableDisplayName(table)}</span>
+                                            <span className="booking-demo-assign-table-area">{areaName}</span>
+                                            <span className="booking-demo-assign-table-capacity">{table.da_cau_hinh ? `${table.suc_chua_toi_thieu}–${table.suc_chua_toi_da} khách` : `Tối đa ${table.suc_chua_toi_da} khách`}</span>
+                                            <span className="booking-demo-assign-available"><i /> Còn trống phù hợp</span>
+                                          </button>
+                                        )
+                                      })}
+                                  </div>
+                                ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có bàn phù hợp trong khu vực này." />
+                              ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có bàn trống phù hợp với yêu cầu này." />}
+                              <div className="booking-demo-assign-footer">
+                                <Button
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setAssigningId(null)
+                                    setAvailableTables([])
+                                    setSelectedTableId('')
+                                    setAvailableAreaFilter('all')
+                                  }}
+                                >Đóng</Button>
+                                <Button type="primary" disabled={busy || !selectedTableId} loading={busy} onClick={() => assignTable(booking.id)}>
+                                  Phân bàn &amp; xác nhận
+                                </Button>
+                              </div>
+                            </section>
                           </td>
                         </tr>
                       )}
