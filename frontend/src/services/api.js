@@ -367,6 +367,7 @@ export function createOrderSocket(onMessage, onStatus) {
 
   return socket
 }
+
 // ===============================
 // GIỜ MỞ CỬA & ĐẶT BÀN
 // ===============================
@@ -783,20 +784,17 @@ export async function updateOrderLineStatus(lineId, status) {
   })
   return response.data
 }
-export async function cancelOrderLine(lineId, lyDoHuy) {
-  const response = await api.patch(
-    `/api/order-ops/lines/${lineId}/cancel`,
-    { ly_do_huy: lyDoHuy },
-  )
 
 export async function completeOrderBatch(batchId) {
   const response = await api.post(`/api/order-ops/batches/${batchId}/complete`)
   return response.data
 }
+
 export async function regenerateQR(id) {
   const response = await api.post(`/api/ban/${id}/qr/regenerate`)
   return response.data
 }
+
 export async function downloadQR(path, filename) {
   const separator = path.includes('?') ? '&' : '?'
   const qrPath = path.includes('/qr.') || path.includes('/qr/')
@@ -823,11 +821,13 @@ export async function getLoginSessions() {
   return response.data
 }
 
-
 // Cancel a single order line with a mandatory reason.
-export async function cancelOrderLine(lineId, reason) {
-  const response = await api.post(`/api/order-ops/lines/${lineId}/cancel`, {
-    ly_do: reason,
-  })
+// Backend: PATCH /api/order-ops/lines/{line_id}/cancel
+// Body: { ly_do_huy: "KHACH_DOI_Y" | "GOI_NHAM" | "HET_NGUYEN_LIEU" }
+export async function cancelOrderLine(lineId, lyDoHuy) {
+  const response = await api.patch(
+    `/api/order-ops/lines/${lineId}/cancel`,
+    { ly_do_huy: lyDoHuy },
+  )
   return response.data
 }
