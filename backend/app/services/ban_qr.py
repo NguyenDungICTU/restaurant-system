@@ -11,44 +11,150 @@ from reportlab.pdfgen.canvas import Canvas
 from app.core.config import settings
 
 
-def qr_url(token: str, frontend_origin: str | None = None) -> str:
-    base = (frontend_origin or str(settings.qr_frontend_url)).rstrip("/")
+def qr_url(
+    token: str,
+    frontend_origin: str | None = None,
+    host: str | None = None,
+    forwarded_proto: str | None = None,
+) -> str:
+    """
+    Tạo URL mà QR sẽ chứa.
+
+    Ưu tiên:
+    1. frontend_origin được truyền từ frontend
+    2. host lấy từ reverse proxy
+    3. QR_FRONTEND_URL trong config
+    """
+    if frontend_origin:
+        base = frontend_origin.rstrip("/")
+    elif host:
+        scheme = (forwarded_proto or "http").split(",")[0].strip() or "http"
+        base = f"{scheme}://{host}".rstrip("/")
+    else:
+        if settings.qr_frontend_url:
+            base = str(settings.qr_frontend_url).rstrip("/")
+        else:
+            raise ValueError(
+                "Không xác định được địa chỉ frontend để tạo QR. "
+                "Hãy tải QR từ giao diện frontend hoặc cấu hình QR_FRONTEND_URL."
+            )
+
     return f"{base}/?qr={token}"
 
 
-def qr_png(token: str, frontend_origin: str | None = None) -> bytes:
+def qr_png(
+    token: str,
+    frontend_origin: str | None = None,
+    host: str | None = None,
+    forwarded_proto: str | None = None,
+) -> bytes:
     output = BytesIO()
-    qrcode.make(qr_url(token, frontend_origin)).save(output, format="PNG")
+
+    qrcode.make(
+        qr_url(
+            token,
+            frontend_origin=frontend_origin,
+            host=host,
+            forwarded_proto=forwarded_proto,
+        )
+    ).save(output, format="PNG")
+
     return output.getvalue()
 
 
-def area_pdf(area, tables, frontend_origin: str | None = None) -> bytes:
+def area_pdf(
+    area,
+    tables,
+    frontend_origin: str | None = None,
+    host: str | None = None,
+    forwarded_proto: str | None = None,
+) -> bytes:
     font = "QRUnicode"
+
     if font not in pdfmetrics.getRegisteredFontNames():
-        paths = [settings.qr_pdf_font_path, "C:/Windows/Fonts/arial.ttf"]
+        paths = [
+            settings.qr_pdf_font_path,
+            "C:/Windows/Fonts/arial.ttf",
+        ]
+
         path = next((p for p in paths if Path(p).is_file()), None)
+
         if path is None:
-            raise RuntimeError("Không tìm thấy font PDF. Cấu hình QR_PDF_FONT_PATH.")
+            raise RuntimeError(
+                "Không tìm thấy font PDF. Cấu hình QR_PDF_FONT_PATH."
+            )
+
         pdfmetrics.registerFont(TTFont(font, path))
+
     output = BytesIO()
     pdf = Canvas(output, pagesize=A4)
+
     width, height = A4
 
     def fitted(text, x, y, size, max_width):
         text_width = pdfmetrics.stringWidth(text, font, size)
-        pdf.setFont(font, min(size, size * max_width / max(text_width, 1)))
+
+        pdf.setFont(
+            font,
+            min(
+                size,
+                size * max_width / max(text_width, 1),
+            ),
+        )
+
         pdf.drawCentredString(x, y, text)
 
     for index, table in enumerate(tables):
         slot = index % 6
+
         if slot == 0:
             if index:
                 pdf.showPage()
-            fitted(f"QR bàn — {area.ten_khu_vuc}", width / 2, height - 40, 16, width - 60)
+
+            fitted(
+                f"QR bàn — {area.ten_khu_vuc}",
+                width / 2,
+                height - 40,
+                16,
+                width - 60,
+            )
+
         x = width / 4 + (slot % 2) * width / 2
         y = height - 100 - (slot // 2) * 240
-        fitted(table.ma_ban, x, y, 13, width / 2 - 40)
-        pdf.drawImage(ImageReader(BytesIO(qr_png(table.qr_token, frontend_origin))), x - 90, y - 190, 180, 180)
-        fitted(f"{table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách", x, y - 205, 10, 240)
+
+        fitted(
+            table.ma_ban,
+            x,
+            y,
+            13,
+            width / 2 - 40,
+        )
+
+        pdf.drawImage(
+            ImageReader(
+                BytesIO(
+                    qr_png(
+                        table.qr_token,
+                        frontend_origin=frontend_origin,
+                        host=host,
+                        forwarded_proto=forwarded_proto,
+                    )
+                )
+            ),
+            x - 90,
+            y - 190,
+            180,
+            180,
+        )
+
+        fitted(
+            f"{table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách",
+            x,
+            y - 205,
+            10,
+            240,
+        )
+
     pdf.save()
+
     return output.getvalue()

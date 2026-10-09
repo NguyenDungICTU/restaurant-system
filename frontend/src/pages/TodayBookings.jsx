@@ -13,14 +13,17 @@ import {
 import {
   CalendarOutlined,
   ClockCircleOutlined,
+  WarningOutlined,
   ReloadOutlined,
   EyeOutlined,
 } from '@ant-design/icons'
 
 import {
   confirmBooking,
+  extendBookingHold,
   getAvailableTables,
   getTodayBookings,
+  markBookingNoShow,
   moveBooking,
   rejectBooking,
 } from '../services/api'
@@ -160,6 +163,50 @@ export default function TodayBookings() {
     }
   }
 
+  async function handleExtend(row) {
+    setBusy(true)
+    setNotice(null)
+    try {
+      await extendBookingHold(row.id)
+      setNotice({ type: 'success', text: `Đã gia hạn giữ bàn ${row.ma_dat_ban} thêm 15 phút.` })
+      await load()
+    } catch (cause) {
+      setNotice({ type: 'error', text: errorMessage(cause) })
+    } finally { setBusy(false) }
+  }
+
+  function confirmExtend(row) {
+    Modal.confirm({
+      title: 'Gia hạn giữ bàn?',
+      content: `Bàn ${row.ten_ban || 'chưa xếp'} của ${row.ho_ten_khach} sẽ được giữ thêm 15 phút. Mỗi lượt chỉ được gia hạn một lần.`,
+      okText: 'Gia hạn 15 phút', cancelText: 'Huỷ',
+      onOk: () => handleExtend(row),
+    })
+  }
+
+  async function handleNoShow(row) {
+    setBusy(true)
+    setNotice(null)
+    try {
+      const result = await markBookingNoShow(row.id)
+      const count = result?.so_lan_khong_toi_90_ngay ?? row.so_lan_khong_toi_90_ngay ?? 0
+      setNotice({ type: 'success', text: `Đã ghi nhận khách không tới, giải phóng bàn. Lịch sử 90 ngày: ${count} lần.` })
+      await load()
+    } catch (cause) {
+      setNotice({ type: 'error', text: errorMessage(cause) })
+    } finally { setBusy(false) }
+  }
+
+  function confirmNoShow(row) {
+    Modal.confirm({
+      title: 'Đánh dấu khách không tới?',
+      content: `Thao tác này sẽ chuyển ${row.ma_dat_ban} sang “Khách không tới” và giải phóng bàn ngay.`,
+      okText: 'Khách không tới', cancelText: 'Huỷ',
+      okButtonProps: { danger: true },
+      onOk: () => handleNoShow(row),
+    })
+  }
+
   async function saveReject() {
     if (!rejectRow || !rejectReason) return
 
@@ -198,10 +245,13 @@ export default function TodayBookings() {
       render: (value, row) => (
         <div className="today-bookings-code">
           <strong>{value}</strong>
-          {row.sap_den_trong_30_phut && (
-            <Tag color="red">
-              <ClockCircleOutlined /> Trong 30 phút tới
-            </Tag>
+          {row.qua_gio_hen ? (
+            <Tag color="red"><WarningOutlined /> Quá giờ 15 phút</Tag>
+          ) : row.sap_den_trong_30_phut ? (
+            <Tag color="red"><ClockCircleOutlined /> Trong 30 phút tới</Tag>
+          ) : null}
+          {row.canh_bao_khong_toi && (
+            <Tag color="volcano">⚠ 3+ lần không tới / 90 ngày</Tag>
           )}
         </div>
       ),
@@ -233,7 +283,12 @@ export default function TodayBookings() {
       key: 'trang_thai',
       render: (value) => {
         const meta = STATUS_META[value] || { text: value, color: 'default' }
-        return <Tag color={meta.color}>{meta.text}</Tag>
+        return (
+          <Space wrap>
+            <Tag color={meta.color}>{meta.text}</Tag>
+            {row.qua_gio_hen && value === 'DA_XAC_NHAN' && <Tag color="red">Cần xử lý</Tag>}
+          </Space>
+        )
       },
     },
     {
@@ -283,6 +338,12 @@ export default function TodayBookings() {
               Đổi bàn
             </Button>
           )}
+          {row.trang_thai === 'DA_XAC_NHAN' && row.qua_gio_hen && row.co_the_gia_han && (
+            <Button size="small" disabled={busy} onClick={() => confirmExtend(row)}>Gia hạn 15 phút</Button>
+          )}
+          {row.trang_thai === 'DA_XAC_NHAN' && row.qua_gio_hen && row.co_the_danh_dau_khong_toi && (
+            <Button danger size="small" disabled={busy} onClick={() => confirmNoShow(row)}>Khách không tới</Button>
+          )}
         </Space>
       ),
     },
@@ -311,6 +372,15 @@ export default function TodayBookings() {
           type={notice.type}
           message={notice.text}
           onClose={() => setNotice(null)}
+        />
+      )}
+
+      {rows.some(row => row.qua_gio_hen && row.trang_thai === 'DA_XAC_NHAN') && (
+        <Alert
+          className="today-bookings-alert"
+          type="error" showIcon icon={<WarningOutlined />}
+          message="Có đặt bàn đã quá giờ hẹn 15 phút"
+          description="Hãy đánh dấu khách không tới để giải phóng bàn, hoặc gia hạn giữ bàn thêm 15 phút (tối đa một lần)."
         />
       )}
 
@@ -355,9 +425,11 @@ export default function TodayBookings() {
             loading={loading}
             pagination={false}
             scroll={{ x: 1250 }}
-            rowClassName={(row) =>
-              row.sap_den_trong_30_phut ? 'today-bookings-upcoming' : ''
-            }
+            rowClassName={(row) => {
+              if (row.qua_gio_hen) return 'today-bookings-overdue'
+              if (row.sap_den_trong_30_phut) return 'today-bookings-upcoming'
+              return ''
+            }}
           />
         )}
       </Card>

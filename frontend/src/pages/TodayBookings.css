@@ -93,3 +93,6 @@
     width: 100%;
   }
 }
+
+.today-bookings-overdue > td { background: #fff1f0 !important; border-top: 1px solid #ffccc7 !important; border-bottom: 1px solid #ffccc7 !important; }
+.today-bookings-overdue:hover > td { background: #ffe4e1 !important; }
