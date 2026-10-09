@@ -1,14 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, Empty, Input, InputNumber, Tag } from 'antd'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Alert, Button, Card, Empty, Input, InputNumber } from 'antd'
 import {
   CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
-  ReloadOutlined,
+  InfoCircleOutlined,
+  PhoneOutlined,
+  SearchOutlined,
+  TableOutlined,
+  TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { cancelBooking, createBooking, getAreas, getBookings, getOpeningSettings, getRestaurantTables, getAvailableTables, confirmBooking } from '../services/api'
-import { formatTableName } from '../utils/areaNames'
+import { formatAreaName, formatTableName } from '../utils/areaNames'
 import './BookingDemo.css'
 
 const TIME_ZONE = 'Asia/Ho_Chi_Minh'
@@ -21,6 +26,37 @@ const DEFAULT_WEEK = [
   { key: 'saturday', label: 'Thứ Bảy', closed: false, open: '08:00', close: '23:00' },
   { key: 'sunday', label: 'Chủ Nhật', closed: true, open: '08:00', close: '22:00' },
 ]
+
+// Trạng thái bàn hiển thị trong trang đặt bàn (chỉ đổi nhãn hiển thị, giữ nguyên giá trị backend).
+const TABLE_STATUS_META = {
+  TRONG: { label: 'Trống', tone: 'success' },
+  DA_DAT: { label: 'Đang giữ', tone: 'warning' },
+  DANG_SU_DUNG: { label: 'Đã đặt', tone: 'danger' },
+  DANG_DON: { label: 'Đang dọn', tone: 'info' },
+  NGUNG_SU_DUNG: { label: 'Ngừng sử dụng', tone: 'neutral' },
+}
+
+const BOOKING_STATUS_META = {
+  DA_XAC_NHAN: { label: 'Đã xác nhận', tone: 'success' },
+  CHO_XAC_NHAN: { label: 'Chờ xác nhận', tone: 'warning' },
+  DA_HUY: { label: 'Đã hủy', tone: 'danger' },
+  KHACH_KHONG_TOI: { label: 'Khách không tới', tone: 'neutral' },
+}
+
+function tableStatusMeta(table) {
+  if (!table.da_cau_hinh) return { label: 'Chưa cấu hình', tone: 'neutral' }
+  return TABLE_STATUS_META[table.trang_thai] || { label: table.trang_thai || 'Chưa có trạng thái', tone: 'neutral' }
+}
+
+function bookingStatusMeta(status) {
+  return BOOKING_STATUS_META[status] || { label: status || 'Chưa rõ', tone: 'neutral' }
+}
+
+function formatDateVN(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return value || ''
+  const [year, month, day] = value.split('-')
+  return `${day}/${month}/${year}`
+}
 
 function vietnamDateTime() {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -48,6 +84,13 @@ function toMinutes(value) {
 
 function toTime(value) {
   return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
+}
+
+function timeValidationMessage(start, end) {
+  if (start && toMinutes(start) === null) return 'Giờ bắt đầu không hợp lệ. Vui lòng nhập đúng định dạng HH:mm.'
+  if (end && toMinutes(end) === null) return 'Giờ kết thúc không hợp lệ. Vui lòng nhập đúng định dạng HH:mm.'
+  if (start && end && toMinutes(end) <= toMinutes(start)) return 'Giờ kết thúc phải lớn hơn giờ bắt đầu.'
+  return ''
 }
 
 function slotsFor(day, duration) {
@@ -94,6 +137,7 @@ export default function BookingDemo({ focusedBookingId = null }) {
   const [error, setError] = useState('')
   const [date, setDate] = useState(() => vietnamDateTime().date)
   const [time, setTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [customerName, setCustomerName] = useState('')
   const [phone, setPhone] = useState('')
   const [guests, setGuests] = useState(2)
@@ -104,23 +148,6 @@ export default function BookingDemo({ focusedBookingId = null }) {
   const [assigningId, setAssigningId] = useState(null)
   const [availableTables, setAvailableTables] = useState([])
   const [selectedTableId, setSelectedTableId] = useState("")
-
-  async function reload() {
-    setLoading(true)
-    setError('')
-    try {
-      const [configuration, rows, restaurantTables, regions] = await Promise.all([getOpeningSettings(), getBookings(), getRestaurantTables(), getAreas()])
-      setSettings(fromServer(configuration))
-      setBookings(rows)
-      setTables(restaurantTables)
-      setAreas(regions)
-    } catch (cause) {
-      setError(apiError(cause))
-      setSettings(null)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   useEffect(() => {
     // Read shared backend state on initial mount, never treat localStorage as the source of truth.
@@ -168,6 +195,8 @@ export default function BookingDemo({ focusedBookingId = null }) {
       : slotsFor(schedule, settings.duration).filter((slot) => date !== now.date || slot > now.time)
   }, [date, holiday, schedule, settings])
 
+  const timeError = timeValidationMessage(time, endTime)
+
   async function submitBooking(event) {
     event.preventDefault()
     setResult(null)
@@ -180,8 +209,14 @@ export default function BookingDemo({ focusedBookingId = null }) {
       setResult({ ok: false, message: `Nhà hàng nghỉ đặc biệt: ${holiday.name}.` })
     } else if (!schedule || schedule.closed) {
       setResult({ ok: false, message: 'Nhà hàng nghỉ theo lịch tuần vào ngày này.' })
+    } else if (toMinutes(time) === null) {
+      setResult({ ok: false, message: 'Giờ bắt đầu không hợp lệ. Vui lòng nhập đúng định dạng HH:mm.' })
+    } else if (toMinutes(endTime) === null) {
+      setResult({ ok: false, message: 'Giờ kết thúc không hợp lệ. Vui lòng nhập đúng định dạng HH:mm.' })
+    } else if (toMinutes(endTime) <= toMinutes(time)) {
+      setResult({ ok: false, message: 'Giờ kết thúc phải lớn hơn giờ bắt đầu.' })
     } else if (!slots.includes(time)) {
-      setResult({ ok: false, message: 'Chọn khung giờ còn hiệu lực, đúng mốc 30 phút và đủ thời lượng trước giờ đóng.' })
+      setResult({ ok: false, message: 'Giờ bắt đầu phải nằm trong giờ mở cửa, đúng mốc 30 phút và đủ thời lượng trước giờ đóng.' })
     } else if (!customerName.trim()) {
       setResult({ ok: false, message: 'Vui lòng nhập tên khách hàng.' })
     } else if (!/^0\d{9}$/.test(phone.trim())) {
@@ -295,12 +330,15 @@ export default function BookingDemo({ focusedBookingId = null }) {
   return (
     <section className="booking-demo-page">
       <div className="booking-demo-heading">
-        <div>
-          <p className="booking-demo-eyebrow">QUẢN LÝ YÊU CẦU ĐẶT BÀN</p>
-          <h1>Đặt bàn và danh sách yêu cầu</h1>
-          <p>Lịch và đơn đặt bàn được đọc, lưu trực tiếp trong PostgreSQL.</p>
+        <div className="booking-demo-heading-copy">
+          <nav className="booking-demo-breadcrumb" aria-label="Breadcrumb">
+            <span>Trang chủ</span>
+            <b>/</b>
+            <span className="booking-demo-breadcrumb-current">Đặt bàn</span>
+          </nav>
+          <h1>Đặt bàn</h1>
+          <p>Chọn thời gian, số lượng khách và thông tin khách hàng để đặt bàn.</p>
         </div>
-        <Button icon={<ReloadOutlined />} onClick={reload} loading={loading}>Tải lại từ máy chủ</Button>
       </div>
 
       {error && <Alert showIcon type="error" className="booking-demo-alert" message="Không tải được dữ liệu" description={error} />}
@@ -309,111 +347,213 @@ export default function BookingDemo({ focusedBookingId = null }) {
         <Alert showIcon type="warning" className="booking-demo-alert" message={`Không tìm thấy đặt bàn #${focusedBookingId} trong danh sách đã tải.`} />
       )}
       {settings && !settings.configured && <Alert showIcon type="warning" className="booking-demo-alert" message="Chưa có lịch mở cửa đủ 7 ngày trong PostgreSQL. Quản lý cần lưu cấu hình trước." />}
-      {settings && <Alert showIcon type="info" className="booking-demo-alert"
-        message={`Múi giờ: ${TIME_ZONE} · Giữ bàn: ${settings.duration} phút · Mốc 30 phút`}
-        description="Đơn mới chờ xác nhận. Kiểm tra bàn trống, chọn bàn và xác nhận để giữ chỗ cho khách." />}
 
       <div className="booking-demo-grid">
-        <Card className="booking-demo-card" title={<><CalendarOutlined /> Tạo yêu cầu đặt bàn</>}>
-          <form onSubmit={submitBooking} className="booking-demo-form">
-            <label>Ngày đặt bàn <span>*</span>
-              <input type="date" min={vietnamDateTime().date} value={date} onChange={(event) => { setDate(event.target.value); setTime(''); setResult(null) }} />
-            </label>
-            <label>Giờ bắt đầu <span>*</span>
-              <input type="time" step="60" value={time} onChange={(event) => { setTime(event.target.value); setResult(null) }} />
-              <small>Chọn mốc giờ ở bên phải để tự điền.</small>
-            </label>
-            <label>Họ tên khách <span>*</span>
-              <Input value={customerName} maxLength={100} placeholder="Nhập tên khách hàng" onChange={(event) => setCustomerName(event.target.value)} />
-            </label>
-            <label>Số điện thoại <span>*</span>
-              <Input value={phone} maxLength={10} placeholder="Ví dụ: 0912345678" onChange={(event) => setPhone(event.target.value)} />
-            </label>
-            <label>Số khách <span>*</span>
-              <InputNumber min={1} max={30} value={guests} onChange={setGuests} style={{ width: '100%' }} />
-            </label>
-            <label>Ghi chú
-              <Input.TextArea value={note} maxLength={1000} rows={2} placeholder="Yêu cầu của khách (không bắt buộc)" onChange={(event) => setNote(event.target.value)} />
-            </label>
-            <Button type="primary" htmlType="submit" block loading={busy} disabled={loading || !settings?.configured}>Lưu yêu cầu đặt bàn</Button>
+        <Card
+          className="booking-demo-card booking-demo-info-card"
+          title={<span className="booking-demo-card-title"><CalendarOutlined /> Thông tin đặt bàn</span>}
+        >
+          <form onSubmit={submitBooking} noValidate className="booking-demo-form">
+            <div className="booking-demo-field">
+              <label className="booking-demo-label">Ngày đặt bàn <span className="booking-demo-required">*</span></label>
+              <div className="booking-demo-control">
+                <CalendarOutlined className="booking-demo-control-icon" />
+                <input type="date" min={vietnamDateTime().date} value={date} onChange={(event) => { setDate(event.target.value); setTime(''); setEndTime(''); setResult(null) }} />
+              </div>
+            </div>
+
+            <div className="booking-demo-field">
+              <label className="booking-demo-label">Chọn khung giờ <span className="booking-demo-required">*</span></label>
+              <div className="booking-demo-time-row">
+                <div className="booking-demo-control booking-demo-control--time">
+                  <ClockCircleOutlined className="booking-demo-control-icon" />
+                  <input type="time" step="1800" value={time} onChange={(event) => {
+                    const value = event.target.value
+                    const duration = settings?.duration
+                    setTime(value)
+                    setEndTime(value && toMinutes(value) !== null && duration ? toTime(toMinutes(value) + duration) : '')
+                    setResult(null)
+                  }} />
+                </div>
+                <span className="booking-demo-time-sep">–</span>
+                <div className="booking-demo-control booking-demo-control--time">
+                  <ClockCircleOutlined className="booking-demo-control-icon" />
+                  <input type="time" step="1800" value={endTime} onChange={(event) => { setEndTime(event.target.value); setResult(null) }} />
+                </div>
+              </div>
+              {timeError
+                ? <div className="booking-demo-field-error">{timeError}</div>
+                : <div className="booking-demo-schedule-hint">
+                    {holiday ? `Nghỉ đặc biệt: ${holiday.name}` : schedule?.closed ? 'Nhà hàng nghỉ theo lịch tuần.' : schedule ? `Mở cửa: ${schedule.open} – ${schedule.close}` : 'Chưa có lịch hoạt động.'}
+                  </div>}
+            </div>
+
+            <div className="booking-demo-row">
+              <div className="booking-demo-field">
+                <label className="booking-demo-label">Họ tên khách <span className="booking-demo-required">*</span></label>
+                <Input prefix={<UserOutlined />} value={customerName} maxLength={100} placeholder="Nhập tên khách hàng" onChange={(event) => setCustomerName(event.target.value)} />
+              </div>
+              <div className="booking-demo-field">
+                <label className="booking-demo-label">Số điện thoại <span className="booking-demo-required">*</span></label>
+                <Input prefix={<PhoneOutlined />} value={phone} maxLength={10} placeholder="Ví dụ: 0912345678" onChange={(event) => setPhone(event.target.value)} />
+              </div>
+            </div>
+
+            <div className="booking-demo-row">
+              <div className="booking-demo-field">
+                <label className="booking-demo-label">Số khách <span className="booking-demo-required">*</span></label>
+                <InputNumber prefix={<TeamOutlined />} min={1} max={30} value={guests} onChange={setGuests} style={{ width: '100%' }} />
+              </div>
+              <div className="booking-demo-field">
+                <label className="booking-demo-label">Ghi chú <em>(không bắt buộc)</em></label>
+                <Input.TextArea value={note} maxLength={1000} rows={2} placeholder="Ví dụ: Gần cửa sổ, yêu cầu ghế cao..." onChange={(event) => setNote(event.target.value)} />
+              </div>
+            </div>
+
+            <Button type="primary" htmlType="submit" block size="large" loading={busy} disabled={loading || !settings?.configured} className="booking-demo-submit">
+              Lưu yêu cầu đặt bàn
+            </Button>
+
             {result && <Alert showIcon type={result.ok ? 'success' : 'error'} icon={result.ok ? <CheckCircleOutlined /> : <CloseCircleOutlined />} message={result.message} />}
+
+            <div className="booking-demo-guide">
+              <InfoCircleOutlined />
+              <span>Quy trình: Lưu yêu cầu → Kiểm tra bàn trống → Phân bàn &amp; xác nhận</span>
+            </div>
           </form>
         </Card>
 
-        <Card className="booking-demo-card" title={<><ClockCircleOutlined /> Khung giờ theo lịch đã lưu</>}>
-          <div className="booking-demo-status">
-            <strong>{schedule?.label || 'Chưa chọn ngày'}</strong>
-            {holiday ? <Tag color="red">Nghỉ đặc biệt</Tag> : schedule?.closed ? <Tag color="red">Ngày nghỉ</Tag> : schedule ? <Tag color="green">Mở cửa</Tag> : <Tag>Chưa có lịch</Tag>}
+        <Card
+          className="booking-demo-card booking-demo-tables-card"
+          title={<span className="booking-demo-card-title"><TableOutlined /> Danh sách bàn <span className="booking-demo-card-count">{tables.length}</span></span>}
+          extra={
+            <div className="booking-demo-legend">
+              <span className="booking-demo-legend-item"><i className="booking-demo-legend-dot booking-demo-legend-dot--success" />Trống</span>
+              <span className="booking-demo-legend-item"><i className="booking-demo-legend-dot booking-demo-legend-dot--warning" />Đang giữ</span>
+              <span className="booking-demo-legend-item"><i className="booking-demo-legend-dot booking-demo-legend-dot--danger" />Đã đặt</span>
+            </div>
+          }
+        >
+          <div className="booking-demo-table-grid">
+            {tables.map((table) => {
+              const meta = tableStatusMeta(table)
+              const areaName = formatAreaName(areasById.get(table.khu_vuc_id)?.ten_khu_vuc || 'Chưa xác định')
+              return (
+                <div className="booking-demo-table-card" key={table.id}>
+                  <div className="booking-demo-table-name">
+                    <TableOutlined className="booking-demo-table-icon" />
+                    <strong>{table.ma_ban || 'Bàn chưa đặt mã'}</strong>
+                  </div>
+                  <div className="booking-demo-table-capacity">
+                    <TeamOutlined />
+                    <span>{table.da_cau_hinh ? `${table.suc_chua_toi_thieu} - ${table.suc_chua_toi_da} người` : 'Chưa cấu hình sức chứa'}</span>
+                  </div>
+                  <div className="booking-demo-table-area">Khu vực: {areaName}</div>
+                  <span className={`booking-demo-status booking-demo-status--${meta.tone}`}>
+                    <i className="booking-demo-status-dot" />
+                    {meta.label}
+                  </span>
+                </div>
+              )
+            })}
+            {!tables.length && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có bàn nào. Quản lý hãy khai báo bàn trước." />}
           </div>
-          {holiday && <Alert type="error" showIcon message={`Nghỉ đặc biệt: ${holiday.name}`} />}
-          {!holiday && schedule?.closed && <Alert type="warning" showIcon message="Không nhận đặt bàn theo lịch tuần." />}
-          {!holiday && schedule && !schedule.closed && <p className="booking-demo-hours">Giờ mở cửa: <b>{schedule.open} – {schedule.close}</b></p>}
-          {slots.length ? (
-            <>
-              <p className="booking-demo-help">Chọn giờ bên dưới. Các mốc bảo đảm đủ thời lượng giữ bàn trước giờ đóng.</p>
-              <div className="booking-demo-slots">
-                {slots.map((slot) => (
-                  <button key={slot} type="button" className={time === slot ? 'selected' : ''} onClick={() => { setTime(slot); setResult(null) }}>{slot}</button>
-                ))}
-              </div>
-            </>
-          ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có khung giờ nhận đặt bàn cho ngày này." />}
-          <div className="booking-demo-note">Ngày nghỉ đặc biệt được ưu tiên hơn lịch tuần. Backend kiểm tra lại trước khi lưu.</div>
+          <div className="booking-demo-tables-note">
+            <InfoCircleOutlined />
+            <span>Chọn bàn phù hợp với số lượng khách và thời gian đặt.</span>
+          </div>
         </Card>
       </div>
 
-      <Card className="booking-demo-card booking-demo-list" title={`Bàn vật lý (${tables.length})`}>
-        <p className="booking-demo-help">Danh sách bàn được đọc từ chức năng Quản lý bàn. Chỉ Quản lý mới được thêm/sửa/xóa bàn; Phục vụ chỉ xem sơ đồ bàn và phân bàn cho đặt chỗ.</p>
-        <div className="booking-demo-table-chips">
-          {tables.map((table) => (
-            <Tag key={table.id} color={table.trang_thai === 'NGUNG_SU_DUNG' ? 'default' : 'green'}>
-              {tableDisplayName(table)} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách
-            </Tag>
-          ))}
-          {!tables.length && <span>Chưa có bàn nào. Quản lý hãy khai báo bàn trước.</span>}
-        </div>
-      </Card>
-
-      <Card className="booking-demo-card booking-demo-list" title={`Yêu cầu đã lưu (${bookings.length})`}>
-        {bookings.length ? bookings.map((booking) => (
-          <div
-            key={booking.id}
-            id={`booking-${booking.id}`}
-            className={`booking-demo-list-item ${
-              String(booking.id) === String(focusedBookingId)
-                ? 'booking-demo-list-item--focused'
-                : ''
-            }`}
-          >
-            <div>
-              <strong>#{booking.id} · {booking.ho_ten_khach}</strong>
-              <p>{booking.ngay_dat} · {booking.gio_bat_dau?.slice(0, 5)} · {booking.so_luong_khach} khách · {booking.thoi_luong_giu_ban} phút</p>
-              <p>Điện thoại: {booking.so_dien_thoai}{booking.ghi_chu ? ` · ${booking.ghi_chu}` : ''}</p>
-              {booking.ban_id && <p>Đã phân: <b>{tableDisplayName(
-                tables.find((table) => table.id === booking.ban_id) || {
-                  khu_vuc_id: null,
-                  ma_ban: '',
-                },
-              ) || 'Chưa tải được thông tin bàn'}</b></p>}
-            </div>
-            <div className="booking-demo-list-actions">
-              <Tag color={booking.trang_thai === 'DA_HUY' ? 'default' : booking.trang_thai === 'DA_XAC_NHAN' ? 'green' : 'orange'}>
-                {booking.trang_thai === 'DA_HUY' ? 'Đã hủy' : booking.trang_thai === 'DA_XAC_NHAN' ? 'Đã xác nhận' : 'Chờ xác nhận'}
-              </Tag>
-              {booking.trang_thai === 'CHO_XAC_NHAN' && <Button size="small" disabled={busy} onClick={() => checkAvailable(booking.id)}>Kiểm tra bàn trống</Button>}
-              {booking.trang_thai === 'CHO_XAC_NHAN' && <Button danger size="small" disabled={busy} onClick={() => cancel(booking.id)}>Hủy</Button>}
-              {booking.trang_thai === 'CHO_XAC_NHAN' && assigningId === booking.id && (
-                <div className="booking-demo-assign">
-                  <select value={selectedTableId} onChange={(event) => setSelectedTableId(event.target.value)} disabled={busy || !availableTables.length}>
-                    <option value="">{availableTables.length ? 'Chọn bàn còn trống' : 'Không có bàn phù hợp'}</option>
-                    {availableTables.map((table) => <option key={table.id} value={table.id}>{tableDisplayName(table)} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách</option>)}
-                  </select>
-                  <Button type="primary" size="small" disabled={busy || !selectedTableId} loading={busy} onClick={() => assignTable(booking.id)}>Phân bàn & xác nhận</Button>
-                </div>
-              )}
-            </div>
+      <Card
+        className="booking-demo-card booking-demo-requests-card"
+        title={<span className="booking-demo-requests-title"><CalendarOutlined /> Danh sách yêu cầu đặt bàn <span className="booking-demo-card-count">{bookings.length}</span></span>}
+      >
+        {bookings.length ? (
+          <div className="booking-demo-table-wrap">
+            <table className="booking-demo-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Khách hàng</th>
+                  <th>Ngày đặt</th>
+                  <th>Giờ</th>
+                  <th>Số khách</th>
+                  <th>Bàn</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map((booking) => {
+                  const meta = bookingStatusMeta(booking.trang_thai)
+                  const assignedTable = tables.find((table) => table.id === booking.ban_id)
+                  const assignedName = assignedTable ? tableDisplayName(assignedTable) : ''
+                  return (
+                    <Fragment key={booking.id}>
+                      <tr
+                        id={`booking-${booking.id}`}
+                        className={String(booking.id) === String(focusedBookingId) ? 'booking-demo-row--focused' : ''}
+                      >
+                        <td className="booking-demo-cell-id">#{booking.id}</td>
+                        <td>
+                          <div className="booking-demo-cell-customer">
+                            <strong>{booking.ho_ten_khach}</strong>
+                            <span>{booking.so_dien_thoai}</span>
+                          </div>
+                        </td>
+                        <td>{formatDateVN(booking.ngay_dat)}</td>
+                        <td>{booking.gio_bat_dau?.slice(0, 5)}</td>
+                        <td>{booking.so_luong_khach}</td>
+                        <td>
+                          {booking.ban_id ? (assignedName || 'Chưa tải được thông tin bàn') : <span className="booking-demo-muted">Chưa xếp bàn</span>}
+                        </td>
+                        <td>
+                          <span className={`booking-demo-status booking-demo-status--${meta.tone}`}>
+                            <i className="booking-demo-status-dot" />
+                            {meta.label}
+                          </span>
+                        </td>
+                        <td className="booking-demo-cell-actions">
+                          {booking.trang_thai === 'CHO_XAC_NHAN' && (
+                            <Button size="small" icon={<SearchOutlined />} disabled={busy} onClick={() => checkAvailable(booking.id)}>
+                              Kiểm tra bàn trống
+                            </Button>
+                          )}
+                          {booking.trang_thai === 'CHO_XAC_NHAN' && (
+                            <Button danger size="small" disabled={busy} onClick={() => cancel(booking.id)}>
+                              Hủy
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                      {booking.trang_thai === 'CHO_XAC_NHAN' && assigningId === booking.id && (
+                        <tr className="booking-demo-assign-row">
+                          <td colSpan={8}>
+                            <div className="booking-demo-assign">
+                              <span className="booking-demo-assign-label">Phân bàn cho đơn #{booking.id}:</span>
+                              <select value={selectedTableId} onChange={(event) => setSelectedTableId(event.target.value)} disabled={busy || !availableTables.length}>
+                                <option value="">{availableTables.length ? 'Chọn bàn còn trống' : 'Không có bàn phù hợp'}</option>
+                                {availableTables.map((table) => (
+                                  <option key={table.id} value={table.id}>{tableDisplayName(table)} · {table.suc_chua_toi_thieu}–{table.suc_chua_toi_da} khách</option>
+                                ))}
+                              </select>
+                              <Button type="primary" size="small" disabled={busy || !selectedTableId} loading={busy} onClick={() => assignTable(booking.id)}>
+                                Phân bàn & xác nhận
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        )) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có yêu cầu đặt bàn nào." />}
+        ) : (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có yêu cầu đặt bàn nào." />
+        )}
       </Card>
     </section>
   )
