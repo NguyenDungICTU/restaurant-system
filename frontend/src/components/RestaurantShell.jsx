@@ -233,7 +233,7 @@ export default function RestaurantShell({ user, onLogout }) {
           ) : page === 'order-entry' ? (
             <OrderEntry />
           ) : page === 'service-orders' ? (
-            <ServiceOrders />
+            <ServiceOrders user={user} />
           ) : page === 'kitchen' ? (
             <Kitchen />
           ) : (

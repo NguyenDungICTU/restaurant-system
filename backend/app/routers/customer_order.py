@@ -195,9 +195,13 @@ def _line_response(line: DongGoiMon, dish: MonAn, batch_time: datetime) -> Custo
     eta = batch_time + timedelta(minutes=max(dish.thoi_gian_che_bien_phut, 0))
     return CustomerOrderLineResponse(
         id=line.id, mon_an_id=dish.id, ten_mon=dish.ten_mon, so_luong=line.so_luong,
-        don_gia=line.don_gia, thanh_tien=line.don_gia * line.so_luong,
+        don_gia=line.don_gia,
+        thanh_tien=(line.don_gia * line.so_luong) if line.tinh_tien else 0,
         ghi_chu=line.ghi_chu, trang_thai=line.trang_thai,
         du_kien_hoan_thanh_at=eta,
+        tinh_tien=bool(line.tinh_tien),
+        ly_do_huy=line.ly_do_huy,
+        huy_at=line.huy_at,
     )
 
 
@@ -327,10 +331,16 @@ def get_customer_orders(phien_ban_id: int, qr_token: str = Query(...), db: Sessi
             .order_by(DongGoiMon.id)
         ).all()
         lines = [_line_response(line, dish, batch.gui_at) for line, dish in rows]
-        total = sum((line.don_gia * line.so_luong for line, _ in rows), start=0)
-        active = [line for line, _ in rows if line.trang_thai not in {"DA_XONG", "DA_PHUC_VU", "DA_HUY"}]
-        done = [line for line, _ in rows if line.trang_thai in {"DA_XONG", "DA_PHUC_VU"}]
-        status = "DA_XONG" if rows and len(done) == len(rows) else ("DANG_CHE_BIEN" if any(l.trang_thai == "DANG_CHE_BIEN" for l, _ in rows) else "CHO_BEP")
+        total = sum((line.don_gia * line.so_luong for line, _ in rows if line.tinh_tien), start=0)
+        statuses = [line.trang_thai for line, _ in rows]
+        if rows and all(status == "DA_HUY" for status in statuses):
+            status = "DA_HUY"
+        elif rows and all(status in {"DA_XONG", "DA_PHUC_VU", "DA_HUY"} for status in statuses):
+            status = "DA_XONG"
+        elif any(status == "DANG_CHE_BIEN" for status in statuses):
+            status = "DANG_CHE_BIEN"
+        else:
+            status = "CHO_BEP"
         eta = max((item.du_kien_hoan_thanh_at for item in lines if item.du_kien_hoan_thanh_at), default=None)
         result.append(CustomerOrderResponse(
             dot_id=batch.id, phien_ban_id=session.id, ban_id=table.id, ma_ban=table.ma_ban,

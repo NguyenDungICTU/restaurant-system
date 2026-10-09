@@ -16,6 +16,10 @@ class CustomerOrderCreate(BaseModel):
     items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)
 
 
+class StaffOrderCreate(BaseModel):
+    items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)
+
+
 class CustomerTableResponse(BaseModel):
     qr_token: str
     ban_id: int
@@ -41,6 +45,9 @@ class CustomerOrderLineResponse(BaseModel):
     ghi_chu: str | None
     trang_thai: str
     du_kien_hoan_thanh_at: datetime | None
+    tinh_tien: bool = True
+    ly_do_huy: str | None = None
+    huy_at: datetime | None = None
 
 
 class CustomerOrderResponse(BaseModel):
@@ -71,11 +78,17 @@ class StaffOrderLineResponse(BaseModel):
     hoan_thanh_at: datetime | None = None
     phuc_vu_at: datetime | None = None
     du_kien_hoan_thanh_at: datetime | None
+    tinh_tien: bool = True
+    ly_do_huy: str | None = None
+    huy_at: datetime | None = None
 
 
 class StaffOrderStatusUpdate(BaseModel):
     trang_thai: str
 
+
+class CancelOrderLineRequest(BaseModel):
+    ly_do_huy: str = Field(min_length=1, max_length=100)
 class StaffAdditionalOrderCreate(BaseModel):
     phien_ban_id: int = Field(gt=0)
     items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)
