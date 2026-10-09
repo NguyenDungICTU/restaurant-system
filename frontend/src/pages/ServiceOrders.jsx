@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Empty, Tag } from 'antd'
+import { Button, Empty, Tag, Modal, Select, Tooltip, message } from 'antd'
 import { ReloadOutlined, ShoppingCartOutlined } from '@ant-design/icons'
-import { closeServiceSession, getServiceOrders } from '../services/api'
+import { cancelOrderLine, closeServiceSession, getServiceOrders } from '../services/api'
 import './OrderOperations.css'
 
-export default function ServiceOrders() {
+export default function ServiceOrders({ user }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(false)
   const [closing, setClosing] = useState(null)
+  const [cancelTarget, setCancelTarget] = useState(null)
+  const [cancelReason, setCancelReason] = useState('KHACH_DOI_Y')
+  const [cancelling, setCancelling] = useState(false)
+  const role = user?.vai_tro || user?.role || ''
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -28,6 +32,19 @@ export default function ServiceOrders() {
     })
     return [...map.entries()]
   }, [orders])
+
+  async function submitCancel() {
+    if (!cancelTarget || !cancelReason) return
+    setCancelling(true)
+    try {
+      await cancelOrderLine(cancelTarget.id, cancelReason)
+      message.success('Đã huỷ dòng món và ghi nhật ký.')
+      setCancelTarget(null)
+      await load()
+    } catch (error) {
+      message.error(error.response?.data?.detail || 'Không thể huỷ dòng món.')
+    } finally { setCancelling(false) }
+  }
 
   async function closeSession(sessionId) {
     setClosing(sessionId)
@@ -50,8 +67,17 @@ export default function ServiceOrders() {
                   <div className="order-line" key={line.id}>
                     <div><strong>{line.ten_mon} × {line.so_luong}</strong>{line.ghi_chu && <small>Ghi chú: {line.ghi_chu}</small>}</div>
                     <div className="order-line-actions">
-                      <Tag color={line.trang_thai === 'DA_XONG' ? 'green' : 'blue'}>{line.trang_thai === 'DA_XONG' ? 'Đã xong' : line.trang_thai === 'DANG_CHE_BIEN' ? 'Bếp đang làm' : 'Đã nhận'}</Tag>
+                      <Tag color={line.trang_thai === 'DA_XONG' ? 'green' : line.trang_thai === 'DA_HUY' ? 'red' : 'blue'}>{line.trang_thai === 'DA_XONG' ? 'Đã xong' : line.trang_thai === 'DANG_CHE_BIEN' ? 'Bếp đang làm' : line.trang_thai === 'DA_HUY' ? (line.tinh_tien ? 'Đã huỷ · tính tiền' : 'Đã huỷ · không tính tiền') : 'Đã nhận'}</Tag>
                       <small>{line.trang_thai === 'DA_XONG' ? 'Mang ra bàn' : `Dự kiến ${new Date(line.du_kien_hoan_thanh_at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`}</small>
+                      {line.trang_thai !== 'DA_HUY' && !['DA_XONG', 'DA_PHUC_VU'].includes(line.trang_thai) && (
+                        line.trang_thai === 'CHO_BEP' || role === 'QUAN_LY' ? (
+                          <Button danger size="small" onClick={() => { setCancelTarget(line); setCancelReason('KHACH_DOI_Y') }}>Huỷ món</Button>
+                        ) : (
+                          <Tooltip title="Bếp đã bắt đầu chế biến. Chỉ quản lý mới được huỷ; món vẫn tính tiền.">
+                            <span><Button danger size="small" disabled>Huỷ món</Button></span>
+                          </Tooltip>
+                        )
+                      )}
                     </div>
                   </div>
                 ))}
@@ -60,6 +86,28 @@ export default function ServiceOrders() {
           ))}
         </div>
       )}
+      <Modal
+        title={`Huỷ món${cancelTarget ? `: ${cancelTarget.ten_mon}` : ''}`}
+        open={Boolean(cancelTarget)}
+        onCancel={() => setCancelTarget(null)}
+        onOk={submitCancel}
+        confirmLoading={cancelling}
+        okText="Xác nhận huỷ"
+        cancelText="Đóng"
+      >
+        <p>Chọn lý do huỷ. Thao tác được lưu nhật ký cùng người thực hiện và thời điểm.</p>
+        <Select
+          value={cancelReason}
+          onChange={setCancelReason}
+          style={{ width: '100%' }}
+          options={[
+            { value: 'KHACH_DOI_Y', label: 'Khách đổi ý' },
+            { value: 'GOI_NHAM', label: 'Gọi nhầm' },
+            { value: 'HET_NGUYEN_LIEU', label: 'Hết nguyên liệu' },
+          ]}
+        />
+        {cancelTarget?.trang_thai !== 'CHO_BEP' && <p style={{ marginTop: 12, color: '#b42318' }}>Món đã bắt đầu chế biến. Chỉ quản lý được huỷ và món vẫn tính tiền.</p>}
+      </Modal>
     </section>
   )
 }

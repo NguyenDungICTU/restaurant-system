@@ -812,3 +812,12 @@ export async function getLoginSessions() {
   const response = await api.get('/api/audit-logs/sessions')
   return response.data
 }
+
+
+// Cancel a single order line with a mandatory reason.
+export async function cancelOrderLine(lineId, reason) {
+  const response = await api.post(`/api/order-ops/lines/${lineId}/cancel`, {
+    ly_do: reason,
+  })
+  return response.data
+}

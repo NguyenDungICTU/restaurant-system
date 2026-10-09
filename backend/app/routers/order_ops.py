@@ -14,6 +14,7 @@ from app.models.mon_an import MonAn
 from app.models.phien_ban import PhienBan
 from app.models.ban import Ban
 from app.models.nhan_vien import NhanVien
+from app.models.nhat_ky_thao_tac import NhatKyThaoTac
 from app.schemas.customer_order import (
     StaffAdditionalOrderCreate,
     StaffOrderLineResponse,
@@ -45,7 +46,7 @@ def _validate_forward_transition(current: str, target: str) -> None:
         )
 
 
-def _rows(db: Session):
+def _rows(db: Session, include_cancelled: bool = False):
     return db.execute(
         select(DongGoiMon, DotGoiMon, PhienBan, Ban, MonAn)
         .join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
@@ -54,7 +55,7 @@ def _rows(db: Session):
         .join(MonAn, MonAn.id == DongGoiMon.mon_an_id)
         .where(
             PhienBan.trang_thai.in_({"DANG_PHUC_VU", "CHO_THANH_TOAN"}),
-            DongGoiMon.trang_thai != "DA_HUY",
+            *([] if include_cancelled else [DongGoiMon.trang_thai != "DA_HUY"]),
         )
         .order_by(DongGoiMon.thoi_diem_tiep_nhan, DongGoiMon.id)
     ).all()
@@ -66,6 +67,7 @@ def _view(line, batch, session, table, dish):
         id=line.id, dot_id=batch.id, phien_ban_id=session.id, ban_id=table.id,
         ma_ban=table.ma_ban, ten_mon=dish.ten_mon, so_luong=line.so_luong,
         don_gia=line.don_gia, ghi_chu=line.ghi_chu, trang_thai=line.trang_thai,
+        tinh_tien=line.tinh_tien, ly_do_huy=line.ly_do_huy, huy_at=line.huy_at,
         thoi_diem_tiep_nhan=line.thoi_diem_tiep_nhan,
         bat_dau_che_bien_at=line.bat_dau_che_bien_at,
         hoan_thanh_at=line.hoan_thanh_at,
@@ -87,7 +89,7 @@ def service_orders(
     db: Session = Depends(get_db),
     _: NhanVien = Depends(require_roles("PHUC_VU", "QUAN_LY")),
 ):
-    return [_view(*row) for row in _rows(db)]
+    return [_view(*row) for row in _rows(db, include_cancelled=True)]
 
 
 @router.patch("/lines/{line_id}/status", response_model=StaffOrderLineResponse)
@@ -99,6 +101,11 @@ def update_order_line_status(
 ):
     if payload.trang_thai not in VALID_STATUSES:
         raise HTTPException(status_code=422, detail="Trạng thái món không hợp lệ.")
+    if payload.trang_thai == "DA_HUY":
+        raise HTTPException(
+            status_code=422,
+            detail="Dùng chức năng huỷ dòng món và cung cấp lý do huỷ.",
+        )
 
     row = db.execute(
         select(DongGoiMon, DotGoiMon, PhienBan, Ban, MonAn)
@@ -135,6 +142,76 @@ def update_order_line_status(
         line.huy_at = line.huy_at or now
 
     line.trang_thai = payload.trang_thai
+    db.commit()
+    db.refresh(line)
+    return _view(line, batch, session, table, dish)
+
+
+@router.post("/lines/{line_id}/cancel", response_model=StaffOrderLineResponse)
+def cancel_order_line(
+    line_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: NhanVien = Depends(require_roles("PHUC_VU", "QUAN_LY")),
+):
+    """Cancel a line with role/state enforcement and an auditable reason."""
+    reason = payload.get("ly_do")
+    allowed_reasons = {"KHACH_DOI_Y", "GOI_NHAM", "HET_NGUYEN_LIEU"}
+    if reason not in allowed_reasons:
+        raise HTTPException(
+            status_code=422,
+            detail="Bắt buộc chọn lý do: khách đổi ý, gọi nhầm hoặc hết nguyên liệu.",
+        )
+
+    row = db.execute(
+        select(DongGoiMon, DotGoiMon, PhienBan, Ban, MonAn)
+        .join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
+        .join(PhienBan, PhienBan.id == DotGoiMon.phien_ban_id)
+        .join(Ban, Ban.id == PhienBan.ban_id)
+        .join(MonAn, MonAn.id == DongGoiMon.mon_an_id)
+        .where(DongGoiMon.id == line_id)
+        .with_for_update()
+    ).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy dòng món.")
+    line, batch, session, table, dish = row
+    if session.trang_thai not in {"DANG_PHUC_VU", "CHO_THANH_TOAN"}:
+        raise HTTPException(status_code=409, detail="Phiên phục vụ không còn hoạt động.")
+    if line.trang_thai == "DA_HUY":
+        raise HTTPException(status_code=409, detail="Dòng món đã bị huỷ.")
+    if line.trang_thai in {"DA_XONG", "DA_PHUC_VU"}:
+        raise HTTPException(status_code=409, detail="Không thể huỷ món đã hoàn thành/phục vụ.")
+
+    manager = current_user.vai_tro == "QUAN_LY"
+    if line.trang_thai != "CHO_BEP" and not manager:
+        raise HTTPException(
+            status_code=403,
+            detail="Bếp đã bắt đầu chế biến. Chỉ quản lý mới được huỷ và món vẫn tính tiền.",
+        )
+
+    now = datetime.now(VIETNAM_TZ)
+    old_status = line.trang_thai
+    line.trang_thai = "DA_HUY"
+    line.huy_at = now
+    line.ly_do_huy = reason
+    # Before cooking: do not charge. After cooking started: manager-only,
+    # retained as a billable cancelled line.
+    line.tinh_tien = old_status != "CHO_BEP"
+    db.add(NhatKyThaoTac(
+        nhan_vien_id=current_user.id,
+        hanh_dong="HUY_DONG_GOI_MON",
+        doi_tuong="DONG_GOI_MON",
+        doi_tuong_id=line.id,
+        du_lieu_cu={"trang_thai": old_status, "tinh_tien": True},
+        du_lieu_moi={
+            "trang_thai": "DA_HUY",
+            "ly_do_huy": reason,
+            "tinh_tien": line.tinh_tien,
+            "ten_mon": dish.ten_mon,
+            "so_luong": line.so_luong,
+            "ma_ban": table.ma_ban,
+        },
+    ))
     db.commit()
     db.refresh(line)
     return _view(line, batch, session, table, dish)

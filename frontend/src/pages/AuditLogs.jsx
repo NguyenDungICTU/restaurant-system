@@ -7,6 +7,7 @@ const actionNames = {
   DANG_NHAP: 'Đăng nhập',
   DANG_XUAT: 'Đăng xuất',
   CAP_NHAT_GIA_MON: 'Đổi giá món',
+  HUY_DONG_GOI_MON: 'Huỷ dòng món',
 }
 
 const date = (value) => value ? new Date(value).toLocaleString('vi-VN') : '—'
@@ -49,7 +50,7 @@ export default function AuditLogs() {
           ? `${row.object_type} #${row.object_id}`
           : row.object_type),
     },
-    { title: 'Thay đổi giá', render: (_, row) => row.action === 'CAP_NHAT_GIA_MON' ? `${row.old_data?.gia || '—'} → ${row.new_data?.gia || '—'}` : '—' },
+    { title: 'Chi tiết', render: (_, row) => row.action === 'CAP_NHAT_GIA_MON' ? `${row.old_data?.gia || '—'} → ${row.new_data?.gia || '—'}` : row.action === 'HUY_DONG_GOI_MON' ? `Lý do: ${{KHACH_DOI_Y: 'Khách đổi ý', GOI_NHAM: 'Gọi nhầm', HET_NGUYEN_LIEU: 'Hết nguyên liệu'}[row.new_data?.ly_do_huy] || row.new_data?.ly_do_huy || '—'} · ${row.new_data?.tinh_tien ? 'Có tính tiền' : 'Không tính tiền'}` : '—' },
     { title: 'IP', dataIndex: 'ip_address', render: (value) => value || '—' },
   ]
   const sessionColumns = [
@@ -66,7 +67,7 @@ export default function AuditLogs() {
         <div>
           <p className="eyebrow">SECURITY & AUDIT</p>
           <h1>Nhật ký hệ thống</h1>
-          <p className="subheading">Tra cứu ai đăng nhập và ai đã thay đổi giá niêm yết.</p>
+          <p className="subheading">Tra cứu đăng nhập, thay đổi giá và huỷ dòng món.</p>
         </div>
         <Button icon={<ReloadOutlined />} loading={loading} onClick={load}>Làm mới</Button>
       </div>
@@ -85,6 +86,7 @@ export default function AuditLogs() {
                   options={[
                     { value: 'all', label: 'Tất cả thao tác' },
                     { value: 'CAP_NHAT_GIA_MON', label: 'Chỉ thay đổi giá' },
+                    { value: 'HUY_DONG_GOI_MON', label: 'Huỷ dòng món' },
                     { value: 'DANG_NHAP', label: 'Đăng nhập' },
                     { value: 'DANG_XUAT', label: 'Đăng xuất' }
                   ]}
