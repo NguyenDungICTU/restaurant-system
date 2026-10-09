@@ -157,6 +157,32 @@ export default function Kitchen() {
       ))
   }, [orders])
 
+  const batchNumberByKey = useMemo(() => {
+    const batches = new Map()
+    orders.filter(item => item.trang_thai !== 'DA_HUY').forEach(item => {
+      const key = `${item.phien_ban_id}-${item.dot_id}`
+      if (!batches.has(key)) {
+        batches.set(key, {
+          key,
+          sessionId: Number(item.phien_ban_id),
+          receivedAt: receivedAtOf(item),
+          lineId: Number(item.id),
+        })
+      }
+    })
+    const bySession = new Map()
+    ;[...batches.values()].forEach(batch => {
+      if (!bySession.has(batch.sessionId)) bySession.set(batch.sessionId, [])
+      bySession.get(batch.sessionId).push(batch)
+    })
+    const labels = new Map()
+    bySession.forEach(sessionBatches => {
+      sessionBatches.sort((a, b) => a.receivedAt - b.receivedAt || a.lineId - b.lineId)
+      sessionBatches.forEach((batch, index) => labels.set(batch.key, index + 1))
+    })
+    return labels
+  }, [orders])
+
   const completedGrouped = useMemo(() => {
     const map = new Map()
     orders.filter((item) => item.trang_thai === 'DA_XONG').forEach((item) => {
@@ -289,7 +315,7 @@ export default function Kitchen() {
                       {overdue && <span className="kitchen-overdue-label">QUÁ HẠN</span>}
                     </div>
                     <div className="kitchen-batch">
-                      Đợt gọi #{first.dot_id} · nhận lúc {formatTime(first.thoi_diem_tiep_nhan)}
+                      Đợt gọi #{batchNumberByKey.get(`${first.phien_ban_id}-${first.dot_id}`) || 1} · nhận lúc {formatTime(first.thoi_diem_tiep_nhan)}
                     </div>
                   </div>
 
@@ -381,7 +407,7 @@ export default function Kitchen() {
                 <article className="kitchen-ready-ticket" key={`${first.phien_ban_id}-${first.dot_id}`}>
                   <div>
                     <strong>Bàn {first.ma_ban}</strong>
-                    <span>Đợt gọi #{first.dot_id} · hoàn thành {formatTime(first.hoan_thanh_at)}</span>
+                    <span>Đợt gọi #{batchNumberByKey.get(`${first.phien_ban_id}-${first.dot_id}`) || 1} · hoàn thành {formatTime(first.hoan_thanh_at)}</span>
                   </div>
                   <div className="kitchen-ready-items">
                     {lines.map((line) => (

@@ -1,20 +1,27 @@
+cat > scripts/show-lan-url.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "===== Active LAN IPv4 ====="
+echo "===== Active IPv4 ====="
+
 powershell.exe -NoProfile -Command '
-Get-NetIPConfiguration |
+Get-NetIPAddress -AddressFamily IPv4 |
   Where-Object {
-    $_.NetAdapter.Status -eq "Up" -and
-    $_.IPv4Address -and
-    $_.IPv4DefaultGateway
+    $_.AddressState -eq "Preferred" -and
+    $_.IPAddress -notlike "127.*" -and
+    $_.IPAddress -notlike "169.254.*"
   } |
   ForEach-Object {
-    $ip = $_.IPv4Address.IPAddress
-    $gw = $_.IPv4DefaultGateway.NextHop
-    Write-Output ("{0}  ->  http://{1}:5173" -f $ip,$ip)
+    $adapter = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex -ErrorAction SilentlyContinue
+    if ($adapter -and $adapter.Status -eq "Up") {
+      Write-Output ("{0} | {1} | http://{1}:5173" -f $adapter.Name, $_.IPAddress)
+    }
   }
 '
+
 echo
-echo "Mở đúng URL http://<IPv4>:5173 trên điện thoại."
-echo "Điện thoại và laptop phải ở cùng mạng LAN/Wi-Fi và mạng không chặn client-to-client traffic."
+echo "Ưu tiên IPv4 của Wi-Fi đang kết nối."
+echo "Điện thoại phải truy cập được laptop qua mạng đó."
+EOF
+
+bash scripts/show-lan-url.sh

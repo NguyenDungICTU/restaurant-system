@@ -50,6 +50,8 @@ import {
   getTables,
   getTableDetails,
   getOrderableDishes,
+  getServiceOrders,
+  createAdditionalOrder,
   receiveTableGuests,
   regenerateQR,
   SESSION_EXPIRED_EVENT,
@@ -266,6 +268,13 @@ function sortAreasByFloor(areas) {
       )
     )
   })
+}
+
+function selectedOrderTotal(cart) {
+  return Object.values(cart).reduce(
+    (sum, item) => sum + Number(item.so_luong || 0) * Number(item.don_gia || 0),
+    0,
+  )
 }
 
 export default function Ban({ user }) {
@@ -2391,6 +2400,7 @@ export default function Ban({ user }) {
                                         [dish.id]: {
                                           mon_an_id: dish.id,
                                           so_luong: quantity + 1,
+                                          don_gia: Number(dish.gia || 0),
                                           ghi_chu:
                                             current[dish.id]?.ghi_chu || '',
                                         },
@@ -2422,6 +2432,7 @@ export default function Ban({ user }) {
                                           ...current[dish.id],
                                           mon_an_id: dish.id,
                                           so_luong: quantity,
+                                          don_gia: Number(dish.gia || 0),
                                           ghi_chu: value,
                                         },
                                       }))
@@ -2431,6 +2442,30 @@ export default function Ban({ user }) {
                               </div>
                             )
                           })}
+                        </div>
+
+                        <div
+                          style={{
+                            marginTop: 18,
+                            padding: 14,
+                            borderRadius: 8,
+                            background: '#f5f7fa',
+                            display: 'grid',
+                            gap: 6,
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                            <span>Tạm tính phiên hiện tại (tất cả đợt)</span>
+                            <strong>{formatVnd(detailData?.tam_tinh_hien_tai ?? 0)}</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                            <span>Đợt gọi thêm này</span>
+                            <strong>{formatVnd(selectedOrderTotal(additionalOrderCart))}</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #d9d9d9', paddingTop: 8 }}>
+                            <span>Tạm tính sau khi gọi thêm</span>
+                            <strong>{formatVnd(Number(detailData?.tam_tinh_hien_tai || 0) + selectedOrderTotal(additionalOrderCart))}</strong>
+                          </div>
                         </div>
 
                         {additionalOrderError && (
@@ -2477,14 +2512,26 @@ export default function Ban({ user }) {
                                 setAdditionalOrderLoading(true)
                                 setAdditionalOrderError('')
 
+                                // The current table-details response does not expose phien_ban_id.
+                                // Resolve the active session from service-order lines for this table.
+                                const serviceLines = await getServiceOrders()
+                                const sessionLines = serviceLines
+                                  .filter(line => Number(line.ban_id) === Number(detailTable?.id))
+                                  .sort((a, b) => Number(b.phien_ban_id) - Number(a.phien_ban_id))
+                                const sessionId = sessionLines[0]?.phien_ban_id
+                                if (!sessionId) {
+                                  throw new Error('Không tìm thấy phiên đang mở của bàn. Hãy kiểm tra bàn đã có phiên phục vụ và món gọi trước đó chưa.')
+                                }
+
                                 await createAdditionalOrder(
-                                  detailData.phien_ban_id,
+                                  sessionId,
                                   {
-                                    phien_ban_id:
-                                      detailData.phien_ban_id,
-                                    items: Object.values(
-                                      additionalOrderCart
-                                    ),
+                                    phien_ban_id: sessionId,
+                                    items: Object.values(additionalOrderCart).map(item => ({
+                                      mon_an_id: item.mon_an_id,
+                                      so_luong: item.so_luong,
+                                      ghi_chu: item.ghi_chu || '',
+                                    })),
                                   }
                                 )
 
