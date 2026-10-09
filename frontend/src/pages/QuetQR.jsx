@@ -232,15 +232,54 @@ export default function QuetQR({ token }) {
                               </div>
                               {dish.mo_ta_ngan && <p>{dish.mo_ta_ngan}</p>}
                               <small>{dish.don_vi_tinh} · chế biến khoảng {dish.thoi_gian_che_bien_phut || 0} phút</small>
-                              {quantity > 0 && (
-                                <Input
-                                  size="small"
-                                  value={notes[dish.id] || ''}
-                                  onChange={(event) => setNotes((current) => ({ ...current, [dish.id]: event.target.value }))}
-                                  placeholder="Ghi chú cho bếp (tuỳ chọn)"
-                                  maxLength={200}
-                                />
-                              )}
+                         {quantity > 0 && (
+  <div className="customer-note">
+    <Input
+      size="small"
+      value={notes[dish.id] || ''}
+      onChange={(event) =>
+        setNotes((current) => ({
+          ...current,
+          [dish.id]: event.target.value,
+        }))
+      }
+      placeholder="Ghi chú cho bếp (tuỳ chọn)"
+      maxLength={200}
+    />
+
+    <div className="customer-note-quick">
+      {['Ít cay', 'Không hành', 'Không rau', 'Ít muối', 'Không đá'].map((quickNote) => (
+        <Button
+          key={quickNote}
+          size="small"
+          onClick={() =>
+            setNotes((current) => {
+              const currentNote = current[dish.id] || ''
+              const notesList = currentNote
+                .split(', ')
+                .filter(Boolean)
+
+              if (!notesList.includes(quickNote)) {
+                notesList.push(quickNote)
+              }
+
+              return {
+                ...current,
+                [dish.id]: notesList.join(', ').slice(0, 200),
+              }
+            })
+          }
+        >
+          {quickNote}
+        </Button>
+      ))}
+    </div>
+
+    <small>
+      {(notes[dish.id] || '').length}/200 ký tự
+    </small>
+  </div>
+)}
                             </div>
                             <div className="customer-quantity">
                               {soldOut ? <Tag color="orange">Tạm hết</Tag> : (
