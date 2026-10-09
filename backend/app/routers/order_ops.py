@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -360,144 +359,112 @@ def update_order_line_status(
     payload: StaffOrderStatusUpdate,
     db: Session = Depends(get_db),
     current_user: NhanVien = Depends(
-        require_roles("BEP", "QUAN_LY")
+        require_roles("BEP", "PHUC_VU", "QUAN_LY")
     ),
 ):
     target = payload.trang_thai
-
-    if target not in VALID_STATUSES:
+    if target not in VALID_STATUSES or target == "DA_HUY":
         raise HTTPException(
             status_code=422,
-            detail="Trạng thái món không hợp lệ.",
-        )
-
-    if target == "DA_HUY":
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "Dùng chức năng huỷ dòng món "
-                "và cung cấp lý do huỷ."
-            ),
+            detail="Trạng thái món không hợp lệ. Dùng chức năng huỷ món riêng.",
         )
 
     row = db.execute(
-        select(
-            DongGoiMon,
-            DotGoiMon,
-            PhienBan,
-            Ban,
-            MonAn,
-        )
-        .join(
-            DotGoiMon,
-            DotGoiMon.id == DongGoiMon.dot_goi_mon_id,
-        )
-        .join(
-            PhienBan,
-            PhienBan.id == DotGoiMon.phien_ban_id,
-        )
-        .join(
-            Ban,
-            Ban.id == PhienBan.ban_id,
-        )
-        .join(
-            MonAn,
-            MonAn.id == DongGoiMon.mon_an_id,
-        )
+        select(DongGoiMon, DotGoiMon, PhienBan, Ban, MonAn)
+        .join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
+        .join(PhienBan, PhienBan.id == DotGoiMon.phien_ban_id)
+        .join(Ban, Ban.id == PhienBan.ban_id)
+        .join(MonAn, MonAn.id == DongGoiMon.mon_an_id)
         .where(DongGoiMon.id == line_id)
         .with_for_update()
     ).first()
 
     if row is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Không tìm thấy món gọi.",
-        )
+        raise HTTPException(status_code=404, detail="Không tìm thấy món gọi.")
 
     line, batch, session, table, dish = row
 
-    if session.trang_thai not in {
-        "DANG_PHUC_VU",
-        "CHO_THANH_TOAN",
-    }:
+    if session.trang_thai not in {"DANG_PHUC_VU", "CHO_THANH_TOAN"}:
         raise HTTPException(
             status_code=409,
-            detail="Phiên phục vụ đã kết thúc.",
+            detail="Phiên phục vụ đã kết thúc, không thể cập nhật món.",
         )
 
     if line.trang_thai == "DA_HUY":
         raise HTTPException(
             status_code=409,
-            detail="Món đã được huỷ.",
+            detail="Món đã được huỷ và không thể cập nhật trạng thái.",
         )
 
-    if target == line.trang_thai:
-        raise HTTPException(
-            status_code=409,
-            detail="Món đã ở trạng thái này.",
-        )
+    # The row lock serializes concurrent confirmations from multiple servers.
+    if target == "DA_PHUC_VU" and line.trang_thai == "DA_PHUC_VU":
+        raise HTTPException(status_code=409, detail="Món đã được bạn khác mang ra.")
 
-    allowed_targets = STATUS_TRANSITIONS.get(
-        line.trang_thai,
-        set(),
-    )
-
-    if target not in allowed_targets:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                f"Không thể chuyển món từ {line.trang_thai} "
-                f"sang {target}."
-            ),
-        )
-
-    _validate_forward_transition(
-        line.trang_thai,
-        target,
-    )
-
-    if (
-        current_user.vai_tro == "BEP"
-        and target not in {"DANG_CHE_BIEN", "DA_XONG"}
-    ):
+    role = current_user.vai_tro
+    if target in {"DANG_CHE_BIEN", "DA_XONG"} and role not in {"BEP", "QUAN_LY"}:
         raise HTTPException(
             status_code=403,
-            detail=(
-                "Bếp chỉ được chuyển món sang "
-                "Đang chế biến hoặc Đã xong."
-            ),
+            detail="Chỉ Bếp hoặc Quản lý được cập nhật trạng thái chế biến.",
+        )
+    if target == "DA_PHUC_VU" and role not in {"PHUC_VU", "QUAN_LY"}:
+        raise HTTPException(
+            status_code=403,
+            detail="Chỉ Phục vụ hoặc Quản lý được xác nhận đã mang món ra.",
         )
 
+    allowed_targets = STATUS_TRANSITIONS.get(line.trang_thai, set())
+    if target not in allowed_targets:
+        detail = (
+            "Món đã được bạn khác mang ra hoặc không còn chờ phục vụ."
+            if target == "DA_PHUC_VU"
+            else f"Không thể chuyển món từ {line.trang_thai} sang {target}. Vui lòng tải lại trạng thái món."
+        )
+        raise HTTPException(status_code=409, detail=detail)
+
+    _validate_forward_transition(line.trang_thai, target)
     now = datetime.now(VIETNAM_TZ)
+    old_status = line.trang_thai
 
     if target == "DANG_CHE_BIEN":
-        line.bat_dau_che_bien_at = (
-            line.bat_dau_che_bien_at or now
-        )
-
-    if target == "DA_XONG":
-        line.bat_dau_che_bien_at = (
-            line.bat_dau_che_bien_at or now
-        )
-        line.hoan_thanh_at = (
-            line.hoan_thanh_at or now
-        )
-
-    if target == "DA_PHUC_VU":
+        line.bat_dau_che_bien_at = line.bat_dau_che_bien_at or now
+    elif target == "DA_XONG":
+        line.bat_dau_che_bien_at = line.bat_dau_che_bien_at or now
+        line.hoan_thanh_at = line.hoan_thanh_at or now
+    elif target == "DA_PHUC_VU":
         line.phuc_vu_at = line.phuc_vu_at or now
 
     line.trang_thai = target
 
+    if target == "DA_PHUC_VU":
+        db.add(
+            NhatKyThaoTac(
+                nhan_vien_id=current_user.id,
+                hanh_dong="XAC_NHAN_PHUC_VU_MON",
+                doi_tuong="DONG_GOI_MON",
+                doi_tuong_id=line.id,
+                du_lieu_cu={
+                    "trang_thai": old_status,
+                    "ban_id": table.id,
+                    "ma_ban": table.ma_ban,
+                    "ten_mon": dish.ten_mon,
+                    "so_luong": line.so_luong,
+                    "hoan_thanh_at": (
+                        line.hoan_thanh_at.isoformat()
+                        if line.hoan_thanh_at else None
+                    ),
+                },
+                du_lieu_moi={
+                    "trang_thai": "DA_PHUC_VU",
+                    "phuc_vu_at": now.isoformat(),
+                    "nhan_vien_phuc_vu_id": current_user.id,
+                    "nhan_vien_phuc_vu": current_user.ho_ten,
+                },
+            )
+        )
+
     db.commit()
     db.refresh(line)
-
-    return _view(
-        line,
-        batch,
-        session,
-        table,
-        dish,
-    )
+    return _view(line, batch, session, table, dish)
 
 
 @router.patch(
