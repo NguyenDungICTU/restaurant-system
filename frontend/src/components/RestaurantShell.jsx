@@ -7,6 +7,7 @@ import {
   TeamOutlined, UnorderedListOutlined, UserOutlined,
 } from '@ant-design/icons'
 import { Button, Tooltip } from 'antd'
+import './RestaurantShell.css'
 import {
   checkWorkspaceAccess,
   getHealth,
@@ -168,7 +169,7 @@ export default function RestaurantShell({ user, onLogout }) {
   const label = navigation.find((item) => item.key === page)?.label || 'Không có quyền truy cập'
 
   return (
-    <div className="app-shell" style={{ display: 'flex', width: '100vw', minHeight: '100vh', overflowX: 'hidden' }}>
+    <div className={`app-shell ${collapsed ? 'app-shell--sidebar-collapsed' : ''}`}>
       <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
         <div className="brand"><div className="brand-mark">R</div>{!collapsed && <div><strong>Resto</strong><span>Management</span></div>}</div>
         <div className="nav-section">
@@ -185,7 +186,7 @@ export default function RestaurantShell({ user, onLogout }) {
         <div className="user-card"><div className="avatar"><UserOutlined /></div>{!collapsed && <div className="user-copy"><strong>{user?.full_name || 'Nhân viên'}</strong><span>{ROLE_LABELS[role] || role}</span></div>}</div>
       </aside>
 
-      <main className="main-content" style={{ flex: 1, minWidth: 0, maxWidth: '100%', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <main className="main-content">
         <header className="topbar">
           <Button type="text" className="collapse-button" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed((v) => !v)} />
           <div className="breadcrumb"><span>Nhà hàng</span><b>/</b><strong>{label}</strong></div>

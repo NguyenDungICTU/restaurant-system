@@ -1,0 +1,69 @@
+/* Shared authenticated layout: keep navigation fixed and scroll page content independently. */
+.app-shell {
+  --sidebar-width: 248px;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+
+.app-shell.app-shell--sidebar-collapsed {
+  --sidebar-width: 78px;
+}
+
+.app-shell .sidebar,
+.app-shell .sidebar.collapsed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  width: var(--sidebar-width);
+  height: 100vh;
+  height: 100dvh;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.app-shell .brand {
+  flex: 0 0 auto;
+}
+
+.app-shell .nav-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #51443e #211b18;
+}
+
+.app-shell .sidebar-bottom,
+.app-shell .user-card {
+  flex: 0 0 auto;
+}
+
+.app-shell .main-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  margin-left: var(--sidebar-width);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  transition: margin-left 0.2s ease;
+}
+
+@media (max-width: 1050px) {
+  .app-shell:not(.app-shell--sidebar-collapsed) {
+    --sidebar-width: 220px;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell,
+  .app-shell.app-shell--sidebar-collapsed {
+    --sidebar-width: 70px;
+  }
+}
