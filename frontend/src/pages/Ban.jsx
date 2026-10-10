@@ -1561,7 +1561,7 @@ export default function Ban({ user }) {
             onChange={setAreaFilterId}
             className="management-filter"
             options={[
-              { value: 'all', label: 'Tất cả tầng' },
+              { value: 'all', label: 'Tất cả khu vực' },
               ...areas.map(area => ({
                 value: area.id,
                 label: area.ten_khu_vuc,
