@@ -3765,3 +3765,18 @@
   color: #000000 !important;
   border-color: #d1d5db !important;
 }
+/* HỌ TÊN - BỎ IN ĐẬM */
+.employee-table tbody tr td:nth-child(2),
+.employee-table tbody tr td:nth-child(2) *,
+.employee-panel .employee-table tbody tr td:nth-child(2),
+.employee-panel .employee-table tbody tr td:nth-child(2) * {
+  font-weight: 400 !important;
+}
+
+/* VAI TRÒ - BỎ IN ĐẬM */
+.employee-table tbody tr td:nth-child(5),
+.employee-table tbody tr td:nth-child(5) *,
+.employee-panel .employee-table tbody tr td:nth-child(5),
+.employee-panel .employee-table tbody tr td:nth-child(5) * {
+  font-weight: 400 !important;
+}
