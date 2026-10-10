@@ -1,4 +1,7 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+
+
 :root { --wine:#9f2f27; --wine-dark:#7d211b; --cream:#fbfaf8; --surface:#fff; --border:#ebe7e1; --text:#27231f; --muted:#7d766e; --success:#2d8a56; --warning:#c8841b; --danger:#c8473d; --shadow:0 8px 30px rgba(54,38,27,.06); }
 .app-shell{display:flex;min-height:100vh;background:#f7f5f2}.sidebar{width:248px;background:#201b18;color:#f8f4ef;display:flex;flex-direction:column;padding:20px 14px;transition:width .2s ease;flex-shrink:0}.sidebar.collapsed{width:78px}.brand{display:flex;align-items:center;gap:11px;padding:3px 9px 28px}.brand-mark{width:40px;height:40px;border-radius:12px;background:var(--wine);display:grid;place-items:center;font-size:21px;font-weight:700}.brand strong{display:block;font-size:17px}.brand span{display:block;font-size:10px;color:#a9a19a;letter-spacing:1.3px;text-transform:uppercase;margin-top:2px}.nav-title{font-size:10px;letter-spacing:1.3px;color:#81776f;padding:0 12px;margin:12px 0 8px}.nav-item{width:100%;border:0;background:transparent;color:#bdb5ae;display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;cursor:pointer;margin:3px 0;text-align:left;font-size:13px;transition:.18s}.nav-item:hover{background:#2b2521;color:#fff}.nav-item.active{background:#3a2925;color:#fff;box-shadow:inset 3px 0 var(--wine)}.nav-item svg{font-size:17px}.sidebar-bottom{margin-top:auto}.user-card{border-top:1px solid #39322e;margin-top:20px;padding:16px 8px 2px;display:flex;align-items:center;gap:10px}.avatar,.top-avatar{display:grid;place-items:center;border-radius:50%;background:#eadbd4;color:var(--wine);font-weight:700}.avatar{width:34px;height:34px}.user-copy strong,.user-copy span{display:block}.user-copy strong{font-size:12px}.user-copy span{font-size:10px;color:#9d958e;margin-top:3px}.main-content{flex:1;min-width:0}.topbar{height:70px;background:rgba(255,255,255,.92);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 30px;gap:18px;position:sticky;top:0;z-index:5}.collapse-button{color:#675f57!important}.breadcrumb{display:flex;gap:10px;align-items:center;font-size:13px}.breadcrumb span{color:#958c83}.breadcrumb b{color:#c6beb7;font-weight:400}.topbar-actions{margin-left:auto;display:flex;align-items:center;gap:10px}.connection-status{font-size:11px;color:#756d65;display:flex;align-items:center;gap:7px;margin-right:6px}.top-avatar{width:31px;height:31px;font-size:12px}.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;background:#b5ada5}.status-dot.success{background:var(--success)}.status-dot.warning{background:var(--warning)}.status-dot.danger{background:var(--danger)}.page-content{max-width:1400px;margin:0 auto;padding:36px 34px 48px}.page-heading{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:26px}.eyebrow{font-size:10px;letter-spacing:1.5px;font-weight:700;color:var(--wine);margin:0 0 7px}.page-heading h1,.module-placeholder h1{margin:0;font-size:28px;letter-spacing:-.6px}.subheading{margin:8px 0 0;color:var(--muted);font-size:13px}.live-pill{display:flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid var(--border);background:#fff;border-radius:999px;color:#837b73;font-size:11px}.live-pill.live{color:var(--success)}.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.stat-card,.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}.stat-card{padding:20px}.stat-label{font-size:12px;color:#766e66}.stat-value{font-size:29px;font-weight:700;letter-spacing:-1px;margin:11px 0 7px}.stat-note{font-size:10px;color:#9a928a}.content-grid{display:grid;grid-template-columns:1.25fr .9fr;gap:14px;margin-top:14px}.panel{padding:22px}.panel-heading{display:flex;justify-content:space-between;align-items:flex-start}.panel-heading h2{margin:0;font-size:15px}.panel-heading p{font-size:11px;color:#938a82;margin:6px 0 0}.panel-icon{font-size:19px;color:var(--wine);background:#fbefed;border-radius:9px;padding:8px}.system-list{margin-top:20px;border-top:1px solid var(--border)}.system-list>div{display:flex;justify-content:space-between;align-items:center;padding:15px 2px;border-bottom:1px solid var(--border);font-size:12px}.system-list span{display:flex;align-items:center;gap:8px}.text-success{color:var(--success)}.text-muted{color:#a39a92}.empty-state{min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;color:#9b938b}.empty-state svg{font-size:25px;color:#c3bab1}.empty-state strong{font-size:12px;color:#665e57}.empty-state span{max-width:260px;font-size:10px;line-height:1.6}.event-list{margin-top:17px}.event-item{padding:12px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;font-size:11px}.event-item small{color:#a39a92;white-space:nowrap}.implementation-note{margin-top:14px;padding:15px 17px;background:#fff9ef;border:1px solid #f0dfbd;border-radius:12px;display:flex;gap:12px}.note-icon{width:21px;height:21px;border-radius:50%;background:#ead2a4;color:#77521a;display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0}.implementation-note strong{font-size:11px}.implementation-note p{font-size:10px;line-height:1.65;color:#84796e;margin:4px 0 0}.implementation-note code{background:#f1e5cf;border-radius:4px;padding:2px 4px;color:#684b25}.module-placeholder{min-height:65vh;display:grid;place-items:center;align-content:center;text-align:center}.placeholder-icon{width:54px;height:54px;border-radius:16px;background:#f5e9e6;color:var(--wine);display:grid;place-items:center;font-size:23px;margin-bottom:15px}.module-placeholder h1{font-size:30px}.module-placeholder>p:not(.eyebrow){max-width:500px;color:var(--muted);font-size:13px;line-height:1.7}.module-placeholder>span{font-size:11px;color:#9b938b;margin-top:10px}
 @media (max-width:1050px){.stats-grid{grid-template-columns:repeat(2,1fr)}.content-grid{grid-template-columns:1fr}.sidebar{width:220px}.page-content{padding:28px 22px}}
@@ -21,9 +24,7 @@
 @media (max-width:1050px){.hero-section{grid-template-columns:1fr;gap:45px;padding-top:40px}.hero-copy{max-width:760px}.hero-visual{max-width:760px;width:100%;margin:0 auto}.story-section{grid-template-columns:1fr;gap:35px}.story-image{max-width:760px}.feature-grid{grid-template-columns:repeat(2,1fr)}.flow-section{grid-template-columns:1fr;gap:25px}.flow-list{justify-content:flex-start}.login-page{grid-template-columns:1fr}.login-brand-panel{display:none}.login-form-side{padding:30px 24px}.login-form-wrap{margin:12vh auto 0}}
 @media (max-width:720px){.public-nav{padding:0 18px}.hero-section{padding:42px 18px 70px}.hero-copy h1{font-size:40px;letter-spacing:-1.4px}.hero-text{font-size:14px}.hero-visual{min-height:370px}.hero-image-wrap{height:370px}.booking-float{left:10px;bottom:20px}.service-float{right:10px;top:20px}.story-section{padding:25px 18px 75px}.story-image{height:330px}.story-copy h2,.section-heading h2,.flow-section h2{font-size:30px}.features-section{padding:70px 18px}.feature-grid{grid-template-columns:1fr}.flow-section{padding:70px 18px}.public-footer{padding:24px 18px;flex-wrap:wrap}.public-footer>span{width:100%;order:3}.public-footer button{margin-left:0}.login-form-side{padding:24px 20px}.login-form-wrap{margin:8vh auto 0}.login-form-wrap h1{font-size:32px}}
 @media (max-width:460px){.hero-actions{align-items:flex-start;flex-direction:column;gap:15px}.hero-copy h1{font-size:34px}.hero-trust{align-items:flex-start}.hero-visual{min-height:300px}.hero-image-wrap{height:300px}.booking-float{min-width:205px}.booking-float b{font-size:18px}.story-image{height:270px}.flow-list{gap:10px}.flow-list>svg{display:none}.public-footer{display:grid;grid-template-columns:1fr auto}.public-footer>span{grid-column:1/-1}.login-form-wrap{margin:5vh auto 0}}
-/* Employee management */
-.employee-heading{display:flex;align-items:center;gap:16px;margin-bottom:26px}.employee-title-icon{width:62px;height:62px;border-radius:14px;background:#352724;color:#e55c50;display:grid;place-items:center;font-size:27px}.employee-heading .eyebrow{margin:0 0 5px;color:#e55c50;font-size:10px;font-weight:800;letter-spacing:1.5px}.employee-heading h1{margin:0;color:#f5f1ed;font-size:27px}.employee-heading p:not(.eyebrow){margin:5px 0 0;color:#8e8580;font-size:12px}.employee-heading .employee-primary{margin-left:auto}.employee-primary{border:0;border-radius:8px;background:#e34b40;color:white;padding:12px 18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}.employee-primary:hover{background:#ef5b50}.employee-primary:disabled{opacity:.55;cursor:not-allowed}.employee-secondary{border:0;border-radius:8px;background:#292522;color:#ddd5cf;padding:12px 24px;cursor:pointer}.employee-panel{border:1px solid #3a3430;background:#211f1d;border-radius:12px;overflow:hidden}.employee-filters{display:grid;grid-template-columns:1fr 270px 270px;gap:18px;padding:12px;border-bottom:1px solid #37322f}.employee-search{height:42px;border:1px solid #4a433e;border-radius:7px;display:flex;align-items:center;gap:10px;padding:0 12px;color:#aaa19b}.employee-search input{flex:1;background:transparent;border:0;outline:0;color:#eee}.employee-filters select,.employee-form-grid select{background:#252220;border:1px solid #49423d;color:#eee;border-radius:7px;padding:0 12px;outline:0}.employee-filters select{height:42px}.employee-table-wrap{overflow:auto}.employee-table{width:100%;border-collapse:collapse;color:#ddd7d2;font-size:12px}.employee-table th{padding:13px 16px;text-align:left;color:#d8d1cb;background:#272320;font-weight:700}.employee-table td{padding:13px 16px;border-top:1px solid #35302d}.employee-table tr:hover td{background:#25211f}.table-empty{text-align:center!important;color:#8c837c;padding:32px!important}.role-badge{padding:4px 10px;border-radius:6px;border:1px solid;font-size:11px}.role-phuc_vu{color:#76d493;border-color:#4c9b65;background:#203c29}.role-bep{color:#ffb65b;border-color:#bd7830;background:#44301e}.role-thu_ngan{color:#64ccec;border-color:#328eaa;background:#193a45}.role-quan_ly{color:#ff8279;border-color:#c75650;background:#442321}.work-status{display:inline-flex;align-items:center;gap:8px}.work-status i{width:8px;height:8px;border-radius:50%;background:#888}.work-status.working i{background:#62dc8c}.icon-action{border:0;background:transparent;color:#ddd;cursor:pointer;font-size:15px;padding:5px}.employee-error{margin:10px 12px 0;padding:10px 12px;border:1px solid #743a35;background:#3b2421;color:#ffaca5;border-radius:7px}.employee-overlay{position:fixed;z-index:1000;inset:0;background:rgba(0,0,0,.62);display:grid;place-items:center;padding:22px}.employee-modal{position:relative;width:min(680px,96vw);background:#211f1d;border:1px solid #57504b;border-radius:10px;padding:25px;box-shadow:0 24px 70px rgba(0,0,0,.55);color:#eee}.employee-modal h2{margin:0 0 25px;font-size:21px}.modal-close{position:absolute;right:18px;top:18px;border:0;background:transparent;color:#999;font-size:17px;cursor:pointer}.employee-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 24px}.employee-form-grid>label{font-size:12px;font-weight:600}.employee-form-grid em{color:#e85c50;font-style:normal}.employee-form-grid input,.employee-form-grid select{display:block;width:100%;height:42px;margin-top:8px;box-sizing:border-box;background:#2a2725;border:1px solid #48423e;color:#eee;border-radius:7px;padding:0 12px;outline:0}.employee-form-grid input:focus,.employee-form-grid select:focus{border-color:#c65047}.field-state{display:block;margin-top:7px;font-size:10px;color:#999}.field-state.valid{color:#65ce82}.field-state.invalid{color:#ff766c}.status-radios{height:42px;margin-top:8px;display:flex;align-items:center;gap:22px}.status-radios label{display:flex;align-items:center;gap:7px}.status-radios input{width:auto;height:auto;margin:0;accent-color:#e34b40}.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:26px}.success-modal{width:min(540px,96vw);text-align:center}.success-big{font-size:44px;color:#79d99a;margin-bottom:12px}.success-modal>p{color:#928a84;font-size:12px;line-height:1.6;margin:-12px auto 20px;max-width:420px}.credential-row{display:grid;grid-template-columns:180px 1fr auto auto;align-items:center;gap:8px;background:#2a2725;border-radius:8px;margin:9px 0;padding:11px 12px;text-align:left}.credential-row span{font-size:12px}.credential-row b{font-size:12px}.credential-row button{border:0;background:#373330;color:#ddd;border-radius:6px;width:34px;height:32px;cursor:pointer}.password-warning{background:#5a3913;color:#ffd493;border-radius:8px;text-align:left;padding:12px 14px;font-size:11px;line-height:1.5;margin:12px 0}.confirm-password{width:100%;margin-top:2px}.page-content:has(.employee-heading){background:#1d1b1a}.page-content:has(.employee-heading) .employee-heading{max-width:none}.page-content:has(.employee-heading) .employee-panel{max-width:none}
-@media(max-width:900px){.employee-filters{grid-template-columns:1fr}.employee-form-grid{grid-template-columns:1fr}.employee-heading{align-items:flex-start;flex-wrap:wrap}.employee-heading .employee-primary{margin-left:0}.credential-row{grid-template-columns:1fr auto auto}.credential-row span{grid-column:1/-1}}
+
 .area-layout {
   display: grid;
   grid-template-columns: 340px 1fr;
@@ -209,7 +210,7 @@
   .area-layout {
     grid-template-columns: 1fr;
   }
-
+}
 
 :root {
   --wine: #9f2f27;
@@ -1322,13 +1323,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: 16px;
   color: #514a44;
 }
 
 .story-points svg {
   color: var(--wine);
-  font-size: 15px;
+  font-size: 18px;
 }
 
 .features-section {
@@ -1790,6 +1791,7 @@
   width: 100%;
   max-width: none;
   padding: 22px 20px 40px;
+}
 
 /* S2-08 - Temporary sold-out / daily menu */
 .daily-menu-page,
@@ -2030,6 +2032,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+
 }
 .dish-row {
   min-height: 150px;
@@ -2105,4 +2108,1675 @@
  .dish-row > *:not(.dish-image-fixed):not(.category-main){
   grid-column:2;
  }
+}
+
+/* ==========================================================
+   RESTO PUBLIC HOME - TYPOGRAPHY REFINEMENT
+   Chỉ áp dụng cho trang chủ, không tác động trang quản trị.
+   ========================================================== */
+.public-home {
+  font-family: 'Be Vietnam Pro', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.public-home .hero-copy h1 {
+  font-family: inherit;
+  font-size: clamp(32px, 3.5vw, 54px);
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -1.5px;
+}
+.public-home .hero-copy h1 em {
+  font-style: normal;
+  font-weight: 800;
+  color: var(--wine);
+}
+.public-home .hero-text {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+}
+.public-home .story-copy h2 {
+  font-size: clamp(26px, 2.8vw, 36px);
+  font-weight: 800;
+  line-height: 1.25;
+}
+.public-home .section-heading h2 {
+  font-size: clamp(23px, 2.3vw, 32px);
+  font-weight: 800;
+  line-height: 1.3;
+}
+.public-home .flow-section h2 {
+  font-size: 25px;
+  font-weight: 800;
+}
+.public-home .eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+.public-home .feature-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+}
+.public-home .feature-card p {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+.public-home button {
+  font-family: inherit;
+  font-weight: 700;
+}
+.public-home .public-brand strong { font-weight: 800; }
+@media (max-width: 720px) {
+  .public-home .hero-copy h1 {
+    font-size: 36px;
+    letter-spacing: -1px;
+  }
+  .public-home .story-copy h2 { font-size: 28px; }
+}
+@media (max-width: 460px) {
+  .public-home .hero-copy h1 { font-size: 32px; }
+}
+
+/* ==========================================================
+   RESTO HOME - CO CHU LON, DE DOC (CHI TRANG CHU)
+   ========================================================== */
+.public-home .hero-text {
+  font-size: 19px;
+  line-height: 1.8;
+  font-weight: 400;
+}
+.public-home .hero-trust {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.public-home .story-copy > p:not(.eyebrow) {
+  font-size: 18px;
+  line-height: 1.8;
+}
+.public-home .story-points span {
+  font-size: 16px;
+  line-height: 1.65;
+}
+.public-home .story-points svg {
+  font-size: 18px;
+}
+.public-home .section-heading > p:last-child {
+  font-size: 18px;
+  line-height: 1.8;
+}
+.public-home .feature-card h3 {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+.public-home .feature-card p {
+  font-size: 17px;
+  line-height: 1.75;
+  font-weight: 400;
+}
+.public-home .feature-card {
+  height: auto;
+}
+.public-home .flow-section .eyebrow {
+  font-size: 14px;
+  font-weight: 800;
+}
+.public-home .flow-section h2 {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.public-home .flow-list {
+  font-size: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.public-home .flow-list b {
+  font-size: 16px;
+  font-weight: 700;
+}
+.public-home .public-footer > span {
+  font-size: 15px;
+}
+.public-home .public-footer button {
+  font-size: 15px;
+  font-weight: 700;
+}
+.public-home .public-footer .public-brand strong {
+  font-size: 20px;
+}
+.public-home .public-footer .public-brand span {
+  font-size: 11px;
+}
+@media (max-width: 720px) {
+  .public-home .hero-text { font-size: 16px; }
+  .public-home .hero-trust { font-size: 13px; }
+  .public-home .story-copy > p:not(.eyebrow) { font-size: 16px; }
+  .public-home .story-points span { font-size: 14px; }
+  .public-home .section-heading > p:last-child { font-size: 16px; }
+  .public-home .feature-card h3 { font-size: 18px; }
+  .public-home .feature-card p { font-size: 15px; }
+  .public-home .flow-section h2 { font-size: 27px; }
+  .public-home .flow-list,
+  .public-home .flow-list b { font-size: 14px; }
+  .public-home .public-footer > span,
+  .public-home .public-footer button { font-size: 13px; }
+}
+
+/* =========================================
+   QUAN LY NHAN VIEN - GIAO DIEN MOI
+   Giu nguyen CSS cac trang khac
+========================================= */
+
+/* Nen trang nhan vien */
+.page-content:has(.employee-heading) {
+  background: #f8f9fb;
+  min-height: calc(100vh - 70px);
+  max-width: none;
+  padding: 30px 28px 45px;
+  color: #202632;
+}
+
+/* Tieu de */
+.employee-heading {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-bottom: 26px;
+  flex-wrap: wrap;
+}
+
+.employee-title-icon {
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: #fde8e8;
+  color: #e53935;
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+}
+
+.employee-heading .eyebrow {
+  color: #e53935;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  margin: 0 0 8px;
+}
+
+.employee-heading h1 {
+  color: #171c28;
+  font-size: 29px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.employee-heading p:not(.eyebrow) {
+  color: #707987;
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+/* Nut them nhan vien */
+.employee-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background: #e83e3e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 20px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.employee-heading .employee-primary {
+  margin-left: auto;
+}
+
+.employee-primary:hover {
+  background: #cc2f2f;
+  box-shadow: 0 6px 16px rgba(232, 62, 62, 0.2);
+  transform: translateY(-1px);
+}
+
+.employee-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* =========================================
+   THE THONG KE NHAN VIEN
+========================================= */
+
+.employee-stats,
+.employee-stats-grid,
+.employee-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.employee-stat-card,
+.employee-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 112px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #edf0f3;
+  border-radius: 15px;
+  box-shadow: 0 4px 18px rgba(20, 30, 50, 0.035);
+}
+
+.employee-stat-icon {
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 25px;
+  background: #fce9e9;
+  color: #e53935;
+}
+
+.employee-stat-icon.green {
+  background: #e6f7ee;
+  color: #13a05a;
+}
+
+.employee-stat-icon.orange,
+.employee-stat-icon.yellow {
+  background: #fff3dc;
+  color: #f39c12;
+}
+
+.employee-stat-icon.red {
+  background: #fde9e9;
+  color: #e53935;
+}
+
+.employee-stat-label {
+  font-size: 13px;
+  color: #647083;
+  margin-bottom: 8px;
+}
+
+.employee-stat-value {
+  font-size: 29px;
+  font-weight: 800;
+  color: #151b28;
+  line-height: 1.1;
+}
+
+.employee-stat-note {
+  font-size: 11px;
+  color: #8a94a3;
+  margin-top: 7px;
+}
+
+/* =========================================
+   BANG DANH SACH NHAN VIEN
+========================================= */
+
+.employee-panel {
+  background: #fff;
+  border: 1px solid #edf0f3;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 5px 24px rgba(20, 30, 50, 0.04);
+}
+
+/* Thanh tim kiem va bo loc */
+.employee-filters {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 210px 210px;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  background: #fff;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.employee-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 15px;
+  background: #fff;
+  border: 1px solid #e2e6eb;
+  border-radius: 9px;
+  color: #8792a1;
+  transition: all 0.2s;
+}
+
+.employee-search:focus-within {
+  border-color: #e64a45;
+  box-shadow: 0 0 0 3px rgba(230, 74, 69, 0.08);
+}
+
+.employee-search input {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #202632;
+  font-size: 13px;
+}
+
+.employee-search input::placeholder {
+  color: #9ca5b2;
+}
+
+.employee-filters select {
+  width: 100%;
+  height: 46px;
+  padding: 0 13px;
+  background: #fff;
+  border: 1px solid #e2e6eb;
+  border-radius: 9px;
+  color: #252b36;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+.employee-filters select:focus {
+  border-color: #e64a45;
+  box-shadow: 0 0 0 3px rgba(230, 74, 69, 0.08);
+}
+
+/* Bang */
+.employee-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.employee-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  color: #252b36;
+  font-size: 12px;
+  text-align: left;
+}
+
+.employee-table thead {
+  background: #faf7f6;
+}
+
+.employee-table th {
+  background: #faf7f6;
+  color: #353b46;
+  padding: 16px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.employee-table td {
+  padding: 15px 14px;
+  color: #3b4350;
+  border-top: none;
+  border-bottom: 1px solid #eef0f3;
+  vertical-align: middle;
+}
+
+.employee-table td b,
+.employee-table td strong {
+  color: #202632;
+  font-weight: 700;
+}
+
+.employee-table tbody tr {
+  transition: background 0.18s;
+}
+
+.employee-table tbody tr:hover td {
+  background: #fff9f8;
+}
+
+.employee-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Avatar nhan vien */
+.employee-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #efe6ff;
+  color: #7a3cba;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.employee-avatar:nth-child(2n) {
+  background: #e7f1ff;
+  color: #2875cb;
+}
+
+/* Nhan vai tro */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 11px;
+  border: none;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.role-quan_ly {
+  background: #fde9e9;
+  color: #dc3535;
+  border: none;
+}
+
+.role-phuc_vu {
+  background: #e8f2ff;
+  color: #2375d6;
+  border: none;
+}
+
+.role-bep {
+  background: #e6f7ed;
+  color: #169451;
+  border: none;
+}
+
+.role-thu_ngan {
+  background: #f0eafd;
+  color: #8051bd;
+  border: none;
+}
+
+/* Trang thai lam viec */
+.work-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #384252;
+}
+
+.work-status i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #a2aab4;
+}
+
+.work-status.working i {
+  background: #12a75c;
+}
+
+.work-status.left i {
+  background: #e63946;
+}
+
+/* Nut thao tac */
+.icon-action {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: #edf5ff;
+  border: none;
+  border-radius: 8px;
+  color: #2375d6;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.icon-action:hover {
+  background: #dbeaff;
+  color: #1257a9;
+  transform: translateY(-1px);
+}
+
+/* Trang thai trong */
+.table-empty {
+  padding: 55px 20px !important;
+  text-align: center !important;
+  color: #8792a1 !important;
+  font-size: 13px;
+}
+
+/* Thong bao loi */
+.employee-error {
+  margin: 15px 20px;
+  padding: 13px 16px;
+  background: #fff0f0;
+  border: 1px solid #f7c9c9;
+  border-radius: 9px;
+  color: #c53030;
+  font-size: 12px;
+}
+
+/* =========================================
+   PHAN TRANG
+========================================= */
+
+.employee-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-top: 1px solid #edf0f3;
+  background: #fff;
+  color: #7b8594;
+  font-size: 12px;
+}
+
+.employee-pagination button {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #e2e6eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #606c7b;
+  cursor: pointer;
+}
+
+.employee-pagination button:hover:not(:disabled) {
+  border-color: #e83e3e;
+  color: #e83e3e;
+}
+
+.employee-pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.employee-pagination button.active {
+  background: #e83e3e;
+  color: #fff;
+  border-color: #e83e3e;
+}
+
+/* =========================================
+   MODAL THEM NHAN VIEN
+========================================= */
+
+.employee-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(17, 24, 39, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.employee-modal {
+  position: relative;
+  width: min(680px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 30px;
+  background: #fff;
+  color: #252b36;
+  border: 1px solid #edf0f3;
+  border-radius: 16px;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.2);
+}
+
+.employee-modal h2 {
+  margin: 0 0 25px;
+  color: #202632;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.modal-close {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  background: #f3f5f7;
+  border: none;
+  border-radius: 8px;
+  color: #707987;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: #fde8e8;
+  color: #d93636;
+}
+
+.employee-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.employee-form-grid > label {
+  color: #414956;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.employee-form-grid em {
+  color: #e53935;
+  font-style: normal;
+}
+
+.employee-form-grid input,
+.employee-form-grid select {
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin-top: 9px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  background: #fff;
+  color: #252b36;
+  border: 1px solid #dfe4ea;
+  border-radius: 8px;
+  outline: none;
+  font-size: 12px;
+}
+
+.employee-form-grid input:focus,
+.employee-form-grid select:focus {
+  border-color: #e64a45;
+  box-shadow: 0 0 0 3px rgba(230, 74, 69, 0.08);
+}
+
+.employee-form-grid input::placeholder {
+  color: #a0a8b3;
+}
+
+.status-radios {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 44px;
+  margin-top: 9px;
+}
+
+.status-radios label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #4d5664;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-radios input {
+  width: auto;
+  height: auto;
+  margin: 0;
+  accent-color: #e53935;
+}
+
+.field-state {
+  display: block;
+  margin-top: 7px;
+  color: #8893a1;
+  font-size: 11px;
+}
+
+.field-state.valid {
+  color: #129b56;
+}
+
+.field-state.invalid {
+  color: #dc3535;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.employee-secondary {
+  background: #f2f4f7;
+  color: #4b5563;
+  border: 1px solid #e2e6eb;
+  border-radius: 9px;
+  padding: 12px 24px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.employee-secondary:hover {
+  background: #e9edf2;
+}
+
+
+/* ==========================================
+   EMPLOYEE DASHBOARD - PREMIUM STYLE
+   Chi ap dung cho trang nhan vien
+========================================== */
+
+.employee-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0 26px;
+}
+
+.employee-dashboard-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  min-height: 118px;
+  padding: 22px 20px;
+  background: #ffffff;
+  border: 1px solid #e9edf2;
+  border-radius: 16px;
+  box-shadow: 0 5px 22px rgba(31, 41, 55, 0.055);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.employee-dashboard-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(31, 41, 55, 0.10);
+}
+
+.employee-dashboard-icon {
+  width: 66px;
+  height: 66px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 27px;
+}
+
+.employee-dashboard-card.total .employee-dashboard-icon {
+  background: #ffeded;
+  color: #e83e3e;
+}
+
+.employee-dashboard-card.active .employee-dashboard-icon {
+  background: #e5f7ed;
+  color: #13a55c;
+}
+
+.employee-dashboard-card.pending .employee-dashboard-icon {
+  background: #fff2d8;
+  color: #ed9700;
+}
+
+.employee-dashboard-card.inactive .employee-dashboard-icon {
+  background: #ffe9e9;
+  color: #e53935;
+}
+
+.employee-dashboard-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.employee-dashboard-info span {
+  color: #505b6b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.employee-dashboard-info strong {
+  color: #141b29;
+  font-size: 30px;
+  line-height: 1.3;
+  font-weight: 800;
+  margin: 3px 0;
+}
+
+.employee-dashboard-info small {
+  color: #939cab;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* Nut thao tac */
+
+.employee-action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.employee-action-btn {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 17px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.employee-action-btn.disable {
+  color: #e54848;
+  background: #fff0f0;
+  border-color: #ffe1e1;
+}
+
+.employee-action-btn.disable:hover {
+  background: #e54848;
+  color: #ffffff;
+  box-shadow: 0 5px 12px rgba(229, 72, 72, 0.2);
+  transform: translateY(-2px);
+}
+
+.employee-action-btn.enable {
+  color: #168b53;
+  background: #e8f8ef;
+  border-color: #d5f0e0;
+}
+
+.employee-action-btn.enable:hover {
+  background: #168b53;
+  color: #ffffff;
+  box-shadow: 0 5px 12px rgba(22, 139, 83, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Can chinh cot thao tac */
+.employee-table th:last-child,
+.employee-table td:last-child {
+  text-align: center;
+}
+
+/* Bang nhan vien mem mai hon */
+.employee-panel {
+  border-radius: 16px;
+  box-shadow: 0 6px 26px rgba(31, 41, 55, 0.055);
+}
+
+.employee-table th {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.employee-table td {
+  font-size: 12px;
+}
+
+.employee-table tbody tr:hover td {
+  background: #fffaf9;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .employee-dashboard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .employee-dashboard-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .employee-dashboard-card {
+    min-height: 100px;
+    padding: 16px;
+  }
+
+  .employee-dashboard-icon {
+    width: 55px;
+    height: 55px;
+    font-size: 23px;
+  }
+}
+
+
+/* NUT THAO TAC NHAN VIEN */
+
+.employee-action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.employee-action-btn {
+  width: 35px;
+  height: 35px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* NUT CHO NGHI VIEC - DO */
+.employee-action-btn.stop {
+  color: #e64b55;
+  background: #ffedf0;
+  border-color: #ffe0e5;
+}
+
+.employee-action-btn.stop:hover {
+  color: white;
+  background: #e64b55;
+}
+
+/* NUT LAM LAI - XANH LA */
+.employee-action-btn.enable {
+  color: #16a36a;
+  background: #e8f8ef;
+  border-color: #d4f1e0;
+}
+
+.employee-action-btn.enable:hover {
+  color: white;
+  background: #16a36a;
+}
+
+/* NUT CHINH SUA - XANH DUONG */
+.employee-action-btn.view {
+  color: #2497df;
+  background: #eaf6ff;
+  border-color: #d8efff;
+}
+
+.employee-action-btn.view:hover {
+  color: white;
+  background: #2497df;
+}
+
+/* MODAL XEM CHI TIET */
+
+.employee-detail-modal {
+  max-width: 500px;
+}
+
+.employee-detail-avatar {
+  width: 75px;
+  height: 75px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 25px;
+  border-radius: 50%;
+  background: #efe8ff;
+  color: #7743bf;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.employee-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid #edf0f3;
+  font-size: 13px;
+}
+
+.employee-detail-row span {
+  color: #7b8594;
+}
+
+.employee-detail-row strong {
+  color: #252b36;
+  text-align: right;
+}
+
+
+/* Ảnh đại diện trong bảng nhân viên */
+.employee-avatar-photo {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto;
+  border: 2px solid #ffffff;
+  background: #e8edf5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.employee-avatar-photo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* Ảnh đại diện trong cửa sổ */
+.employee-detail-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 20px;
+  background: #e8edf5;
+}
+
+.employee-detail-avatar-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* 4 thẻ thống kê nhân viên */
+.employee-dashboard-stats {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 15px !important;
+  width: 100%;
+}
+
+/* Thẻ trạng thái khác */
+.employee-dashboard-card.other .employee-dashboard-icon {
+  background: #fff4d9;
+  color: #e5a500;
+}
+
+.employee-dashboard-card.other {
+  border: 1px solid #e9edf3;
+}
+
+.employee-dashboard-card.other .employee-dashboard-info strong {
+  color: #172033;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .employee-dashboard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .employee-dashboard-stats {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* =====================================
+   SỬA GIAO DIỆN TẠO TÀI KHOẢN THÀNH CÔNG
+===================================== */
+
+.employee-modal.success-modal {
+  background: #ffffff !important;
+  border-radius: 18px;
+  padding: 30px 26px;
+  max-width: 520px;
+  width: 95%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.success-modal h2 {
+  color: #172033 !important;
+  font-size: 23px;
+  font-weight: 800;
+  margin: 15px 0 10px;
+}
+
+.success-modal > p {
+  color: #64748b !important;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.success-modal .success-big {
+  color: #22c55e;
+  font-size: 42px;
+}
+
+/* Ô tên đăng nhập và mật khẩu */
+.success-modal .credential-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f4f7fb !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 12px;
+  text-align: left;
+}
+
+.success-modal .credential-row span {
+  color: #64748b !important;
+  font-size: 13px;
+  min-width: 110px;
+}
+
+.success-modal .credential-row b {
+  color: #172033 !important;
+  font-size: 15px;
+  font-weight: 700;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.success-modal .credential-row button {
+  background: #e8edf5 !important;
+  color: #334155 !important;
+  border: none;
+  border-radius: 8px;
+  padding: 9px;
+  cursor: pointer;
+}
+
+.success-modal .credential-row button:hover {
+  background: #dbeafe !important;
+  color: #2563eb !important;
+}
+
+/* Cảnh báo mật khẩu */
+.success-modal .password-warning {
+  background: #fff7e6 !important;
+  color: #92400e !important;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 14px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Nút xác nhận */
+.success-modal .confirm-password {
+  width: 100%;
+  margin-top: 16px;
+  background: #ef4444 !important;
+  color: white !important;
+  border-radius: 10px;
+  padding: 13px;
+  font-weight: 700;
+}
+/* ẢNH NHÂN VIÊN TẢI TỪ MÁY */
+
+.employee-upload-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  margin: 0 auto;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: transform 0.2s;
+}
+
+.employee-upload-avatar:hover {
+  transform: scale(1.06);
+  outline: 2px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+.employee-avatar-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+
+/* =========================================
+   QUẢN LÝ NHÂN VIÊN - GIAO DIỆN CÂN ĐỐI
+========================================= */
+
+.page-content:has(.employee-dashboard) {
+  width: 100%;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: #f6f8fc !important;
+}
+
+.employee-dashboard {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 28px 30px 36px;
+  background: #f6f8fc;
+  color: #17233d;
+}
+
+/* Tiêu đề và nút thêm nhân viên */
+.employee-dashboard .employee-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.employee-dashboard .employee-heading h1 {
+  margin: 0;
+  font-size: 25px;
+  color: #17233d;
+}
+
+.employee-dashboard .employee-heading p {
+  color: #8793a6;
+}
+
+.employee-dashboard .employee-heading .employee-primary {
+  margin-left: auto;
+}
+
+/* 4 ô thống kê có chiều cao bằng nhau */
+.employee-dashboard .employee-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 22px;
+  align-items: stretch;
+}
+
+.employee-dashboard .employee-dashboard-card {
+  min-width: 0;
+  min-height: 130px;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #e9edf4;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(30, 50, 80, 0.04);
+}
+
+/* Khung danh sách */
+.employee-dashboard .employee-panel {
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #e9edf4;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* Các bộ lọc thẳng hàng */
+.employee-dashboard .employee-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px 180px;
+  gap: 14px;
+  align-items: center;
+  padding: 20px;
+  background: #fff;
+}
+
+.employee-dashboard .employee-search,
+.employee-dashboard .employee-filters select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  box-sizing: border-box;
+  border: 1px solid #e0e6ef;
+  border-radius: 9px;
+  background: #fff;
+  color: #34425b;
+}
+
+.employee-dashboard .employee-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+}
+
+.employee-dashboard .employee-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #34425b;
+}
+
+
+/* ===== BẢNG NHÂN VIÊN: 8 CỘT GỌN GÀNG ===== */
+.employee-dashboard .employee-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.employee-dashboard .employee-table {
+  width: 100%;
+  min-width: 1000px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  background: #fff;
+}
+.employee-dashboard .employee-table th,
+.employee-dashboard .employee-table td {
+  box-sizing: border-box;
+  height: 54px;
+  padding: 10px 6px;
+  vertical-align: middle;
+  text-align: center !important;
+  border-bottom: 1px solid #edf0f5;
+  font-size: 12px;
+}
+.employee-dashboard .employee-table th { white-space: nowrap; }
+/* STT, Họ tên, Số điện thoại, Ngày vào làm,
+   Tên đăng nhập, Vai trò, Trạng thái, Thao tác */
+.employee-dashboard .employee-table th:nth-child(1),
+.employee-dashboard .employee-table td:nth-child(1) { width: 5%; }
+.employee-dashboard .employee-table th:nth-child(2),
+.employee-dashboard .employee-table td:nth-child(2) { width: 17%; }
+.employee-dashboard .employee-table th:nth-child(3),
+.employee-dashboard .employee-table td:nth-child(3) { width: 14%; }
+.employee-dashboard .employee-table th:nth-child(4),
+.employee-dashboard .employee-table td:nth-child(4) { width: 13%; }
+.employee-dashboard .employee-table th:nth-child(5),
+.employee-dashboard .employee-table td:nth-child(5) { width: 14%; }
+.employee-dashboard .employee-table th:nth-child(6),
+.employee-dashboard .employee-table td:nth-child(6) { width: 12%; }
+.employee-dashboard .employee-table th:nth-child(7),
+.employee-dashboard .employee-table td:nth-child(7) { width: 15%; }
+.employee-dashboard .employee-table th:nth-child(8),
+.employee-dashboard .employee-table td:nth-child(8) { width: 10%; }
+/* Nội dung biểu tượng và số điện thoại nằm sát nhau */
+.employee-dashboard .employee-table td:nth-child(3) > span,
+.employee-dashboard .employee-table td:nth-child(3) > div,
+.employee-dashboard .employee-table td:nth-child(3) > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* Căn giữa các nhãn */
+.employee-dashboard .role-badge,
+.employee-dashboard .work-status {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Hai nút thao tác bằng nhau */
+.employee-dashboard .employee-action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.employee-dashboard .employee-action-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* Vai trò và trạng thái */
+.employee-dashboard .role-badge,
+.employee-dashboard .work-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  box-sizing: border-box;
+}
+
+/* Chỉ hai nút thao tác, đều nhau */
+.employee-dashboard .employee-action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+}
+
+.employee-dashboard .employee-action-btn {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .employee-dashboard .employee-dashboard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .employee-dashboard .employee-filters {
+    grid-template-columns: minmax(0, 1fr) 150px 150px;
+  }
+}
+
+@media (max-width: 720px) {
+  .employee-dashboard {
+    padding: 16px;
+  }
+
+  .employee-dashboard .employee-dashboard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+  }
+
+  .employee-dashboard .employee-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-dashboard .employee-heading {
+    flex-wrap: wrap;
+  }
+}
+
+/* TĂNG CỠ CHỮ TRANG QUẢN LÝ NHÂN VIÊN */
+
+/* Tiêu đề và dữ liệu trong bảng */
+.employee-dashboard table th {
+  font-size: 20px !important;
+}
+
+.employee-dashboard table td {
+  font-size: 20px !important;
+}
+
+/* Nhãn vai trò và trạng thái */
+.employee-dashboard table td span {
+  font-size: 20px !important;
+}
+
+/* Thanh tìm kiếm và bộ lọc */
+.employee-dashboard input,
+.employee-dashboard select {
+  font-size: 20px !important;
+}
+
+/* Chữ trong 4 ô thống kê */
+.employee-dashboard .employee-stat-card {
+  font-size: 20px !important;
+}
+
+/* Tăng chữ ô tìm kiếm và bộ lọc */
+.employee-dashboard input,
+.employee-dashboard input::placeholder,
+.employee-dashboard select {
+  font-size: 23px !important;
+}
+
+/* TĂNG CHỮ 4 Ô THỐNG KÊ NHÂN VIÊN */
+
+/* Tên thống kê */
+.employee-dashboard .employee-stat-card .stat-label {
+  font-size: 20px !important;
+}
+
+/* Số lượng nhân viên */
+.employee-dashboard .employee-stat-card .stat-value {
+  font-size: 26px !important;
+  font-weight: 700;
+}
+
+/* Mô tả dưới số lượng */
+.employee-dashboard .employee-stat-card .stat-description {
+  font-size: 20px !important;
+}
+
+/* TĂNG CỠ CHỮ 4 Ô THỐNG KÊ NHÂN VIÊN */
+
+/* Tổng nhân viên, Đang làm việc, Trạng thái khác, Đã nghỉ việc */
+.employee-dashboard-info span {
+  font-size: 20px !important;
+  font-weight: 600;
+}
+
+/* Số lượng nhân viên: 5, 4, 0, 1 */
+.employee-dashboard-info strong {
+  font-size: 28px !important;
+  font-weight: 700;
+}
+
+/* Chữ mô tả bên dưới */
+.employee-dashboard-info small {
+  font-size: 20px !important;
+}
+
+/* Tăng cỡ chữ mô tả dưới tiêu đề Quản lý nhân viên */
+.employee-dashboard-header p {
+  font-size: 25px !important;
+  line-height: 1.6;
+}
+
+/* TĂNG CỠ CHỮ BẢNG NHÂN VIÊN */
+
+/* Tên, số điện thoại, tên đăng nhập, STT */
+.employee-panel .employee-table td {
+  font-size: 23px !important;
+}
+
+/* Tiêu đề các cột */
+.employee-panel .employee-table th {
+  font-size: 23px !important;
+  font-weight: 600;
+}
+
+/* Vai trò và trạng thái */
+.employee-panel .employee-table td span {
+  font-size: 23px !important;
+}
+
+/* Dòng hiển thị tổng số nhân viên bên dưới bảng */
+.employee-panel .employee-table-footer {
+  font-size: 23px !important;
+}
+/* Chữ vai trò: tất cả màu đen */
+.employee-dashboard .employee-table .role-badge {
+  color: #000000 !important;
+}
+
+/* Icon thao tác: tất cả màu đen */
+.employee-dashboard .employee-table .employee-action-btn,
+.employee-dashboard .employee-table .employee-action-btn .anticon,
+.employee-dashboard .employee-table .employee-action-btn svg {
+  color: #000000 !important;
+}
+
+/* Giữ màu đen khi di chuột */
+.employee-dashboard .employee-table .employee-action-btn:hover {
+  color: #000000 !important;
+}
+
+/* =====================================
+   VAI TRÒ - NỀN TRẮNG, CHỮ ĐEN
+===================================== */
+
+.employee-dashboard .employee-table .role-badge,
+.employee-dashboard .employee-table .role-quan_ly,
+.employee-dashboard .employee-table .role-bep,
+.employee-dashboard .employee-table .role-thu_ngan,
+.employee-dashboard .employee-table .role-phuc_vu {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #e5e7eb;
+}
+
+/* =====================================
+   THAO TÁC - NỀN TRẮNG, ICON ĐEN
+===================================== */
+
+.employee-dashboard .employee-table .employee-action-btn,
+.employee-dashboard .employee-table .employee-action-btn.edit,
+.employee-dashboard .employee-table .employee-action-btn.delete,
+.employee-dashboard .employee-table .employee-action-btn.stop,
+.employee-dashboard .employee-table .employee-action-btn.enable,
+.employee-dashboard .employee-table .employee-action-btn.view {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* Tất cả icon màu đen */
+.employee-dashboard .employee-table .employee-action-btn svg,
+.employee-dashboard .employee-table .employee-action-btn .anticon {
+  color: #000000 !important;
+}
+
+/* Khi di chuột vẫn giữ nền trắng, icon đen */
+.employee-dashboard .employee-table .employee-action-btn:hover {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-color: #d1d5db !important;
+}
+/* HỌ TÊN - BỎ IN ĐẬM */
+.employee-table tbody tr td:nth-child(2),
+.employee-table tbody tr td:nth-child(2) *,
+.employee-panel .employee-table tbody tr td:nth-child(2),
+.employee-panel .employee-table tbody tr td:nth-child(2) * {
+  font-weight: 400 !important;
+}
+
+/* VAI TRÒ - BỎ IN ĐẬM */
+.employee-table tbody tr td:nth-child(5),
+.employee-table tbody tr td:nth-child(5) *,
+.employee-panel .employee-table tbody tr td:nth-child(5),
+.employee-panel .employee-table tbody tr td:nth-child(5) * {
+  font-weight: 400 !important;
 }
