@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Drawer } from 'antd'
+import { Button, Drawer, Input, Select, Table } from 'antd'
 import {
   CheckCircleOutlined,
   AppstoreOutlined,
@@ -7,7 +7,6 @@ import {
   EditOutlined,
   PlusOutlined,
   StopOutlined,
-  LoadingOutlined,
 } from '@ant-design/icons'
 import {
   activateArea,
@@ -17,6 +16,7 @@ import {
   updateArea,
 } from '../services/api'
 import './RestaurantManagement.css'
+import './KhuVuc.css'
 
 const emptyForm = {
   ten_khu_vuc: '',
@@ -28,7 +28,7 @@ export default function KhuVuc() {
   const nameInput = useRef(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [areas, setAreas] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editing, setEditing] = useState(null)
@@ -139,10 +139,6 @@ export default function KhuVuc() {
     }
   }
 
-  const activeCount = areas.filter(
-    area => area.trang_thai === 'HOAT_DONG'
-  ).length
-
   function closeDrawer() {
     if (saving) return
     setDrawerOpen(false)
@@ -150,11 +146,78 @@ export default function KhuVuc() {
     setForm(emptyForm)
   }
 
+  const normalizedSearch = search.trim().toLocaleLowerCase('vi')
   const visibleAreas = areas.filter(area =>
-    area.ten_khu_vuc.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')) &&
-    (!statusFilter || (statusFilter === 'active'
-      ? area.trang_thai === 'HOAT_DONG' : area.trang_thai !== 'HOAT_DONG'))
+    String(area.ten_khu_vuc || '')
+      .toLocaleLowerCase('vi')
+      .includes(normalizedSearch) &&
+    (statusFilter === 'all' ||
+      (statusFilter === 'active'
+        ? area.trang_thai === 'HOAT_DONG'
+        : area.trang_thai !== 'HOAT_DONG'))
   )
+
+  const areaColumns = [
+    {
+      title: 'Tên khu vực',
+      dataIndex: 'ten_khu_vuc',
+      align: 'center',
+      render: value => <strong className="management-area-name">{value}</strong>,
+    },
+    {
+      title: 'Mô tả',
+      dataIndex: 'ghi_chu',
+      align: 'center',
+      render: value => value || '—',
+    },
+    {
+      title: 'Thứ tự',
+      dataIndex: 'thu_tu_hien_thi',
+      align: 'center',
+      render: value => <span className="management-order">{value}</span>,
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'trang_thai',
+      align: 'center',
+      render: value => (
+        <span className={`area-status ${value === 'HOAT_DONG' ? 'active' : 'inactive'}`}>
+          {value === 'HOAT_DONG' ? 'Đang hoạt động' : 'Ngừng sử dụng'}
+        </span>
+      ),
+    },
+    {
+      title: 'Thao tác',
+      align: 'center',
+      render: (_, area) => (
+        <div className="area-actions management-table-actions">
+          <Button
+            title="Sửa khu vực"
+            aria-label={`Sửa ${area.ten_khu_vuc}`}
+            icon={<EditOutlined />}
+            onClick={() => startEdit(area)}
+          />
+          {area.trang_thai === 'HOAT_DONG' ? (
+            <Button
+              className="stop"
+              title="Ngừng sử dụng"
+              aria-label={`Ngừng sử dụng ${area.ten_khu_vuc}`}
+              icon={<StopOutlined />}
+              onClick={() => stopUsing(area)}
+            />
+          ) : (
+            <Button
+              className="activate"
+              title="Kích hoạt lại"
+              aria-label={`Kích hoạt lại ${area.ten_khu_vuc}`}
+              icon={<CheckCircleOutlined />}
+              onClick={() => activate(area)}
+            />
+          )}
+        </div>
+      ),
+    },
+  ]
 
   return (
     <section className="area-page management-page">
@@ -173,19 +236,6 @@ export default function KhuVuc() {
           setNotice(null)
           setDrawerOpen(true)
         }}><PlusOutlined /> Thêm khu vực</button>
-      </div>
-
-      <div className="management-stats management-stats-three" aria-label="Thống kê khu vực">
-        {[
-          ['Tổng khu vực', areas.length, <AppstoreOutlined />, 'wine', 'Không gian trong nhà hàng'],
-          ['Đang hoạt động', activeCount, <CheckCircleOutlined />, 'green', 'Sẵn sàng tiếp nhận đặt bàn'],
-          ['Ngừng sử dụng', areas.length - activeCount, <StopOutlined />, 'amber', 'Tạm ngừng tiếp nhận khách'],
-        ].map(([label, count, icon, tone, description]) => (
-          <article className={`management-stat tone-${tone}`} key={label}>
-            <span className={`management-stat-icon ${tone}`}>{icon}</span>
-            <div><span>{label}</span><strong>{loading ? '—' : count}</strong><small>{description}</small></div>
-          </article>
-        ))}
       </div>
 
       {notice && (
@@ -248,84 +298,65 @@ export default function KhuVuc() {
         </form>
       </Drawer>
 
-        <article className="panel area-list">
-          <div className="panel-heading">
+        <article className="management-list-card">
+          <div className="management-list-heading">
             <div>
               <h2>Danh sách khu vực</h2>
               <p>Chỉ khu vực đang hoạt động mới dùng khi đặt bàn mới.</p>
             </div>
+            <span className="management-count-label">
+              {loading ? 'Đang tải…' : `${areas.length} khu vực`}
+            </span>
           </div>
 
-          <div className="management-toolbar">
-            <div className="management-search"><SearchOutlined aria-hidden="true" /><input aria-label="Tìm khu vực" placeholder="Tìm tên khu vực…" value={search} onChange={e => setSearch(e.target.value)} /></div>
+          <div className="management-toolbar area-list-toolbar">
+            <Input
+              aria-label="Tìm khu vực"
+              placeholder="Tìm tên khu vực…"
+              prefix={<SearchOutlined />}
+              allowClear
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+            />
+            <Select
+              aria-label="Lọc trạng thái khu vực"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              className="management-filter"
+              options={[
+                { value: 'all', label: 'Tất cả trạng thái' },
+                { value: 'active', label: 'Đang hoạt động' },
+                { value: 'inactive', label: 'Ngừng sử dụng' },
+              ]}
+            />
           </div>
-          <div className="management-chips" role="group" aria-label="Lọc trạng thái khu vực">
-            {[
-              ['', 'Tất cả', areas.length],
-              ['active', 'Đang hoạt động', activeCount],
-              ['inactive', 'Ngừng sử dụng', areas.length - activeCount],
-            ].map(([value, label, count]) => (
-              <button key={value} type="button" aria-pressed={statusFilter === value} onClick={() => setStatusFilter(value)}>
-                {label}<span>{loading ? '—' : count}</span>
-              </button>
-            ))}
-          </div>
-          <p className="management-result" aria-live="polite">{loading ? 'Đang tải…' : `${visibleAreas.length} / ${areas.length} khu vực`}</p>
-          {loading ? (
-            <div className="management-empty" role="status"><LoadingOutlined spin /><strong>Đang tải khu vực</strong><span>Danh sách sẽ sẵn sàng trong giây lát.</span></div>
-          ) : visibleAreas.length === 0 ? (
-            <div className="management-empty"><AppstoreOutlined /><strong>{areas.length ? 'Không tìm thấy khu vực' : 'Chưa có khu vực nào'}</strong><span>{areas.length ? 'Thử tên khác hoặc chọn trạng thái khác.' : 'Chọn “Thêm khu vực” để tạo không gian đầu tiên.'}</span></div>
-          ) : (
-            <div className="management-area-cards">
-              {visibleAreas.map(area => (
-                <article className="management-area-card" key={area.id}>
-                  <div className="management-area-identity">
-                    <span className="management-area-symbol"><AppstoreOutlined /></span>
-                    <div><strong className="management-area-name">{area.ten_khu_vuc}</strong>
-                    <small>{area.ghi_chu || 'Chưa có ghi chú'}</small></div>
-                  </div>
-
-                  <span className="management-order"><span>Thứ tự </span>{area.thu_tu_hien_thi}</span>
-
-                  <span
-                    className={`area-status ${
-                      area.trang_thai === 'HOAT_DONG' ? 'active' : 'inactive'
-                    }`}
-                  >
-                    {area.trang_thai === 'HOAT_DONG'
-                      ? 'Đang hoạt động'
-                      : 'Ngừng sử dụng'}
+          <p className="management-result area-result-summary" aria-live="polite">
+            {loading ? 'Đang tải…' : `${visibleAreas.length} / ${areas.length} khu vực phù hợp`}
+          </p>
+          <Table
+            className="management-operational-table"
+            rowKey="id"
+            dataSource={visibleAreas}
+            columns={areaColumns}
+            loading={{ spinning: loading, description: 'Đang tải danh sách khu vực…' }}
+            pagination={false}
+            scroll={{ x: 820 }}
+            locale={{
+              emptyText: (
+                <div className="management-empty">
+                  <AppstoreOutlined />
+                  <strong>
+                    {areas.length ? 'Không tìm thấy khu vực' : 'Chưa có khu vực nào'}
+                  </strong>
+                  <span>
+                    {areas.length
+                      ? 'Thử tên khác hoặc chọn trạng thái khác.'
+                      : 'Chọn “Thêm khu vực” để tạo không gian đầu tiên.'}
                   </span>
-
-                  <div className="area-actions">
-                    <button title="Sửa khu vực" aria-label={`Sửa ${area.ten_khu_vuc}`} onClick={() => startEdit(area)}>
-                      <EditOutlined />
-                    </button>
-
-                    {area.trang_thai === 'HOAT_DONG' ? (
-                      <button
-                        className="stop"
-                        title="Ngừng sử dụng"
-                        aria-label={`Ngừng sử dụng ${area.ten_khu_vuc}`}
-                        onClick={() => stopUsing(area)}
-                      >
-                        <StopOutlined />
-                      </button>
-                    ) : (
-                      <button
-                        className="activate"
-                        title="Kích hoạt lại"
-                        aria-label={`Kích hoạt lại ${area.ten_khu_vuc}`}
-                        onClick={() => activate(area)}
-                      >
-                        <CheckCircleOutlined />
-                      </button>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
+                </div>
+              ),
+            }}
+          />
         </article>
     </section>
   )
