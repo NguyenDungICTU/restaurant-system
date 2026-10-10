@@ -74,41 +74,120 @@ def _active_session(db: Session, table_id: int, lock: bool = False):
     return db.scalar(query)
 
 
-def _table_state(db: Session, table: Ban, session_id: int | None = None) -> CustomerTableResponse:
+def _table_response(
+    table: Ban,
+    *,
+    status: str,
+    message: str,
+    can_order: bool,
+    session: PhienBan | None = None,
+    reservation_at: datetime | None = None,
+    reservation_minutes: int | None = None,
+) -> CustomerTableResponse:
+    return CustomerTableResponse(
+        qr_token=table.qr_token,
+        ban_id=table.id,
+        ma_ban=table.ma_ban,
+        suc_chua_toi_thieu=table.suc_chua_toi_thieu or 1,
+        suc_chua_toi_da=table.suc_chua_toi_da or 1,
+        loai_ban=table.loai_ban or "THUONG",
+        status=status,
+        message=message,
+        can_order=can_order,
+        reservation_at=reservation_at,
+        reservation_minutes=reservation_minutes,
+        phien_ban_id=session.id if session else None,
+    )
+
+
+def _table_state(
+    db: Session,
+    table: Ban,
+    session_id: int | None = None,
+    *,
+    create_session: bool = False,
+) -> CustomerTableResponse:
     now = _now()
-    session = _active_session(db, table.id)
-    if session is not None and session.id != session_id:
-        return CustomerTableResponse(
-            qr_token=table.qr_token, ban_id=table.id, ma_ban=table.ma_ban,
-            suc_chua_toi_thieu=table.suc_chua_toi_thieu or 1,
-            suc_chua_toi_da=table.suc_chua_toi_da or 1, loai_ban=table.loai_ban or "THUONG",
-            status="OCCUPIED", message="Bàn đang có khách. Vui lòng tìm nhân viên phục vụ để được sắp xếp bàn.",
-            can_order=False, phien_ban_id=None,
+
+    # A table being cleaned is never available to a QR guest. The staff must
+    # finish/reset the table first. This is deliberately checked before the
+    # active-session lookup so a stale session cannot make DANG_DON usable.
+    if table.trang_thai == "DANG_DON":
+        return _table_response(
+            table,
+            status="CLEANING",
+            message="Bàn đang được dọn. Vui lòng gọi phục vụ để được hỗ trợ.",
+            can_order=False,
+        )
+
+    session = _active_session(db, table.id, lock=create_session)
+    if session is not None:
+        # Every phone scanning the current QR joins the same open table
+        # session. There is intentionally no device/user ownership check: QR
+        # is the table's shared entry point.
+        return _table_response(
+            table,
+            status="IN_SERVICE",
+            message="Bạn đã vào phiên gọi món của bàn. Có thể xem món đã gọi và gọi thêm.",
+            can_order=True,
+            session=session,
         )
 
     booking, start = _next_reservation(db, table.id, now)
     if booking is not None:
         minutes = int((start - now).total_seconds() // 60)
         if minutes <= RESERVATION_GUARD_MINUTES:
-            return CustomerTableResponse(
-                qr_token=table.qr_token, ban_id=table.id, ma_ban=table.ma_ban,
-                suc_chua_toi_thieu=table.suc_chua_toi_thieu or 1,
-                suc_chua_toi_da=table.suc_chua_toi_da or 1, loai_ban=table.loai_ban or "THUONG",
+            return _table_response(
+                table,
                 status="RESERVED_SOON",
-                message=f"Bàn đã được đặt trước và còn khoảng {max(minutes, 0)} phút sẽ có khách đến. Vui lòng tìm nhân viên phục vụ để được dẫn sang bàn khác.",
-                can_order=False, reservation_at=start, reservation_minutes=minutes,
-                phien_ban_id=session.id if session else None,
+                message=(
+                    f"Bàn đã được đặt trước và còn khoảng {max(minutes, 0)} phút "
+                    "sẽ có khách đến. Vui lòng tìm nhân viên phục vụ để được dẫn sang bàn khác."
+                ),
+                can_order=False,
+                reservation_at=start,
+                reservation_minutes=minutes,
             )
 
-    return CustomerTableResponse(
-        qr_token=table.qr_token, ban_id=table.id, ma_ban=table.ma_ban,
-        suc_chua_toi_thieu=table.suc_chua_toi_thieu or 1,
-        suc_chua_toi_da=table.suc_chua_toi_da or 1,
-        loai_ban=table.loai_ban or "THUONG",
-        status="AVAILABLE", message="Bàn có thể sử dụng. Bạn có thể xem menu và gọi món.",
-        can_order=True, reservation_at=start,
-        reservation_minutes=int((start-now).total_seconds() // 60) if start else None,
-        phien_ban_id=session.id if session else None,
+    if create_session and table.trang_thai == "TRONG":
+        # The acceptance criteria require the scan itself to open the service
+        # session. Locking the table/session lookup makes concurrent scans
+        # converge on one session instead of creating two sessions.
+        session = _active_session(db, table.id, lock=True)
+        if session is None:
+            session = PhienBan(
+                ban_id=table.id,
+                trang_thai="DANG_PHUC_VU",
+                bat_dau_at=now,
+                created_by=None,
+            )
+            db.add(session)
+            table.trang_thai = "DANG_SU_DUNG"
+            table.trang_thai_changed_at = now
+            db.flush()
+        return _table_response(
+            table,
+            status="IN_SERVICE",
+            message="Phiên gọi món đã được mở cho bàn này.",
+            can_order=True,
+            session=session,
+        )
+
+    if table.trang_thai == "DANG_SU_DUNG":
+        return _table_response(
+            table,
+            status="OCCUPIED",
+            message="Bàn đang được sử dụng. Vui lòng gọi phục vụ để được hỗ trợ.",
+            can_order=False,
+        )
+
+    return _table_response(
+        table,
+        status="AVAILABLE",
+        message="Bàn có thể sử dụng. Bạn có thể xem menu và gọi món.",
+        can_order=True,
+        reservation_at=start,
+        reservation_minutes=int((start - now).total_seconds() // 60) if start else None,
     )
 
 
@@ -132,13 +211,24 @@ def scan_customer_qr(
     phien_ban_id: int | None = Query(default=None, gt=0),
     db: Session = Depends(get_db),
 ):
-    table = _get_table_by_qr(db, qr_token)
-    return _table_state(db, table, phien_ban_id)
+    # QR scanning is the customer entry point. For a truly empty table this
+    # endpoint opens the session immediately, as required by the user story.
+    table = _get_table_by_qr(db, qr_token, lock=True)
+    try:
+        result = _table_state(db, table, phien_ban_id, create_session=True)
+        db.commit()
+        return result
+    except Exception:
+        db.rollback()
+        raise
 
 
 @router.post("/orders", response_model=CustomerOrderResponse, status_code=201)
 def create_customer_order(payload: CustomerOrderCreate, db: Session = Depends(get_db)):
     table = _get_table_by_qr(db, payload.qr_token, lock=True)
+    if table.trang_thai == "DANG_DON":
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Bàn đang được dọn. Vui lòng gọi phục vụ để được hỗ trợ.")
     now = _now()
 
     session = _active_session(db, table.id, lock=True)
@@ -146,12 +236,23 @@ def create_customer_order(payload: CustomerOrderCreate, db: Session = Depends(ge
         if session is None or session.id != payload.phien_ban_id:
             db.rollback()
             raise HTTPException(status_code=409, detail="Phiên phục vụ không còn hợp lệ. Vui lòng quét lại mã QR.")
-    elif session is not None:
-        db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="Bàn đang có khách. Nếu bạn là khách của bàn này, hãy tiếp tục từ thiết bị đã mở trước đó.",
+    elif session is None:
+        # New clients should normally receive the session from QR scan. Keep a
+        # defensive fallback for direct API callers, but only for a genuinely
+        # empty table.
+        if table.trang_thai != "TRONG":
+            db.rollback()
+            raise HTTPException(status_code=409, detail="Vui lòng quét lại mã QR để mở phiên gọi món.")
+        session = PhienBan(
+            ban_id=table.id,
+            trang_thai="DANG_PHUC_VU",
+            bat_dau_at=now,
+            created_by=None,
         )
+        db.add(session)
+        db.flush()
+        table.trang_thai = "DANG_SU_DUNG"
+        table.trang_thai_changed_at = now
 
     booking, start = _next_reservation(db, table.id, now)
     if booking is not None:
@@ -177,15 +278,6 @@ def create_customer_order(payload: CustomerOrderCreate, db: Session = Depends(ge
     if len(dishes) != len(set(dish_ids)):
         db.rollback()
         raise HTTPException(status_code=409, detail="Một hoặc nhiều món vừa chuyển sang trạng thái tạm hết/ngừng bán. Vui lòng kiểm tra lại menu.")
-
-    if session is None:
-        session = PhienBan(
-            ban_id=table.id, trang_thai="DANG_PHUC_VU",
-            bat_dau_at=now, created_by=None,
-        )
-        db.add(session)
-        db.flush()
-        table.trang_thai = "DANG_SU_DUNG"
 
     max_dot = db.scalar(
         select(func.max(DotGoiMon.so_dot)).where(DotGoiMon.phien_ban_id == session.id)

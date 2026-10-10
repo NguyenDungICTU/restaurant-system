@@ -83,6 +83,9 @@ class StaffOrderLineResponse(BaseModel):
     ghi_chu: str | None
     trang_thai: str
     thoi_diem_tiep_nhan: datetime
+    bat_dau_che_bien_at: datetime | None = None
+    hoan_thanh_at: datetime | None = None
+    phuc_vu_at: datetime | None = None
     du_kien_hoan_thanh_at: datetime | None
     hoan_thanh_at: datetime | None = None
     phuc_vu_at: datetime | None = None
@@ -97,3 +100,6 @@ class StaffOrderStatusUpdate(BaseModel):
 
 class CancelOrderLineRequest(BaseModel):
     ly_do_huy: str = Field(min_length=1, max_length=100)
+class StaffAdditionalOrderCreate(BaseModel):
+    phien_ban_id: int = Field(gt=0)
+    items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)

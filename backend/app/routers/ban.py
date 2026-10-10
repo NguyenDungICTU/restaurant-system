@@ -1,3 +1,4 @@
+from app.services.booking_timeout import table_timeout_views
 import secrets
 from _thread import LockType
 from datetime import datetime, timedelta
@@ -140,7 +141,9 @@ def list_tables(
     if khu_vuc_id is not None:
         query = query.where(Ban.khu_vuc_id == khu_vuc_id)
 
-    return list(db.scalars(query))
+    tables = list(db.scalars(query))
+    views = table_timeout_views(db, [table.id for table in tables], datetime.now(VIETNAM_TZ))
+    return [BanResponse.model_validate(table).model_copy(update=views[table.id]) for table in tables]
 
 
 def eligible_arrival_bookings(
@@ -549,7 +552,16 @@ def download_area_qr(
         )
 
     return Response(
-        area_pdf(area, tables, frontend_origin or request.headers.get("origin")),
+        area_pdf(
+            area,
+            tables,
+            frontend_origin=frontend_origin,
+            host=(
+                request.headers.get("x-forwarded-host")
+                or request.headers.get("host")
+            ),
+            forwarded_proto=request.headers.get("x-forwarded-proto"),
+        ),
         media_type="application/pdf",
         headers={
             "Content-Disposition": (
@@ -659,6 +671,7 @@ def build_table_details(
         "qr_token": table.qr_token,
         "created_at": table.created_at,
         "updated_at": table.updated_at,
+        **table_timeout_views(db, [table.id], now)[table.id],
         "khach_dang_ngoi": guests_seated,
         "bat_dau_phuc_vu_at": service_started_at,
         "tam_tinh_hien_tai": subtotal,
@@ -912,7 +925,15 @@ def download_table_qr(
         )
 
     return Response(
-        qr_png(table.qr_token, frontend_origin or request.headers.get("origin")),
+        qr_png(
+            table.qr_token,
+            frontend_origin=frontend_origin,
+            host=(
+                request.headers.get("x-forwarded-host")
+                or request.headers.get("host")
+            ),
+            forwarded_proto=request.headers.get("x-forwarded-proto"),
+        ),
         media_type="image/png",
         headers={
             "Content-Disposition": (

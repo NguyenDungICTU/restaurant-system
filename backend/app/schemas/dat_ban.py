@@ -32,6 +32,9 @@ class DatBanCreate(BaseModel):
 
 
 class DatBanResponse(DatBanCreate):
+    so_lan_khong_toi_90_ngay: int = 0
+    canh_bao_khong_toi: bool = False
+
     id: int
     ma_dat_ban: str
     thoi_luong_giu_ban: int
@@ -57,6 +60,15 @@ class DatBanResponse(DatBanCreate):
 
 
 class DatBanHomNayResponse(BaseModel):
+    so_lan_khong_toi_90_ngay: int = 0
+    canh_bao_khong_toi: bool = False
+    ban_id: int | None = None
+    qua_gio_hen: bool = False
+    da_gia_han: bool = False
+    co_the_gia_han: bool = False
+    co_the_danh_dau_khong_toi: bool = False
+    han_giu_ban_at: datetime | None = None
+
     id: int
     ma_dat_ban: str
     ho_ten_khach: str
@@ -144,6 +156,9 @@ class PublicTimeSlotsResponse(BaseModel):
 
 
 class PublicBookingResponse(BaseModel):
+    so_lan_khong_toi_90_ngay: int = 0
+    canh_bao_khong_toi: bool = False
+
     ma_dat_ban: str
     ho_ten_khach: str
     so_dien_thoai: str

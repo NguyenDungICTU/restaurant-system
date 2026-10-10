@@ -107,6 +107,12 @@ export default function QuetQR({ token }) {
       }
 
       if (sessionId && !state.phien_ban_id) {
+      if (state.phien_ban_id && state.phien_ban_id !== sessionId) {
+        // The QR belongs to the table, not to one phone. Always accept the
+        // server's active session so a second phone joins the same session.
+        setSessionId(state.phien_ban_id)
+        localStorage.setItem(sessionKey(token), String(state.phien_ban_id))
+      } else if (!state.phien_ban_id && sessionId) {
         setSessionId(null)
         localStorage.removeItem(sessionKey(token))
       }
@@ -346,6 +352,15 @@ export default function QuetQR({ token }) {
               />
             )}
 
+            {table.status === 'IN_SERVICE' && table.phien_ban_id && (
+              <Alert
+                type="success"
+                showIcon
+                message={`Đang ở chung phiên gọi món của bàn ${table.ma_ban}`}
+                description="Bạn có thể xem các món bàn đã gọi trước đó và gọi thêm món."
+              />
+            )}
+
             {table.can_order && table.reservation_at && (
               <Alert
                 type="info"
@@ -397,6 +412,56 @@ export default function QuetQR({ token }) {
                                 <h3>{category.ten_nhom}</h3>
                               </div>
                               <Tag>{categoryDishes.length} món</Tag>
+                              {dish.mo_ta_ngan && <p>{dish.mo_ta_ngan}</p>}
+                              <small>{dish.don_vi_tinh} · chế biến khoảng {dish.thoi_gian_che_bien_phut || 0} phút</small>
+                         {quantity > 0 && (
+  <div className="customer-note">
+    <Input
+      size="small"
+      value={notes[dish.id] || ''}
+      onChange={(event) =>
+        setNotes((current) => ({
+          ...current,
+          [dish.id]: event.target.value,
+        }))
+      }
+      placeholder="Ghi chú cho bếp (tuỳ chọn)"
+      maxLength={200}
+    />
+
+    <div className="customer-note-quick">
+      {['Ít cay', 'Không hành', 'Không rau', 'Ít muối', 'Không đá'].map((quickNote) => (
+        <Button
+          key={quickNote}
+          size="small"
+          onClick={() =>
+            setNotes((current) => {
+              const currentNote = current[dish.id] || ''
+              const notesList = currentNote
+                .split(', ')
+                .filter(Boolean)
+
+              if (!notesList.includes(quickNote)) {
+                notesList.push(quickNote)
+              }
+
+              return {
+                ...current,
+                [dish.id]: notesList.join(', ').slice(0, 200),
+              }
+            })
+          }
+        >
+          {quickNote}
+        </Button>
+      ))}
+    </div>
+
+    <small>
+      {(notes[dish.id] || '').length}/200 ký tự
+    </small>
+  </div>
+)}
                             </div>
 
                             <div className="customer-dish-list">
