@@ -30,10 +30,6 @@
   gap: 12px;
 }
 
-.table-map-area-select {
-  width: 150px;
-}
-
 .table-map-date-input.ant-input {
   width: 180px;
   height: 40px;
@@ -53,9 +49,51 @@
 
 .table-map-toolbar {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   margin: -4px 0 12px;
+}
+
+.table-map-toolbar .ant-btn {
+  display: inline-flex;
+  min-height: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-map-page .table-map-toolbar .ant-btn.table-map-add-button {
+  color: #fff;
+  border-color: #a63228;
+  background: #a63228;
+  box-shadow: 0 5px 12px rgba(166, 50, 40, 0.16);
+}
+
+.table-map-page .table-map-toolbar .ant-btn.table-map-add-button:not(:disabled):hover,
+.table-map-page .table-map-toolbar .ant-btn.table-map-add-button:not(:disabled):focus {
+  color: #fff;
+  border-color: #86251e;
+  background: #86251e;
+}
+
+.table-map-page .table-map-toolbar .ant-btn.table-map-add-button:focus-visible {
+  outline: 2px solid #a63228;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(166, 50, 40, 0.2);
+}
+
+.table-map-page .table-map-toolbar .ant-btn.table-map-add-button:not(:disabled):active {
+  color: #fff;
+  border-color: #701f1a;
+  background: #701f1a;
+}
+
+.table-map-page .table-map-toolbar .ant-btn.table-map-add-button:disabled {
+  color: #fff;
+  border-color: #c98c86;
+  background: #c98c86;
+  box-shadow: none;
 }
 
 .table-map-time-range {
@@ -570,10 +608,6 @@
     gap: 8px;
   }
 
-  .table-map-area-select {
-    width: 130px;
-  }
-
   .table-map-date-input.ant-input {
     width: 160px;
   }
@@ -622,4 +656,90 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.table-map-page .management-operational-table .ant-table-thead > tr > th {
+  text-align: center;
+}
+
+.table-map-page .management-operational-table .management-table-actions {
+  justify-content: center;
+}
+
+.table-map-page .management-operational-table .management-qr-actions .ant-btn,
+.table-map-page .management-operational-table .management-record-actions .ant-btn {
+  display: inline-flex;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.table-map-page .management-operational-table .table-map-delete-button {
+  color: #3f3f46;
+  border-color: #71717a;
+  background: #fff;
+}
+
+.table-map-page .management-operational-table .table-map-delete-button:not(:disabled):hover,
+.table-map-page .management-operational-table .table-map-delete-button:not(:disabled):focus {
+  color: #18181b;
+  border-color: #3f3f46;
+  background: #f4f4f5;
+}
+
+.table-map-page .management-operational-table .table-map-delete-button:focus-visible {
+  outline: 2px solid #71717a;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.table-map-page .management-operational-table .table-map-delete-button:not(:disabled):active {
+  color: #18181b;
+  border-color: #27272a;
+  background: #e4e4e7;
+}
+
+.table-map-page .management-operational-table .table-map-delete-button:disabled {
+  color: #a1a1aa;
+  border-color: #e4e4e7;
+  background: #f4f4f5;
+}
+
+.table-map-delete-confirm-button.ant-btn-primary {
+  color: #fff;
+  border-color: #3f3f46;
+  background: #3f3f46;
+  box-shadow: none;
+}
+
+.table-map-delete-confirm-button.ant-btn-primary:not(:disabled):hover,
+.table-map-delete-confirm-button.ant-btn-primary:not(:disabled):focus {
+  color: #fff;
+  border-color: #27272a;
+  background: #27272a;
+}
+
+.table-map-delete-confirm-button.ant-btn-primary:focus-visible {
+  outline: 2px solid #71717a;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.table-map-delete-confirm-button.ant-btn-primary:not(:disabled):active {
+  color: #fff;
+  border-color: #18181b;
+  background: #18181b;
+}
+
+.table-map-delete-menu-item.ant-dropdown-menu-item {
+  color: #3f3f46;
+}
+
+.table-map-delete-menu-item.ant-dropdown-menu-item:hover,
+.table-map-delete-menu-item.ant-dropdown-menu-item:focus {
+  color: #18181b;
+  background: #f4f4f5;
 }

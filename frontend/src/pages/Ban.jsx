@@ -6,7 +6,6 @@ import {
   useState,
 } from 'react'
 import {
-  ApartmentOutlined,
   AppstoreOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
@@ -269,12 +268,13 @@ function sortAreasByFloor(areas) {
 
 export default function Ban({ user }) {
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState()
+  const [statusFilter, setStatusFilter] = useState('all')
   const isManager = user?.role === 'QUAN_LY'
   const canReceiveGuests = ['QUAN_LY', 'PHUC_VU'].includes(user?.role)
   const [tables, setTables] = useState([])
   const [areas, setAreas] = useState([])
   const [areaId, setAreaId] = useState()
+  const [areaFilterId, setAreaFilterId] = useState('all')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -1081,7 +1081,7 @@ export default function Ban({ user }) {
       okText: 'Xóa bàn',
       cancelText: 'Hủy',
       okButtonProps: {
-        danger: true,
+        className: 'table-map-delete-confirm-button',
       },
       onOk: () =>
         run(
@@ -1166,6 +1166,7 @@ export default function Ban({ user }) {
     {
       title: 'Mã bàn',
       dataIndex: 'ma_ban',
+      align: 'center',
       render: value => (
         <strong className="management-table-code">{value}</strong>
       ),
@@ -1173,6 +1174,7 @@ export default function Ban({ user }) {
     {
       title: 'Khu vực',
       dataIndex: 'khu_vuc_id',
+      align: 'center',
       render: id => (
         <span className="management-table-area">
           <AppstoreOutlined />
@@ -1184,6 +1186,7 @@ export default function Ban({ user }) {
     },
     {
       title: 'Sức chứa',
+      align: 'center',
       render: (_, row) => (
         <span className="management-capacity">
           <TeamOutlined />
@@ -1197,11 +1200,13 @@ export default function Ban({ user }) {
     {
       title: 'Loại',
       dataIndex: 'loai_ban',
+      align: 'center',
       render: value => types[value] || value || 'Chưa cấu hình',
     },
     {
       title: 'Trạng thái',
       dataIndex: 'trang_thai',
+      align: 'center',
       render: value => (
         <Tag
           className="management-status"
@@ -1220,6 +1225,7 @@ export default function Ban({ user }) {
     },
     {
       title: 'Thao tác',
+      align: 'center',
       render: (_, row) => (
         <div className="management-table-actions">
           <div
@@ -1246,9 +1252,7 @@ export default function Ban({ user }) {
                   title="Tải mã QR định dạng PNG"
                   aria-label={`Tải QR PNG · ${row.ma_ban}`}
                   icon={<QRActionIcon />}
-                >
-                  Tải QR
-                </Button>
+                />
                 <Button
                   className="management-qr-rotate"
                   disabled={busy}
@@ -1256,9 +1260,7 @@ export default function Ban({ user }) {
                   title="Đổi QR: sinh mã QR mới và vô hiệu hóa mã cũ"
                   aria-label={`Sinh lại QR · ${row.ma_ban}`}
                   icon={<QRActionIcon rotate />}
-                >
-                  Đổi QR
-                </Button>
+                />
               </>
             )}
           </div>
@@ -1275,7 +1277,7 @@ export default function Ban({ user }) {
               icon={<EditOutlined />}
             />
             <Button
-              danger
+              className="table-map-delete-button"
               disabled={busy}
               onClick={() => remove(row)}
               title="Xóa bàn"
@@ -1348,17 +1350,6 @@ export default function Ban({ user }) {
           </p>
         </div>
         <div className="table-map-header-controls">
-          <Select
-            aria-label="Lọc khu vực"
-            value={areaId}
-            onChange={setAreaId}
-            className="table-map-area-select"
-            suffixIcon={<ApartmentOutlined />}
-            options={sortedAreas.map(area => ({
-              value: area.id,
-              label: formatAreaName(area.ten_khu_vuc),
-            }))}
-          />
           <Input
             aria-label="Ngày xem lịch bàn"
             type="date"
@@ -1420,6 +1411,7 @@ export default function Ban({ user }) {
         <div className="table-map-toolbar">
           <Button
             type="primary"
+            className="table-map-add-button"
             disabled={
               loading ||
               busy ||
@@ -1564,36 +1556,38 @@ export default function Ban({ user }) {
             onChange={event => setSearch(event.target.value)}
           />
           <Select
-            aria-label="Lọc khu vực"
-            placeholder="Tất cả khu vực"
-            allowClear
-            value={areaId}
-            onChange={setAreaId}
+            aria-label="Lọc tầng"
+            value={areaFilterId}
+            onChange={setAreaFilterId}
             className="management-filter"
-            options={areas.map(area => ({
-              value: area.id,
-              label: area.ten_khu_vuc,
-            }))}
+            options={[
+              { value: 'all', label: 'Tất cả tầng' },
+              ...areas.map(area => ({
+                value: area.id,
+                label: area.ten_khu_vuc,
+              })),
+            ]}
           />
           <Select
             aria-label="Lọc trạng thái bàn"
-            placeholder="Tất cả trạng thái"
-            allowClear
             value={statusFilter}
             onChange={setStatusFilter}
-            options={options(statuses)}
+            options={[
+              { value: 'all', label: 'Tất cả trạng thái' },
+              ...options(statuses),
+            ]}
             className="management-filter"
           />
           <Button
             icon={<FilePdfOutlined />}
             title="Chọn khu vực để tải PDF QR"
-            disabled={!areaId || busy}
+            disabled={areaFilterId === 'all' || busy}
             onClick={() =>
               run(
                 () =>
                   downloadQR(
-                    `/api/ban/khu-vuc/${areaId}/qr.pdf`,
-                    `khu-vuc-${areaId}-qr.pdf`
+                    `/api/ban/khu-vuc/${areaFilterId}/qr.pdf`,
+                    `khu-vuc-${areaFilterId}-qr.pdf`
                   ),
                 'Đã tải PDF QR của khu vực.',
                 false
@@ -1609,8 +1603,9 @@ export default function Ban({ user }) {
           loading={{ spinning: loading, description: 'Đang tải danh sách bàn…' }}
           dataSource={tables.filter(
             row =>
-              (!areaId || row.khu_vuc_id === areaId) &&
-              (!statusFilter || row.trang_thai === statusFilter) &&
+              (areaFilterId === 'all' ||
+                row.khu_vuc_id === areaFilterId) &&
+              (statusFilter === 'all' || row.trang_thai === statusFilter) &&
               String(row.ma_ban || '')
                 .toLocaleLowerCase('vi')
                 .includes(search.trim().toLocaleLowerCase('vi'))
@@ -1797,7 +1792,7 @@ export default function Ban({ user }) {
                     {
                       key: 'delete',
                       label: 'Xóa',
-                      danger: true,
+                      className: 'table-map-delete-menu-item',
                       onClick: () => remove(table),
                     },
                   ]
