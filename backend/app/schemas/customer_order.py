@@ -6,6 +6,12 @@ from pydantic import BaseModel, Field
 
 class CustomerOrderItem(BaseModel):
     mon_an_id: int = Field(gt=0)
+    so_luong: int = Field(ge=1, le=20)
+    ghi_chu: str | None = Field(default=None, max_length=200)
+
+
+class StaffOrderItem(BaseModel):
+    mon_an_id: int = Field(gt=0)
     so_luong: int = Field(ge=1, le=50)
     ghi_chu: str | None = Field(default=None, max_length=200)
 
@@ -13,11 +19,12 @@ class CustomerOrderItem(BaseModel):
 class CustomerOrderCreate(BaseModel):
     qr_token: str = Field(min_length=10, max_length=100)
     phien_ban_id: int | None = Field(default=None, gt=0)
+    client_request_id: str | None = Field(default=None, min_length=16, max_length=100)
     items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)
 
 
 class StaffOrderCreate(BaseModel):
-    items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)
+    items: list[StaffOrderItem] = Field(min_length=1, max_length=30)
 
 
 class CustomerTableResponse(BaseModel):
