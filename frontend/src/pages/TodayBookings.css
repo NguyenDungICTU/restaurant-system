@@ -36,25 +36,40 @@
 
 .today-bookings-toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  margin-top: 0;
   margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #eee7df;
+  border-radius: 12px;
+  background: #faf8f5;
 }
 
-.today-bookings-toolbar > div {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.today-bookings-toolbar > .ant-input-affix-wrapper {
+  flex: 1.4 1 180px;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 9px;
 }
 
-.today-bookings-toolbar span {
+.today-bookings-toolbar > .today-bookings-filter {
+  flex: 1 1 155px;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 9px;
+}
+
+.today-bookings-toolbar > .today-bookings-filter .ant-select-selector {
+  min-height: 44px;
+  align-items: center;
+}
+
+.today-bookings-result-count {
+  margin-left: auto;
   color: #667085;
   font-size: 13px;
-}
-
-.today-bookings-filter {
-  min-width: 210px;
+  white-space: nowrap;
 }
 
 .today-bookings-alert {
@@ -89,7 +104,16 @@
     align-items: stretch;
   }
 
-  .today-bookings-filter {
+  .today-bookings-toolbar > .today-bookings-filter,
+  .today-bookings-toolbar > .ant-input-affix-wrapper,
+  .today-bookings-toolbar .today-bookings-result-count {
     width: 100%;
+    flex-basis: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .today-bookings-toolbar {
+    padding: 12px;
   }
 }

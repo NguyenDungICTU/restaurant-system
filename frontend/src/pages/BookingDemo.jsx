@@ -45,6 +45,15 @@ const BOOKING_STATUS_META = {
   KHACH_KHONG_TOI: { label: 'Khách không tới', tone: 'neutral' },
 }
 
+const BOOKING_STATUS_FILTERS = [
+  { value: 'ALL', label: 'Tất cả trạng thái' },
+  { value: 'CHO_XAC_NHAN', label: 'Chờ xác nhận' },
+  { value: 'DA_XAC_NHAN', label: 'Đã xác nhận' },
+  { value: 'DA_HUY', label: 'Đã hủy' },
+]
+
+const BOOKINGS_PER_PAGE = 10
+
 function tableStatusMeta(table) {
   if (!table.da_cau_hinh) return { label: 'Chưa cấu hình', tone: 'neutral' }
   return TABLE_STATUS_META[table.trang_thai] || { label: table.trang_thai || 'Chưa có trạng thái', tone: 'neutral' }
@@ -148,6 +157,9 @@ export default function BookingDemo({ focusedBookingId = null }) {
   const [result, setResult] = useState(null)
   const [tables, setTables] = useState([])
   const [areas, setAreas] = useState([])
+  const [bookingSearch, setBookingSearch] = useState('')
+  const [bookingStatusFilter, setBookingStatusFilter] = useState('ALL')
+  const [bookingPage, setBookingPage] = useState(1)
   const [tableSearch, setTableSearch] = useState('')
   const [tableAreaFilter, setTableAreaFilter] = useState('all')
   const [tablesPerPage, setTablesPerPage] = useState(10)
@@ -186,6 +198,44 @@ export default function BookingDemo({ focusedBookingId = null }) {
     () => new Map(areas.map((area) => [area.id, area])),
     [areas],
   )
+  const filteredBookings = useMemo(() => {
+    const query = bookingSearch.trim().toLocaleLowerCase('vi')
+
+    return bookings.filter((booking) => {
+      const matchesStatus = bookingStatusFilter === 'ALL'
+        || booking.trang_thai === bookingStatusFilter
+      if (!matchesStatus) return false
+      if (!query) return true
+
+      const assignedTable = tables.find((table) => table.id === booking.ban_id)
+      const assignedAreaName = areasById.get(assignedTable?.khu_vuc_id)?.ten_khu_vuc
+      const requestedAreaId = booking.khu_vuc_yeu_cau_id ?? booking.khu_vuc_id
+      const requestedAreaName = areasById.get(requestedAreaId)?.ten_khu_vuc
+      const searchableText = [
+        booking.ho_ten_khach,
+        booking.ma_dat_ban,
+        booking.so_dien_thoai,
+        booking.ten_ban,
+        assignedTable?.ma_ban,
+        assignedAreaName,
+        requestedAreaName,
+      ].filter(Boolean).join(' ').toLocaleLowerCase('vi')
+
+      return searchableText.includes(query)
+    })
+  }, [areasById, bookingSearch, bookingStatusFilter, bookings, tables])
+  const totalBookingPages = Math.max(1, Math.ceil(filteredBookings.length / BOOKINGS_PER_PAGE))
+  const safeBookingPage = Math.min(bookingPage, totalBookingPages)
+  const bookingPageStartIndex = (safeBookingPage - 1) * BOOKINGS_PER_PAGE
+  const currentBookings = filteredBookings.slice(
+    bookingPageStartIndex,
+    bookingPageStartIndex + BOOKINGS_PER_PAGE,
+  )
+
+  useEffect(() => {
+    if (bookingPage !== safeBookingPage) setBookingPage(safeBookingPage)
+  }, [bookingPage, safeBookingPage])
+
   const tableDisplayName = (table) => table.ma_ban
     ? formatTableName(
       areasById.get(table.khu_vuc_id)?.ten_khu_vuc || '',
@@ -545,11 +595,34 @@ export default function BookingDemo({ focusedBookingId = null }) {
 
       <Card
         className="booking-demo-card booking-demo-requests-card"
-        title={<span className="booking-demo-requests-title"><CalendarOutlined /> Danh sách yêu cầu đặt bàn <span className="booking-demo-card-count">{bookings.length}</span></span>}
+        title={<span className="booking-demo-requests-title"><CalendarOutlined /> Danh sách yêu cầu đặt bàn <span className="booking-demo-card-count">{filteredBookings.length}</span></span>}
       >
-        {bookings.length ? (
-          <div className="booking-demo-table-wrap">
-            <table className="booking-demo-table">
+        <div className="booking-demo-table-toolbar">
+          <Input
+            allowClear
+            aria-label="Tìm yêu cầu đặt bàn"
+            placeholder="Tìm khách, mã đặt bàn, số điện thoại, bàn hoặc khu vực"
+            prefix={<SearchOutlined />}
+            value={bookingSearch}
+            onChange={(event) => {
+              setBookingSearch(event.target.value)
+              setBookingPage(1)
+            }}
+          />
+          <Select
+            aria-label="Lọc trạng thái yêu cầu đặt bàn"
+            value={bookingStatusFilter}
+            onChange={(value) => {
+              setBookingStatusFilter(value)
+              setBookingPage(1)
+            }}
+            options={BOOKING_STATUS_FILTERS}
+          />
+        </div>
+        {filteredBookings.length ? (
+          <>
+            <div className="booking-demo-table-wrap">
+              <table className="booking-demo-table">
               <thead>
                 <tr>
                   <th>#</th>
@@ -562,8 +635,8 @@ export default function BookingDemo({ focusedBookingId = null }) {
                   <th>Trạng thái</th>
                 </tr>
               </thead>
-              <tbody>
-                {bookings.map((booking) => {
+                <tbody>
+                {currentBookings.map((booking, index) => {
                   const meta = bookingStatusMeta(booking.trang_thai)
                   const assignedTable = tables.find((table) => table.id === booking.ban_id)
                   const assignedName = assignedTable ? tableDisplayName(assignedTable) : ''
@@ -573,7 +646,7 @@ export default function BookingDemo({ focusedBookingId = null }) {
                         id={`booking-${booking.id}`}
                         className={String(booking.id) === String(focusedBookingId) ? 'booking-demo-row--focused' : ''}
                       >
-                        <td className="booking-demo-cell-id">#{booking.id}</td>
+                        <td className="booking-demo-cell-id">{bookingPageStartIndex + index + 1}</td>
                         <td>
                           <div className="booking-demo-cell-customer">
                             <strong>{booking.ho_ten_khach}</strong>
@@ -682,11 +755,50 @@ export default function BookingDemo({ focusedBookingId = null }) {
                     </Fragment>
                   )
                 })}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+            {filteredBookings.length > BOOKINGS_PER_PAGE && (
+              <div className="booking-demo-table-pagination" aria-label="Phân trang yêu cầu đặt bàn">
+                <span className="booking-demo-page-size">
+                  Hiển thị {bookingPageStartIndex + 1}–{Math.min(bookingPageStartIndex + BOOKINGS_PER_PAGE, filteredBookings.length)} trên tổng số {filteredBookings.length} yêu cầu
+                </span>
+                <div className="booking-demo-page-controls">
+                  <Button
+                    size="small"
+                    aria-label="Trang trước"
+                    icon={<LeftOutlined />}
+                    disabled={safeBookingPage <= 1}
+                    onClick={() => setBookingPage((page) => Math.max(1, page - 1))}
+                  />
+                  {Array.from({ length: totalBookingPages }, (_, index) => index + 1).map((page) => (
+                    <Button
+                      key={page}
+                      size="small"
+                      type={safeBookingPage === page ? 'primary' : 'default'}
+                      aria-label={`Trang ${page}`}
+                      aria-current={safeBookingPage === page ? 'page' : undefined}
+                      onClick={() => setBookingPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    size="small"
+                    aria-label="Trang sau"
+                    icon={<RightOutlined />}
+                    disabled={safeBookingPage >= totalBookingPages}
+                    onClick={() => setBookingPage((page) => Math.min(totalBookingPages, page + 1))}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         ) : (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có yêu cầu đặt bàn nào." />
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={bookings.length ? 'Không tìm thấy yêu cầu đặt bàn phù hợp.' : 'Chưa có yêu cầu đặt bàn nào.'}
+          />
         )}
       </Card>
     </section>
