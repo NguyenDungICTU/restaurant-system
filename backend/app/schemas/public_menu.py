@@ -11,6 +11,7 @@ class PublicMenuDish(BaseModel):
     mo_ta_ngan: str | None
     anh_url: str
     trang_thai: str
+    thoi_gian_che_bien_phut: int
 
 
 class PublicMenuCategory(BaseModel):
