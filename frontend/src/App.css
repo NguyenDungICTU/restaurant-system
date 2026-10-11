@@ -3612,76 +3612,76 @@
 
 /* Tiêu đề và dữ liệu trong bảng */
 .employee-dashboard table th {
-  font-size: 20px !important;
+  font-size: 16px !important;
 }
 
 .employee-dashboard table td {
-  font-size: 20px !important;
+  font-size: 16px !important;
 }
 
 /* Nhãn vai trò và trạng thái */
 .employee-dashboard table td span {
-  font-size: 20px !important;
+  font-size: 16px !important;
 }
 
 /* Thanh tìm kiếm và bộ lọc */
 .employee-dashboard input,
 .employee-dashboard select {
-  font-size: 20px !important;
+  font-size: 16px !important;
 }
 
 /* Chữ trong 4 ô thống kê */
 .employee-dashboard .employee-stat-card {
-  font-size: 20px !important;
+  font-size: 16px !important;
 }
 
 /* Tăng chữ ô tìm kiếm và bộ lọc */
 .employee-dashboard input,
 .employee-dashboard input::placeholder,
 .employee-dashboard select {
-  font-size: 23px !important;
+  font-size: 16px !important;
 }
 
 /* TĂNG CHỮ 4 Ô THỐNG KÊ NHÂN VIÊN */
 
 /* Tên thống kê */
 .employee-dashboard .employee-stat-card .stat-label {
-  font-size: 20px !important;
+  font-size: 16px !important;
 }
 
 /* Số lượng nhân viên */
 .employee-dashboard .employee-stat-card .stat-value {
-  font-size: 26px !important;
+  font-size: 20px !important;
   font-weight: 700;
 }
 
 /* Mô tả dưới số lượng */
 .employee-dashboard .employee-stat-card .stat-description {
-  font-size: 20px !important;
+  font-size: 16px !important;
 }
 
 /* TĂNG CỠ CHỮ 4 Ô THỐNG KÊ NHÂN VIÊN */
 
 /* Tổng nhân viên, Đang làm việc, Trạng thái khác, Đã nghỉ việc */
 .employee-dashboard-info span {
-  font-size: 20px !important;
+  font-size: 16px !important;
   font-weight: 600;
 }
 
 /* Số lượng nhân viên: 5, 4, 0, 1 */
 .employee-dashboard-info strong {
-  font-size: 28px !important;
+  font-size: 20px !important;
   font-weight: 700;
 }
 
 /* Chữ mô tả bên dưới */
 .employee-dashboard-info small {
-  font-size: 20px !important;
+  font-size: 16px !important;
 }
 
 /* Tăng cỡ chữ mô tả dưới tiêu đề Quản lý nhân viên */
 .employee-dashboard-header p {
-  font-size: 25px !important;
+  font-size: 20px !important;
   line-height: 1.6;
 }
 
@@ -3689,23 +3689,23 @@
 
 /* Tên, số điện thoại, tên đăng nhập, STT */
 .employee-panel .employee-table td {
-  font-size: 23px !important;
+  font-size: 16px !important;
 }
 
 /* Tiêu đề các cột */
 .employee-panel .employee-table th {
-  font-size: 23px !important;
+  font-size: 16px !important;
   font-weight: 600;
 }
 
 /* Vai trò và trạng thái */
 .employee-panel .employee-table td span {
-  font-size: 23px !important;
+  font-size: 16px !important;
 }
 
 /* Dòng hiển thị tổng số nhân viên bên dưới bảng */
 .employee-panel .employee-table-footer {
-  font-size: 23px !important;
+  font-size: 16px !important;
 }
 /* Chữ vai trò: tất cả màu đen */
 .employee-dashboard .employee-table .role-badge {
