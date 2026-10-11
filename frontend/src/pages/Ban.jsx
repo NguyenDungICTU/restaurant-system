@@ -738,6 +738,14 @@ export default function Ban({ user }) {
     }
 
     void refreshSnapshot({ initial: true })
+    // Poll so time-based reservation/cleanup transitions become visible even
+    // when no table-map event is emitted at the exact boundary.
+    const lifecyclePoll = window.setInterval(() => {
+      if (!stopped && !document.hidden) {
+        refreshVersionRef.current += 1
+        void refreshSnapshot()
+      }
+    }, 30_000)
     closeEventStream = createTableMapEventStream(
       handleEvent,
       handleStreamStatus
@@ -748,6 +756,7 @@ export default function Ban({ user }) {
 
     return () => {
       active = false
+      window.clearInterval(lifecyclePoll)
       stopSync()
       scheduleRefreshRef.current = null
       document.removeEventListener('visibilitychange', onVisibilityChange)
@@ -1254,6 +1263,7 @@ export default function Ban({ user }) {
               TRONG: 'green',
               DA_DAT: 'gold',
               DANG_SU_DUNG: 'blue',
+              DANG_DON: 'processing',
               NGUNG_SU_DUNG: 'default',
             }[value]
           }
@@ -2140,7 +2150,7 @@ export default function Ban({ user }) {
                         ) : detailData.trang_thai === 'DA_DAT' ? (
                           <Descriptions.Item label="Đặt bàn sắp tới">
                             {detailData.dat_ban_sap_toi
-                              ? `${detailData.dat_ban_sap_toi.ho_ten_khach} · ${formatVietnamDateTime(detailData.dat_ban_sap_toi.thoi_gian_den_at)} · ${detailData.dat_ban_sap_toi.so_luong_khach} khách`
+                              ? `${detailData.dat_ban_sap_toi.ho_ten_khach} · ${detailData.dat_ban_sap_toi.so_luong_khach} khách · Dự kiến phục vụ đến ${formatVietnamDateTime(detailData.dat_ban_sap_toi.thoi_gian_ket_thuc_du_kien_at)} · Sẵn sàng lại lúc ${formatVietnamDateTime(detailData.dat_ban_sap_toi.thoi_gian_san_sang_at)}`
                               : 'Chưa có đặt bàn sắp tới'}
                           </Descriptions.Item>
                         ) : detailData.trang_thai === 'DANG_SU_DUNG' ? (
@@ -2228,6 +2238,9 @@ export default function Ban({ user }) {
                                           ? `${end.time}${end.nextDay ? ' (+1 ngày)' : ''}`
                                           : 'Chưa có thông tin'}
                                       </strong>
+                                      <span className="table-cleanup-note">
+                                        Dự kiến dọn bàn thêm 15 phút sau giờ kết thúc phục vụ
+                                      </span>
                                       <span>
                                         {booking.ho_ten_khach} ·{' '}
                                         {booking.so_luong_khach} khách

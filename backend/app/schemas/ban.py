@@ -48,6 +48,8 @@ class UpcomingTableBookingResponse(BaseModel):
     ho_ten_khach: str
     so_luong_khach: int
     thoi_gian_den_at: datetime
+    thoi_gian_ket_thuc_du_kien_at: datetime
+    thoi_gian_san_sang_at: datetime
 
 
 class SeatedGuestResponse(BaseModel):
