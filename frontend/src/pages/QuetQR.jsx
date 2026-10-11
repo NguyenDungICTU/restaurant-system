@@ -101,20 +101,16 @@ export default function QuetQR({ token }) {
       setTable(state)
       setError('')
 
-      if (state.phien_ban_id && !sessionId) {
-        setSessionId(state.phien_ban_id)
-        localStorage.setItem(sessionKey(token), String(state.phien_ban_id))
-      }
-
-      if (sessionId && !state.phien_ban_id) {
-      if (state.phien_ban_id && state.phien_ban_id !== sessionId) {
-        // The QR belongs to the table, not to one phone. Always accept the
-        // server's active session so a second phone joins the same session.
-        setSessionId(state.phien_ban_id)
-        localStorage.setItem(sessionKey(token), String(state.phien_ban_id))
-      } else if (!state.phien_ban_id && sessionId) {
-        setSessionId(null)
-        localStorage.removeItem(sessionKey(token))
+      // The QR belongs to the table, not to one phone. The server is the
+      // source of truth, so every phone joins the table's current session.
+      const serverSessionId = state.phien_ban_id ? Number(state.phien_ban_id) : null
+      if (serverSessionId !== sessionId) {
+        setSessionId(serverSessionId)
+        if (serverSessionId) {
+          localStorage.setItem(sessionKey(token), String(serverSessionId))
+        } else {
+          localStorage.removeItem(sessionKey(token))
+        }
       }
 
       if (state.can_order) {
@@ -171,7 +167,7 @@ export default function QuetQR({ token }) {
 
   const selected = useMemo(
     () => dishes
-      .filter((dish) => cart[dish.id])
+      .filter((dish) => cart[dish.id] && dish.trang_thai !== 'TAM_HET')
       .map((dish) => ({
         ...dish,
         so_luong: cart[dish.id],
@@ -412,56 +408,6 @@ export default function QuetQR({ token }) {
                                 <h3>{category.ten_nhom}</h3>
                               </div>
                               <Tag>{categoryDishes.length} món</Tag>
-                              {dish.mo_ta_ngan && <p>{dish.mo_ta_ngan}</p>}
-                              <small>{dish.don_vi_tinh} · chế biến khoảng {dish.thoi_gian_che_bien_phut || 0} phút</small>
-                         {quantity > 0 && (
-  <div className="customer-note">
-    <Input
-      size="small"
-      value={notes[dish.id] || ''}
-      onChange={(event) =>
-        setNotes((current) => ({
-          ...current,
-          [dish.id]: event.target.value,
-        }))
-      }
-      placeholder="Ghi chú cho bếp (tuỳ chọn)"
-      maxLength={200}
-    />
-
-    <div className="customer-note-quick">
-      {['Ít cay', 'Không hành', 'Không rau', 'Ít muối', 'Không đá'].map((quickNote) => (
-        <Button
-          key={quickNote}
-          size="small"
-          onClick={() =>
-            setNotes((current) => {
-              const currentNote = current[dish.id] || ''
-              const notesList = currentNote
-                .split(', ')
-                .filter(Boolean)
-
-              if (!notesList.includes(quickNote)) {
-                notesList.push(quickNote)
-              }
-
-              return {
-                ...current,
-                [dish.id]: notesList.join(', ').slice(0, 200),
-              }
-            })
-          }
-        >
-          {quickNote}
-        </Button>
-      ))}
-    </div>
-
-    <small>
-      {(notes[dish.id] || '').length}/200 ký tự
-    </small>
-  </div>
-)}
                             </div>
 
                             <div className="customer-dish-list">
@@ -509,12 +455,33 @@ export default function QuetQR({ token }) {
                                             onChange={(event) => {
                                               setNotes((current) => ({
                                                 ...current,
-                                                [dish.id]: event.target.value,
+                                                [dish.id]: event.target.value.slice(0, 200),
                                               }))
                                             }}
                                             placeholder="Ghi chú cho bếp (tuỳ chọn)"
                                             maxLength={200}
                                           />
+                                          <div className="customer-note-quick">
+                                            {['Ít cay', 'Không hành', 'Không rau', 'Ít muối', 'Không đá'].map((quickNote) => (
+                                              <Button
+                                                key={quickNote}
+                                                size="small"
+                                                onClick={() => setNotes((current) => {
+                                                  const parts = (current[dish.id] || '')
+                                                    .split(', ')
+                                                    .filter(Boolean)
+                                                  if (!parts.includes(quickNote)) parts.push(quickNote)
+                                                  return {
+                                                    ...current,
+                                                    [dish.id]: parts.join(', ').slice(0, 200),
+                                                  }
+                                                })}
+                                              >
+                                                {quickNote}
+                                              </Button>
+                                            ))}
+                                          </div>
+                                          <small>{(notes[dish.id] || '').length}/200 ký tự</small>
                                         </>
                                       )}
                                     </div>

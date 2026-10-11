@@ -1,4 +1,3 @@
-jsx
 import { useCallback, useEffect, useState } from 'react'
 import { ReloadOutlined } from '@ant-design/icons'
 import {

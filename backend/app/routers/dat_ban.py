@@ -335,14 +335,16 @@ def _suitable_table_exists(
     start_minutes: int,
     duration: int,
     so_luong_khach: int,
+    khu_vuc_id: int | None = None,
 ) -> bool:
     occupied = _occupied_table_ids(db, ngay_dat, start_minutes, duration)
-    tables = db.scalars(
-        select(Ban).where(
-            Ban.trang_thai != "NGUNG_SU_DUNG",
-            Ban.suc_chua_toi_da >= so_luong_khach,
-        )
-    ).all()
+    table_query = select(Ban).where(
+        Ban.trang_thai != "NGUNG_SU_DUNG",
+        Ban.suc_chua_toi_da >= so_luong_khach,
+    )
+    if khu_vuc_id is not None:
+        table_query = table_query.where(Ban.khu_vuc_id == khu_vuc_id)
+    tables = db.scalars(table_query).all()
     return any(table.id not in occupied for table in tables)
 
 
@@ -460,10 +462,17 @@ def lay_khu_vuc_cong_khai(
 def lay_khung_gio_cong_khai(
     ngay: date,
     so_luong_khach: int = Query(ge=1, le=20),
+    khu_vuc_id: int | None = Query(default=None, gt=0),
     db: Session = Depends(get_db),
 ):
     today = datetime.now(VIETNAM_TZ).date()
     result = PublicTimeSlotsResponse(ngay=ngay)
+
+    if khu_vuc_id is not None:
+        area = db.get(KhuVuc, khu_vuc_id)
+        if area is None or area.trang_thai != "HOAT_DONG":
+            result.ly_do = "Khu vực đã chọn không tồn tại hoặc không nhận đặt bàn."
+            return result
 
     if ngay < today:
         result.ly_do = "Ngày đã qua. Vui lòng chọn ngày hôm nay hoặc trong tương lai."
@@ -508,7 +517,7 @@ def lay_khung_gio_cong_khai(
                 PublicTimeSlot(gio=gio, kha_dung=False, ly_do="Khung giờ đã qua.")
             )
         elif not _suitable_table_exists(
-            db, ngay, start, duration, so_luong_khach
+            db, ngay, start, duration, so_luong_khach, khu_vuc_id
         ):
             result.khung_gio.append(
                 PublicTimeSlot(
@@ -568,7 +577,12 @@ def tao_dat_ban_cong_khai(
 
     start = _minutes(payload.gio_bat_dau)
     if not _suitable_table_exists(
-        db, payload.ngay_dat, start, duration, payload.so_luong_khach
+        db,
+        payload.ngay_dat,
+        start,
+        duration,
+        payload.so_luong_khach,
+        payload.khu_vuc_id,
     ):
         raise HTTPException(
             status_code=409,
