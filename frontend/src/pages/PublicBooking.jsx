@@ -359,6 +359,14 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
             <h1>Mã đặt bàn của bạn</h1>
             <div className="booking-code">{summary.ma_dat_ban}</div>
             <p className="booking-success-status"><span className="status-dot" /> Trạng thái: Chờ xác nhận</p>
+            {summary.canh_bao_khong_toi && (
+              <Alert
+                type="warning" showIcon icon={<AlertOutlined />}
+                message="Cảnh báo lịch sử không tới"
+                description={`Số điện thoại này đã có ${summary.so_lan_khong_toi_90_ngay} lần khách không tới trong 90 ngày gần đây. Nhà hàng có thể liên hệ để xác nhận lại lượt đặt.`}
+                style={{ marginBottom: 18, textAlign: 'left' }}
+              />
+            )}
             <div className="booking-success-note">
               {summary.email_xac_nhan_trang_thai === 'DA_GUI'
                 ? 'Email xác nhận đã được gửi đến địa chỉ bạn cung cấp.'

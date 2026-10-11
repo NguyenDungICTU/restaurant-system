@@ -28,6 +28,8 @@ class BanCreateRequest(BaseModel):
 class BanResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    qua_gio_hen: bool = False
+    dat_ban_qua_gio: list[dict] = Field(default_factory=list)
     id: int
     ma_ban: str
     khu_vuc_id: int
