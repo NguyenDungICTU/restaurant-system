@@ -56,6 +56,8 @@ class SeatedGuestResponse(BaseModel):
 
 
 class BanDetailsResponse(BanResponse):
+    phien_ban_id: int | None = None
+    trang_thai_phien: Literal["DANG_PHUC_VU", "CHO_THANH_TOAN"] | None = None
     khach_dang_ngoi: SeatedGuestResponse | None
     bat_dau_phuc_vu_at: datetime | None
     tam_tinh_hien_tai: Decimal | None

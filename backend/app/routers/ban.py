@@ -628,7 +628,6 @@ def build_table_details(
                   ON line.dot_goi_mon_id = dgm.id
                 WHERE dgm.phien_ban_id = :session_id
                   AND line.tinh_tien IS TRUE
-                  AND line.trang_thai <> 'DA_HUY'
                 """
             ),
             {"session_id": active_session.id},
@@ -673,6 +672,12 @@ def build_table_details(
         "created_at": table.created_at,
         "updated_at": table.updated_at,
         **table_timeout_views(db, [table.id], now)[table.id],
+        "phien_ban_id": (
+            active_session.id
+            if active_session is not None and active_session.trang_thai == "DANG_PHUC_VU"
+            else None
+        ),
+        "trang_thai_phien": active_session.trang_thai if active_session is not None else None,
         "khach_dang_ngoi": guests_seated,
         "bat_dau_phuc_vu_at": service_started_at,
         "tam_tinh_hien_tai": subtotal,

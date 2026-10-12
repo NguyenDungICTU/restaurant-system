@@ -1,4 +1,3 @@
-cat > scripts/show-lan-url.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -22,6 +21,3 @@ Get-NetIPAddress -AddressFamily IPv4 |
 echo
 echo "Ưu tiên IPv4 của Wi-Fi đang kết nối."
 echo "Điện thoại phải truy cập được laptop qua mạng đó."
-EOF
-
-bash scripts/show-lan-url.sh

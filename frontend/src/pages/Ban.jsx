@@ -50,7 +50,6 @@ import {
   getTables,
   getTableDetails,
   getOrderableDishes,
-  getServiceOrders,
   createAdditionalOrder,
   receiveTableGuests,
   regenerateQR,
@@ -2168,7 +2167,7 @@ export default function Ban({ user }) {
                           </Descriptions.Item>
                         )}
                       </Descriptions>
-                                            {detailData.trang_thai === 'DANG_SU_DUNG' && (
+                                            {detailData.trang_thai === 'DANG_SU_DUNG' && detailData.trang_thai_phien === 'DANG_PHUC_VU' && (
                         <div style={{ marginTop: 16 }}>
                           <Button
                             type="primary"
@@ -2501,26 +2500,18 @@ export default function Ban({ user }) {
                                 .length === 0
                             }
                             onClick={async () => {
-                              if (!detailData?.phien_ban_id) {
-                                setAdditionalOrderError(
-                                  'Không tìm thấy phiên phục vụ hiện tại.'
-                                )
-                                return
-                              }
-
                               try {
                                 setAdditionalOrderLoading(true)
                                 setAdditionalOrderError('')
 
-                                // The current table-details response does not expose phien_ban_id.
-                                // Resolve the active session from service-order lines for this table.
-                                const serviceLines = await getServiceOrders()
-                                const sessionLines = serviceLines
-                                  .filter(line => Number(line.ban_id) === Number(detailTable?.id))
-                                  .sort((a, b) => Number(b.phien_ban_id) - Number(a.phien_ban_id))
-                                const sessionId = sessionLines[0]?.phien_ban_id
-                                if (!sessionId) {
-                                  throw new Error('Không tìm thấy phiên đang mở của bàn. Hãy kiểm tra bàn đã có phiên phục vụ và món gọi trước đó chưa.')
+                                // Use the active session returned by the table-details API.
+                                // Do not infer a session from order lines: a valid session can
+                                // exist even when the service-order list has no matching lines.
+                                const sessionId = Number(detailData?.phien_ban_id)
+                                if (!sessionId || detailData?.trang_thai_phien !== 'DANG_PHUC_VU') {
+                                  throw new Error(
+                                    'Bàn không có phiên đang phục vụ hoặc đã chuyển sang chờ thanh toán. Không thể gọi thêm món.'
+                                  )
                                 }
 
                                 await createAdditionalOrder(

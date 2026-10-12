@@ -14,7 +14,7 @@ import {
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { Button, Input, InputNumber, Modal, Tag } from 'antd'
+import { Alert, Button, Input, InputNumber, Modal, Tag } from 'antd'
 import {
   cancelPublicBooking,
   createPublicBooking,
@@ -188,7 +188,8 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
   useEffect(() => {
     if (mode !== 'create') return undefined
     let cancelled = false
-    getPublicTimeSlots({ ngay: date, so_luong_khach: guests })
+    setSlotsLoading(true)
+    getPublicTimeSlots({ ngay: date, so_luong_khach: guests, ...(areaId ? { khu_vuc_id: Number(areaId) } : {}) })
       .then((data) => {
         if (!cancelled) {
           setSlots(data)
@@ -204,7 +205,7 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
       })
       .finally(() => { if (!cancelled) setSlotsLoading(false) })
     return () => { cancelled = true }
-  }, [date, guests, mode])
+  }, [date, guests, areaId, mode])
 
   function handleDateChange(next) {
     setDate(next)
@@ -488,13 +489,13 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
               <div className="booking-step-heading"><span className="booking-step-num">2</span><div><h2>Chọn khung giờ</h2><p>Chỉ hiện giờ mở cửa còn bàn phù hợp. Giữ bàn {slots?.thoi_luong_giu_ban || 90} phút.</p></div></div>
               {slotsLoading ? <div className="booking-slots-loading"><LoadingOutlined spin /> Đang tải khung giờ...</div> : slots?.ly_do ? <div className="booking-slots-empty">{slots.ly_do}</div> : (
                 <div className="booking-slots">
-                  {(slots?.khung_gio || []).map((slot) => (
+                  {(slots?.khung_gio || []).filter((slot) => slot.kha_dung).map((slot) => (
                     <button key={slot.gio} type="button" disabled={!slot.kha_dung} className={`booking-slot ${selectedSlot === slot.gio ? 'selected' : ''} ${slot.kha_dung ? '' : 'disabled'}`} onClick={() => setSelectedSlot(slot.gio)} title={slot.ly_do || ''}>
                       <span className="booking-slot-time">{slot.gio}</span>
                       {!slot.kha_dung && slot.ly_do && <span className="booking-slot-reason">{slot.ly_do}</span>}
                     </button>
                   ))}
-                  {slots && !slots.khung_gio.length && <div className="booking-slots-empty">Chưa có khung giờ nhận đặt bàn cho ngày này.</div>}
+                  {slots && !slots.khung_gio.some((slot) => slot.kha_dung) && <div className="booking-slots-empty">Không còn khung giờ phù hợp với số khách và khu vực đã chọn. Vui lòng đổi ngày, số khách hoặc khu vực.</div>}
                 </div>
               )}
             </section>
