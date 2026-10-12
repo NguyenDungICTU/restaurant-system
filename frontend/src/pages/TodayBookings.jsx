@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Empty,
+  Input,
   Modal,
   Select,
   Space,
@@ -16,6 +17,7 @@ import {
   WarningOutlined,
   ReloadOutlined,
   EyeOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 
 import {
@@ -33,8 +35,6 @@ const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
   { value: 'CHO_XAC_NHAN', label: 'Chờ xác nhận' },
   { value: 'DA_XAC_NHAN', label: 'Đã xác nhận' },
-  { value: 'DA_HUY', label: 'Đã huỷ' },
-  { value: 'KHACH_KHONG_TOI', label: 'Khách không tới' },
 ]
 
 const STATUS_META = {
@@ -71,6 +71,7 @@ function errorMessage(error) {
 
 export default function TodayBookings() {
   const [status, setStatus] = useState('ALL')
+  const [search, setSearch] = useState('')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -90,14 +91,14 @@ export default function TodayBookings() {
     setError('')
 
     try {
-      setRows(await getTodayBookings(status))
+      setRows(await getTodayBookings('ALL'))
     } catch (cause) {
       setRows([])
       setError(errorMessage(cause))
     } finally {
       setLoading(false)
     }
-  }, [status])
+  }, [])
 
   useEffect(() => {
     load()
@@ -349,6 +350,21 @@ export default function TodayBookings() {
     },
   ]
 
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('vi')
+    return rows.filter(row => {
+      const matchesStatus = status === 'ALL' || row.trang_thai === status
+      const searchable = [
+        row.ho_ten_khach,
+        row.so_dien_thoai_da_che,
+        row.ma_dat_ban,
+        row.ten_ban,
+        row.ten_khu_vuc,
+      ].filter(Boolean).join(' ').toLocaleLowerCase('vi')
+      return matchesStatus && (!query || searchable.includes(query))
+    })
+  }, [rows, search, status])
+
   return (
     <section className="today-bookings-page">
       <div className="today-bookings-heading">
@@ -386,17 +402,22 @@ export default function TodayBookings() {
 
       <Card className="today-bookings-card">
         <div className="today-bookings-toolbar">
-          <div>
-            <strong>Lọc theo trạng thái</strong>
-            <span>{rows.length} lượt đặt</span>
-          </div>
-
+          <Input
+            aria-label="Tìm yêu cầu đặt bàn"
+            placeholder="Tìm tên khách, số điện thoại, mã đặt bàn, bàn hoặc khu vực…"
+            prefix={<SearchOutlined />}
+            allowClear
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+          />
           <Select
+            aria-label="Lọc trạng thái yêu cầu đặt bàn"
             value={status}
             options={STATUS_OPTIONS}
             onChange={setStatus}
             className="today-bookings-filter"
           />
+          <span className="today-bookings-result-count">{filteredRows.length} yêu cầu</span>
         </div>
 
         {error && (
@@ -409,18 +430,18 @@ export default function TodayBookings() {
           />
         )}
 
-        {!error && !loading && rows.length === 0 ? (
+        {!error && !loading && filteredRows.length === 0 ? (
           <Empty
             description={
-              status === 'ALL'
+              rows.length === 0
                 ? 'Hôm nay chưa có lượt đặt bàn.'
-                : 'Không có lượt đặt bàn ở trạng thái đã chọn.'
+                : 'Không tìm thấy yêu cầu đặt bàn phù hợp.'
             }
           />
         ) : (
           <Table
             columns={columns}
-            dataSource={rows}
+            dataSource={filteredRows}
             rowKey="ma_dat_ban"
             loading={loading}
             pagination={false}
