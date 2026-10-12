@@ -28,6 +28,7 @@ PERMISSIONS = {
         "settings",
         "table-map",
         "order-entry",
+        "service-orders",
         "kitchen",
         "daily-menu",
         "checkout",
@@ -38,6 +39,7 @@ PERMISSIONS = {
         "table-map",
         "bookings",
         "order-entry",
+        "service-orders",
     },
     "BEP": {
         "kitchen",
@@ -66,6 +68,7 @@ RESOURCE_LABELS = {
     "settings": "Cài đặt",
     "table-map": "Sơ đồ bàn",
     "order-entry": "Màn hình gọi món",
+    "service-orders": "Theo dõi món theo bàn",
     "kitchen": "Màn hình bếp",
     "daily-menu": "Danh sách món trong ngày",
     "checkout": "Thanh toán",

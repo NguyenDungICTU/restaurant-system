@@ -34,9 +34,9 @@ class Settings(BaseSettings):
         "Restaurant Management System"
     )
 
-    qr_frontend_url: HttpUrl = (
-        "http://localhost:5173"
-    )
+    # Optional fallback only. In normal LAN use, the frontend sends
+    # window.location.origin when downloading a QR, so no LAN IP is stored here.
+    qr_frontend_url: HttpUrl | None = None
 
     qr_pdf_font_path: str = (
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"

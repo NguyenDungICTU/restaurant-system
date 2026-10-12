@@ -10,7 +10,7 @@ from sqlalchemy.engine import make_url
 
 
 class MigrationTests(unittest.TestCase):
-    HEAD = "018_unconfigured_tables"
+    HEAD = "019_booking_timeout"
 
     EXPECTED_TABLES = {
         "alembic_version",

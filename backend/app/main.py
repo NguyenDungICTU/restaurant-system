@@ -2,11 +2,16 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 import asyncio
+import logging
 import shutil
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import select
+
 from app.database.session import SessionLocal
+from app.models.ban import Ban
 from app.services.booking_notifications import notification_worker
+from app.services.table_reservation_lifecycle import reconcile_reserved_tables
 from app.services.mon_an_availability_service import (
     next_midnight_vietnam,
     reset_expired_temporary_sold_out,
@@ -41,6 +46,33 @@ from app.routers.nhom_mon import (
     router as nhom_mon_router,
 )
 from app.routers.public_menu import router as public_menu_router
+from app.routers.customer_order import router as customer_order_router
+from app.routers.order_ops import router as order_ops_router
+
+
+logger = logging.getLogger(__name__)
+VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+
+
+async def _table_reservation_lifecycle_loop():
+    """Keep reserved-table and scheduled-cleanup states current without UI reads."""
+    while True:
+        db = SessionLocal()
+        try:
+            tables = list(
+                db.scalars(
+                    select(Ban).where(
+                        Ban.trang_thai.in_(("DA_DAT", "DANG_DON"))
+                    )
+                )
+            )
+            reconcile_reserved_tables(db, tables, datetime.now(VIETNAM_TZ))
+        except Exception:
+            logger.exception("Không thể cập nhật vòng đời bàn đã đặt.")
+            db.rollback()
+        finally:
+            db.close()
+        await asyncio.sleep(15)
 
 
 async def _temporary_sold_out_reset_loop():
@@ -69,12 +101,14 @@ async def lifespan(app: FastAPI):
 
     task = asyncio.create_task(_temporary_sold_out_reset_loop())
     notification_task = asyncio.create_task(notification_worker())
+    table_lifecycle_task = asyncio.create_task(_table_reservation_lifecycle_loop())
     try:
         yield
     finally:
         task.cancel()
         notification_task.cancel()
-        for running_task in (task, notification_task):
+        table_lifecycle_task.cancel()
+        for running_task in (task, notification_task, table_lifecycle_task):
             try:
                 await running_task
             except asyncio.CancelledError:
@@ -140,6 +174,8 @@ app.include_router(table_map_events_router)
 app.include_router(ban_router)
 app.include_router(nhom_mon_router)
 app.include_router(public_menu_router)
+app.include_router(customer_order_router)
+app.include_router(order_ops_router)
 app.include_router(mon_an_router)
 app.include_router(dat_ban_router)
 app.include_router(lich_hoat_dong_router)

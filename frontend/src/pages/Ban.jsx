@@ -49,6 +49,8 @@ import {
   getOpeningSettings,
   getTables,
   getTableDetails,
+  getOrderableDishes,
+  createAdditionalOrder,
   receiveTableGuests,
   regenerateQR,
   SESSION_EXPIRED_EVENT,
@@ -65,6 +67,7 @@ import {
   timeToMinute,
 } from '../utils/tableSchedule'
 import {
+  getCurrentTableStatusPresentation,
   getTableStatusPresentation,
   statusColors,
   statuses,
@@ -267,6 +270,13 @@ function sortAreasByFloor(areas) {
   })
 }
 
+function selectedOrderTotal(cart) {
+  return Object.values(cart).reduce(
+    (sum, item) => sum + Number(item.so_luong || 0) * Number(item.don_gia || 0),
+    0,
+  )
+}
+
 export default function Ban({ user }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState()
@@ -300,6 +310,12 @@ export default function Ban({ user }) {
   const [scheduleHours, setScheduleHours] = useState(null)
   const [scheduleHoursLoading, setScheduleHoursLoading] = useState(true)
   const [scheduleHoursError, setScheduleHoursError] = useState('')
+
+  const [additionalOrderOpen, setAdditionalOrderOpen] = useState(false)
+  const [additionalOrderLoading, setAdditionalOrderLoading] = useState(false)
+  const [additionalOrderDishes, setAdditionalOrderDishes] = useState([])
+  const [additionalOrderCart, setAdditionalOrderCart] = useState({})
+  const [additionalOrderError, setAdditionalOrderError] = useState('')
 
   const [form] = Form.useForm()
   const detailTableRef = useRef(detailTable)
@@ -791,6 +807,35 @@ export default function Ban({ user }) {
     }
   }, [detailTable, detailReloadKey])
 
+  useEffect(() => {
+    if (!additionalOrderOpen) return undefined
+
+    let active = true
+    setAdditionalOrderLoading(true)
+    setAdditionalOrderError('')
+
+    getOrderableDishes()
+      .then(data => {
+        if (active) {
+          setAdditionalOrderDishes(Array.isArray(data) ? data : [])
+        }
+      })
+      .catch(error => {
+        if (active) {
+          setAdditionalOrderError(errorText(error))
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setAdditionalOrderLoading(false)
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [additionalOrderOpen])
+
   function openTableDetails(table) {
     detailRequestIdRef.current += 1
     detailTableRef.current = table
@@ -1006,6 +1051,7 @@ export default function Ban({ user }) {
       checkInLoading ||
       checkInError ||
       (checkInTable.trang_thai === 'DA_DAT' &&
+        checkInBookings.length > 0 &&
         !selectedBookingId)
     ) {
       return
@@ -1018,9 +1064,7 @@ export default function Ban({ user }) {
     try {
       await receiveTableGuests(
         checkInTable.id,
-        checkInTable.trang_thai === 'DA_DAT'
-          ? selectedBookingId
-          : undefined
+        selectedBookingId || undefined
       )
       setCheckInTable(null)
 
@@ -1359,15 +1403,17 @@ export default function Ban({ user }) {
               label: formatAreaName(area.ten_khu_vuc),
             }))}
           />
-          <Input
-            aria-label="Ngày xem lịch bàn"
-            type="date"
-            value={scheduleDate}
-            onChange={event =>
-              changeScheduleDate(event.target.value)
-            }
-            className="table-map-date-input"
-          />
+          {viewMode === 'schedule' && (
+            <Input
+              aria-label="Ngày xem lịch bàn"
+              type="date"
+              value={scheduleDate}
+              onChange={event =>
+                changeScheduleDate(event.target.value)
+              }
+              className="table-map-date-input"
+            />
+          )}
           <Segmented
             aria-label="Chế độ sơ đồ bàn"
             value={viewMode}
@@ -1610,7 +1656,9 @@ export default function Ban({ user }) {
           dataSource={tables.filter(
             row =>
               (!areaId || row.khu_vuc_id === areaId) &&
-              (!statusFilter || row.trang_thai === statusFilter) &&
+              (!statusFilter ||
+                getCurrentTableStatusPresentation(row).label ===
+                  statuses[statusFilter]) &&
               String(row.ma_ban || '')
                 .toLocaleLowerCase('vi')
                 .includes(search.trim().toLocaleLowerCase('vi'))
@@ -1733,7 +1781,7 @@ export default function Ban({ user }) {
                 {group.tables.map(table => {
                   const configured = table.da_cau_hinh
                   const currentStatus =
-                    getTableStatusPresentation(table)
+                    getCurrentTableStatusPresentation(table)
                   const tableScheduleBookings =
                     bookingsByTable.get(table.id) || []
                   const canCheckIn =
@@ -1870,6 +1918,11 @@ export default function Ban({ user }) {
                           : 'Chưa cấu hình sức chứa'}
                       </p>
                       <TableTopView className="table-map-card-table" />
+                      {table.qua_gio_hen && (
+                        <Tag color="red" className="table-map-overdue-tag" onClick={event => event.stopPropagation()}>
+                          <ClockCircleOutlined /> Quá giờ 15 phút
+                        </Tag>
+                      )}
                       <span className="table-map-card-status">
                         <i
                           style={{
@@ -2069,8 +2122,7 @@ export default function Ban({ user }) {
                       >
                         <Descriptions.Item label="Trạng thái">
                           {detailData.da_cau_hinh
-                            ? statuses[detailData.trang_thai] ||
-                              detailData.trang_thai
+                            ? getCurrentTableStatusPresentation(detailData).label
                             : 'Chưa cấu hình'}
                         </Descriptions.Item>
                         {!detailData.da_cau_hinh ||
@@ -2118,6 +2170,20 @@ export default function Ban({ user }) {
                           </Descriptions.Item>
                         )}
                       </Descriptions>
+                                            {detailData.trang_thai === 'DANG_SU_DUNG' && detailData.trang_thai_phien === 'DANG_PHUC_VU' && (
+                        <div style={{ marginTop: 16 }}>
+                          <Button
+                            type="primary"
+                            onClick={() => {
+                              setAdditionalOrderError('')
+                              setAdditionalOrderCart({})
+                              setAdditionalOrderOpen(true)
+                            }}
+                          >
+                            Gọi thêm món
+                          </Button>
+                        </div>
+                      )}
                     </section>
                   ) : (
                     <section className="table-map-detail-section">
@@ -2202,6 +2268,293 @@ export default function Ban({ user }) {
                   )}
                 </>
               ) : null}
+                            {additionalOrderOpen && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 1000,
+                    background: 'rgba(0, 0, 0, 0.45)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 24,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 'min(720px, 100%)',
+                      maxHeight: '85vh',
+                      overflowY: 'auto',
+                      background: '#fff',
+                      borderRadius: 12,
+                      padding: 24,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 20,
+                      }}
+                    >
+                      <div>
+                        <h2 style={{ margin: 0 }}>
+                          Gọi thêm món
+                        </h2>
+                        <p style={{ margin: '6px 0 0' }}>
+                          Bàn {detailData.ma_ban}
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={() =>
+                          setAdditionalOrderOpen(false)
+                        }
+                      >
+                        Đóng
+                      </Button>
+                    </div>
+
+                    {additionalOrderLoading ? (
+                      <p role="status">Đang tải danh sách món...</p>
+                    ) : additionalOrderError ? (
+                      <Alert
+                        type="error"
+                        showIcon
+                        title="Không tải được danh sách món."
+                        description={additionalOrderError}
+                      />
+                    ) : additionalOrderDishes.length === 0 ? (
+                      <Alert
+                        type="info"
+                        showIcon
+                        title="Không có món đang bán."
+                      />
+                    ) : (
+                      <>
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns:
+                              'repeat(auto-fit, minmax(220px, 1fr))',
+                            gap: 12,
+                          }}
+                        >
+                          {additionalOrderDishes.map(dish => {
+                            const quantity =
+                              additionalOrderCart[dish.id]?.so_luong || 0
+
+                            return (
+                              <div
+                                key={dish.id}
+                                style={{
+                                  border: '1px solid #ddd',
+                                  borderRadius: 10,
+                                  padding: 14,
+                                }}
+                              >
+                                <strong>{dish.ten_mon}</strong>
+
+                                <div style={{ marginTop: 6 }}>
+                                  {formatVnd(dish.gia)}
+                                </div>
+
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    marginTop: 12,
+                                  }}
+                                >
+                                  <Button
+                                    disabled={quantity <= 0}
+                                    onClick={() => {
+                                      setAdditionalOrderCart(current => {
+                                        const next = {
+                                          ...current,
+                                        }
+
+                                        if (quantity <= 1) {
+                                          delete next[dish.id]
+                                        } else {
+                                          next[dish.id] = {
+                                            ...next[dish.id],
+                                            so_luong: quantity - 1,
+                                          }
+                                        }
+
+                                        return next
+                                      })
+                                    }}
+                                  >
+                                    −
+                                  </Button>
+
+                                  <strong>{quantity}</strong>
+
+                                  <Button
+                                    onClick={() => {
+                                      setAdditionalOrderCart(current => ({
+                                        ...current,
+                                        [dish.id]: {
+                                          mon_an_id: dish.id,
+                                          so_luong: quantity + 1,
+                                          don_gia: Number(dish.gia || 0),
+                                          ghi_chu:
+                                            current[dish.id]?.ghi_chu || '',
+                                        },
+                                      }))
+                                    }}
+                                  >
+                                    +
+                                  </Button>
+                                </div>
+
+                                {quantity > 0 && (
+                                  <Input.TextArea
+                                    rows={2}
+                                    maxLength={200}
+                                    showCount
+                                    value={
+                                      additionalOrderCart[dish.id]
+                                        ?.ghi_chu || ''
+                                    }
+                                    placeholder="Ghi chú cho bếp..."
+                                    style={{ marginTop: 10 }}
+                                    onChange={event => {
+                                      const value =
+                                        event.target.value
+
+                                      setAdditionalOrderCart(current => ({
+                                        ...current,
+                                        [dish.id]: {
+                                          ...current[dish.id],
+                                          mon_an_id: dish.id,
+                                          so_luong: quantity,
+                                          don_gia: Number(dish.gia || 0),
+                                          ghi_chu: value,
+                                        },
+                                      }))
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        <div
+                          style={{
+                            marginTop: 18,
+                            padding: 14,
+                            borderRadius: 8,
+                            background: '#f5f7fa',
+                            display: 'grid',
+                            gap: 6,
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                            <span>Tạm tính phiên hiện tại (tất cả đợt)</span>
+                            <strong>{formatVnd(detailData?.tam_tinh_hien_tai ?? 0)}</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                            <span>Đợt gọi thêm này</span>
+                            <strong>{formatVnd(selectedOrderTotal(additionalOrderCart))}</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #d9d9d9', paddingTop: 8 }}>
+                            <span>Tạm tính sau khi gọi thêm</span>
+                            <strong>{formatVnd(Number(detailData?.tam_tinh_hien_tai || 0) + selectedOrderTotal(additionalOrderCart))}</strong>
+                          </div>
+                        </div>
+
+                        {additionalOrderError && (
+                          <Alert
+                            type="error"
+                            showIcon
+                            style={{ marginTop: 16 }}
+                            title="Không thể gọi thêm món."
+                            description={additionalOrderError}
+                          />
+                        )}
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: 8,
+                            marginTop: 20,
+                          }}
+                        >
+                          <Button
+                            onClick={() =>
+                              setAdditionalOrderOpen(false)
+                            }
+                          >
+                            Hủy
+                          </Button>
+
+                          <Button
+                            type="primary"
+                            disabled={
+                              Object.keys(additionalOrderCart)
+                                .length === 0
+                            }
+                            onClick={async () => {
+                              try {
+                                setAdditionalOrderLoading(true)
+                                setAdditionalOrderError('')
+
+                                // Use the active session returned by the table-details API.
+                                // Do not infer a session from order lines: a valid session can
+                                // exist even when the service-order list has no matching lines.
+                                const sessionId = Number(detailData?.phien_ban_id)
+                                if (!sessionId || detailData?.trang_thai_phien !== 'DANG_PHUC_VU') {
+                                  throw new Error(
+                                    'Bàn không có phiên đang phục vụ hoặc đã chuyển sang chờ thanh toán. Không thể gọi thêm món.'
+                                  )
+                                }
+
+                                await createAdditionalOrder(
+                                  sessionId,
+                                  {
+                                    phien_ban_id: sessionId,
+                                    items: Object.values(additionalOrderCart).map(item => ({
+                                      mon_an_id: item.mon_an_id,
+                                      so_luong: item.so_luong,
+                                      ghi_chu: item.ghi_chu || '',
+                                    })),
+                                  }
+                                )
+
+                                setAdditionalOrderOpen(false)
+                                setAdditionalOrderCart({})
+                                setDetailReloadKey(value => value + 1)
+
+                                setNotice({
+                                  type: 'success',
+                                  message:
+                                    'Đã gọi thêm món thành công.',
+                                })
+                              } catch (error) {
+                                setAdditionalOrderError(
+                                  errorText(error)
+                                )
+                              } finally {
+                                setAdditionalOrderLoading(false)
+                              }
+                            }}
+                          >
+                            Gọi món
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
               </aside>
             </>
           )}
@@ -2369,6 +2722,7 @@ export default function Ban({ user }) {
             checkInLoading ||
             Boolean(checkInError) ||
             (checkInTable?.trang_thai === 'DA_DAT' &&
+              checkInBookings.length > 0 &&
               !selectedBookingId),
         }}
         onOk={confirmCheckIn}
@@ -2399,11 +2753,23 @@ export default function Ban({ user }) {
               </>
             ) : (
               !checkInError && (
-                <Alert
-                  type="info"
-                  showIcon
-                  title="Chưa có đơn đặt bàn phù hợp đến giờ nhận khách."
-                />
+                checkInTable?.dat_ban_sap_toi?.thoi_gian_den_at &&
+                new Date(checkInTable.dat_ban_sap_toi.thoi_gian_den_at).getTime() >
+                  Date.now() &&
+                String(checkInTable.dat_ban_sap_toi.thoi_gian_den_at).slice(0, 10) !==
+                  vietnamDateInput() ? (
+                  <Alert
+                    type="info"
+                    showIcon
+                    title="Bàn có lịch đặt vào ngày sau. Có thể nhận khách vãng lai hôm nay; lịch đặt tương lai vẫn được giữ."
+                  />
+                ) : (
+                  <Alert
+                    type="info"
+                    showIcon
+                    title="Chưa có đơn đặt bàn phù hợp đến giờ nhận khách."
+                  />
+                )
               )
             )}
           </>
