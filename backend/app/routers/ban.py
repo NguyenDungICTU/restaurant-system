@@ -1,4 +1,5 @@
 from app.services.booking_timeout import table_timeout_views
+from app.services.table_reservation_lifecycle import reconcile_reserved_table, reconcile_reserved_tables
 import secrets
 from _thread import LockType
 from datetime import datetime, timedelta
@@ -142,6 +143,7 @@ def list_tables(
         query = query.where(Ban.khu_vuc_id == khu_vuc_id)
 
     tables = list(db.scalars(query))
+    reconcile_reserved_tables(db, tables, datetime.now(VIETNAM_TZ))
     views = table_timeout_views(db, [table.id for table in tables], datetime.now(VIETNAM_TZ))
     return [BanResponse.model_validate(table).model_copy(update=views[table.id]) for table in tables]
 
@@ -650,12 +652,18 @@ def build_table_details(
             booking.gio_bat_dau,
             VIETNAM_TZ,
         )
-        if arrival_at > now:
+        service_end_at = arrival_at + timedelta(
+            minutes=booking.thoi_luong_giu_ban or 90
+        )
+        ready_at = service_end_at + timedelta(minutes=15)
+        if ready_at > now:
             upcoming_booking = UpcomingTableBookingResponse(
                 id=booking.id,
                 ho_ten_khach=booking.ho_ten_khach,
                 so_luong_khach=booking.so_luong_khach,
                 thoi_gian_den_at=arrival_at,
+                thoi_gian_ket_thuc_du_kien_at=service_end_at,
+                thoi_gian_san_sang_at=ready_at,
             )
             break
 
@@ -704,6 +712,7 @@ def read_table_by_code(
             detail="Không tìm thấy bàn.",
         )
 
+    reconcile_reserved_table(db, table, datetime.now(VIETNAM_TZ))
     return build_table_details(table, db)
 
 
@@ -716,7 +725,9 @@ def read_table(
     table_id: int,
     db: Session = Depends(get_db),
 ):
-    return build_table_details(get_table(db, table_id), db)
+    table = get_table(db, table_id)
+    reconcile_reserved_table(db, table, datetime.now(VIETNAM_TZ))
+    return build_table_details(table, db)
 
 
 @router.delete(
