@@ -67,6 +67,7 @@ import {
   timeToMinute,
 } from '../utils/tableSchedule'
 import {
+  getCurrentTableStatusPresentation,
   getTableStatusPresentation,
   statusColors,
   statuses,
@@ -1050,6 +1051,7 @@ export default function Ban({ user }) {
       checkInLoading ||
       checkInError ||
       (checkInTable.trang_thai === 'DA_DAT' &&
+        checkInBookings.length > 0 &&
         !selectedBookingId)
     ) {
       return
@@ -1062,9 +1064,7 @@ export default function Ban({ user }) {
     try {
       await receiveTableGuests(
         checkInTable.id,
-        checkInTable.trang_thai === 'DA_DAT'
-          ? selectedBookingId
-          : undefined
+        selectedBookingId || undefined
       )
       setCheckInTable(null)
 
@@ -1403,15 +1403,17 @@ export default function Ban({ user }) {
               label: formatAreaName(area.ten_khu_vuc),
             }))}
           />
-          <Input
-            aria-label="Ngày xem lịch bàn"
-            type="date"
-            value={scheduleDate}
-            onChange={event =>
-              changeScheduleDate(event.target.value)
-            }
-            className="table-map-date-input"
-          />
+          {viewMode === 'schedule' && (
+            <Input
+              aria-label="Ngày xem lịch bàn"
+              type="date"
+              value={scheduleDate}
+              onChange={event =>
+                changeScheduleDate(event.target.value)
+              }
+              className="table-map-date-input"
+            />
+          )}
           <Segmented
             aria-label="Chế độ sơ đồ bàn"
             value={viewMode}
@@ -1654,7 +1656,9 @@ export default function Ban({ user }) {
           dataSource={tables.filter(
             row =>
               (!areaId || row.khu_vuc_id === areaId) &&
-              (!statusFilter || row.trang_thai === statusFilter) &&
+              (!statusFilter ||
+                getCurrentTableStatusPresentation(row).label ===
+                  statuses[statusFilter]) &&
               String(row.ma_ban || '')
                 .toLocaleLowerCase('vi')
                 .includes(search.trim().toLocaleLowerCase('vi'))
@@ -1777,7 +1781,7 @@ export default function Ban({ user }) {
                 {group.tables.map(table => {
                   const configured = table.da_cau_hinh
                   const currentStatus =
-                    getTableStatusPresentation(table)
+                    getCurrentTableStatusPresentation(table)
                   const tableScheduleBookings =
                     bookingsByTable.get(table.id) || []
                   const canCheckIn =
@@ -2118,8 +2122,7 @@ export default function Ban({ user }) {
                       >
                         <Descriptions.Item label="Trạng thái">
                           {detailData.da_cau_hinh
-                            ? statuses[detailData.trang_thai] ||
-                              detailData.trang_thai
+                            ? getCurrentTableStatusPresentation(detailData).label
                             : 'Chưa cấu hình'}
                         </Descriptions.Item>
                         {!detailData.da_cau_hinh ||
@@ -2719,6 +2722,7 @@ export default function Ban({ user }) {
             checkInLoading ||
             Boolean(checkInError) ||
             (checkInTable?.trang_thai === 'DA_DAT' &&
+              checkInBookings.length > 0 &&
               !selectedBookingId),
         }}
         onOk={confirmCheckIn}
@@ -2749,11 +2753,23 @@ export default function Ban({ user }) {
               </>
             ) : (
               !checkInError && (
-                <Alert
-                  type="info"
-                  showIcon
-                  title="Chưa có đơn đặt bàn phù hợp đến giờ nhận khách."
-                />
+                checkInTable?.dat_ban_sap_toi?.thoi_gian_den_at &&
+                new Date(checkInTable.dat_ban_sap_toi.thoi_gian_den_at).getTime() >
+                  Date.now() &&
+                String(checkInTable.dat_ban_sap_toi.thoi_gian_den_at).slice(0, 10) !==
+                  vietnamDateInput() ? (
+                  <Alert
+                    type="info"
+                    showIcon
+                    title="Bàn có lịch đặt vào ngày sau. Có thể nhận khách vãng lai hôm nay; lịch đặt tương lai vẫn được giữ."
+                  />
+                ) : (
+                  <Alert
+                    type="info"
+                    showIcon
+                    title="Chưa có đơn đặt bàn phù hợp đến giờ nhận khách."
+                  />
+                )
               )
             )}
           </>

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  getCurrentTableStatusPresentation,
   getTableStatusPresentation,
   statusColors,
   statuses,
@@ -85,5 +86,44 @@ test('unconfigured and inactive tables never receive the empty-table presentatio
       label: 'Ngừng sử dụng',
       colors: unconfiguredColors,
     }
+  )
+})
+
+
+test('a table with a future confirmed booking is shown as empty on the live map', () => {
+  const now = new Date('2026-10-12T09:00:00+07:00')
+  const table = {
+    da_cau_hinh: true,
+    trang_thai: 'DA_DAT',
+    dat_ban_sap_toi: {
+      thoi_gian_den_at: '2026-10-13T09:00:00+07:00',
+    },
+  }
+
+  assert.deepEqual(getCurrentTableStatusPresentation(table, now), {
+    label: 'Trống',
+    colors: statusColors.TRONG,
+  })
+  // Invalid/old booking timestamps should not accidentally mark the table empty.
+  assert.equal(
+    getCurrentTableStatusPresentation({
+      ...table,
+      dat_ban_sap_toi: { thoi_gian_den_at: 'invalid' },
+    }, now).label,
+    'Đã đặt trước',
+  )
+})
+
+test('a reservation whose start time has arrived remains reserved', () => {
+  const now = new Date('2026-10-12T09:00:00+07:00')
+  assert.equal(
+    getCurrentTableStatusPresentation({
+      da_cau_hinh: true,
+      trang_thai: 'DA_DAT',
+      dat_ban_sap_toi: {
+        thoi_gian_den_at: '2026-10-12T08:59:00+07:00',
+      },
+    }, now).label,
+    'Đã đặt trước',
   )
 })

@@ -59,6 +59,7 @@ from app.services.booking_timeout import (
 
 router = APIRouter(prefix="/api/dat-ban", tags=["Đặt bàn"])
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+CLEANUP_MINUTES = 15
 
 MA_DAT_BAN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
@@ -169,7 +170,7 @@ def _available_tables(
     exclude_booking_id: int | None = None,
 ):
     start = _minutes(booking.gio_bat_dau)
-    end = start + booking.thoi_luong_giu_ban
+    end = start + booking.thoi_luong_giu_ban + CLEANUP_MINUTES
 
     confirmed_query = select(DatBan).where(
         DatBan.ngay_dat == booking.ngay_dat,
@@ -186,7 +187,7 @@ def _available_tables(
 
     for existing in db.scalars(confirmed_query).all():
         existing_start = _minutes(existing.gio_bat_dau)
-        existing_end = existing_start + existing.thoi_luong_giu_ban
+        existing_end = existing_start + existing.thoi_luong_giu_ban + CLEANUP_MINUTES
 
         if overlaps(start, end, existing_start, existing_end):
             occupied_ids.add(existing.ban_id)
@@ -295,10 +296,10 @@ def _validate_booking_window(
             status_code=409,
             detail="Thời lượng giữ bàn chưa hợp lệ.",
         )
-    if start + duration > closing:
+    if start + duration + CLEANUP_MINUTES > closing:
         raise HTTPException(
             status_code=400,
-            detail=f"Không đủ {duration} phút giữ bàn trước giờ đóng cửa.",
+            detail=f"Không đủ {duration} phút phục vụ và {CLEANUP_MINUTES} phút dọn dẹp trước giờ đóng cửa.",
         )
 
     return schedule, duration
@@ -310,7 +311,7 @@ def _occupied_table_ids(
     start_minutes: int,
     duration: int,
 ) -> set[int]:
-    end = start_minutes + duration
+    end = start_minutes + duration + CLEANUP_MINUTES
     confirmed = db.scalars(
         select(DatBan).where(
             DatBan.ngay_dat == ngay_dat,
@@ -322,7 +323,7 @@ def _occupied_table_ids(
     occupied: set[int] = set()
     for existing in confirmed:
         existing_start = _minutes(existing.gio_bat_dau)
-        existing_end = existing_start + existing.thoi_luong_giu_ban
+        existing_end = existing_start + existing.thoi_luong_giu_ban + CLEANUP_MINUTES
         if existing_start < end and start_minutes < existing_end:
             occupied.add(existing.ban_id)
 
@@ -903,7 +904,7 @@ def xac_nhan_va_phan_ban(
         )
 
     start = _minutes(booking.gio_bat_dau)
-    end = start + booking.thoi_luong_giu_ban
+    end = start + booking.thoi_luong_giu_ban + CLEANUP_MINUTES
     opening = _minutes(schedule.gio_mo_cua)
     closing = _minutes(schedule.gio_dong_cua)
 
@@ -958,7 +959,7 @@ def xac_nhan_va_phan_ban(
 
     for existing in confirmed:
         existing_start = _minutes(existing.gio_bat_dau)
-        existing_end = existing_start + existing.thoi_luong_giu_ban
+        existing_end = existing_start + existing.thoi_luong_giu_ban + CLEANUP_MINUTES
 
         if existing_start < end and start < existing_end:
             raise HTTPException(
@@ -972,6 +973,7 @@ def xac_nhan_va_phan_ban(
 
     if table.trang_thai == "TRONG":
         table.trang_thai = "DA_DAT"
+        table.trang_thai_changed_at = datetime.now(VIETNAM_TZ)
 
     _notify_customer(
         booking,
@@ -1123,6 +1125,7 @@ def doi_ban_dat_ban(
     booking.ban_id = new_table.id
     if new_table.trang_thai == "TRONG":
         new_table.trang_thai = "DA_DAT"
+        new_table.trang_thai_changed_at = datetime.now(VIETNAM_TZ)
 
     if old_table is not None and old_table.trang_thai == "DA_DAT":
         another = db.scalar(
@@ -1136,6 +1139,7 @@ def doi_ban_dat_ban(
         )
         if another is None:
             old_table.trang_thai = "TRONG"
+            old_table.trang_thai_changed_at = datetime.now(VIETNAM_TZ)
 
     _notify_customer(
         booking,
