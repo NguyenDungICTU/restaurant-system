@@ -1,5 +1,4 @@
 from app.services.booking_timeout import table_timeout_views
-from app.services.table_reservation_lifecycle import reconcile_reserved_table, reconcile_reserved_tables
 import secrets
 from _thread import LockType
 from datetime import datetime, timedelta
@@ -143,9 +142,54 @@ def list_tables(
         query = query.where(Ban.khu_vuc_id == khu_vuc_id)
 
     tables = list(db.scalars(query))
-    reconcile_reserved_tables(db, tables, datetime.now(VIETNAM_TZ))
-    views = table_timeout_views(db, [table.id for table in tables], datetime.now(VIETNAM_TZ))
-    return [BanResponse.model_validate(table).model_copy(update=views[table.id]) for table in tables]
+    now = datetime.now(VIETNAM_TZ)
+    views = table_timeout_views(db, [table.id for table in tables], now)
+    table_ids = [table.id for table in tables]
+
+    # Include the next confirmed future booking in the table-list response so
+    # the map can distinguish "reserved later" from "occupied right now".
+    upcoming_by_table: dict[int, UpcomingTableBookingResponse] = {}
+    if table_ids:
+        upcoming_bookings = db.scalars(
+            select(DatBan)
+            .where(
+                DatBan.ban_id.in_(table_ids),
+                DatBan.trang_thai == "DA_XAC_NHAN",
+                DatBan.khach_toi_at.is_(None),
+                DatBan.ngay_dat >= now.date(),
+            )
+            .order_by(
+                DatBan.ngay_dat,
+                DatBan.gio_bat_dau,
+                DatBan.id,
+            )
+        ).all()
+
+        for booking in upcoming_bookings:
+            if booking.ban_id in upcoming_by_table:
+                continue
+            arrival_at = datetime.combine(
+                booking.ngay_dat,
+                booking.gio_bat_dau,
+                VIETNAM_TZ,
+            )
+            if arrival_at > now:
+                upcoming_by_table[booking.ban_id] = UpcomingTableBookingResponse(
+                    id=booking.id,
+                    ho_ten_khach=booking.ho_ten_khach,
+                    so_luong_khach=booking.so_luong_khach,
+                    thoi_gian_den_at=arrival_at,
+                )
+
+    return [
+        BanResponse.model_validate(table).model_copy(
+            update={
+                **views[table.id],
+                "dat_ban_sap_toi": upcoming_by_table.get(table.id),
+            }
+        )
+        for table in tables
+    ]
 
 
 def eligible_arrival_bookings(
@@ -255,31 +299,45 @@ def receive_table_guests(
     booking = None
     if table.trang_thai == "DA_DAT":
         if payload.dat_ban_id is None:
-            db.rollback()
-            raise HTTPException(
-                status_code=409,
-                detail="Cần chọn đúng đơn đặt bàn trước khi nhận khách.",
+            # Allow walk-in use today when the only reservation is on a
+            # later date. Keep that future reservation untouched.
+            future_booking = db.scalar(
+                select(DatBan.id)
+                .where(
+                    DatBan.ban_id == table.id,
+                    DatBan.trang_thai == "DA_XAC_NHAN",
+                    DatBan.khach_toi_at.is_(None),
+                    DatBan.ngay_dat > now.date(),
+                )
+                .order_by(DatBan.ngay_dat, DatBan.gio_bat_dau)
+                .limit(1)
+            )
+            if future_booking is None:
+                db.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail="Cần chọn đúng đơn đặt bàn đến giờ hoặc chọn bàn trống.",
+                )
+        else:
+            booking = db.scalar(
+                select(DatBan)
+                .where(DatBan.id == payload.dat_ban_id)
+                .with_for_update()
             )
 
-        booking = db.scalar(
-            select(DatBan)
-            .where(DatBan.id == payload.dat_ban_id)
-            .with_for_update()
-        )
-
-        if (
-            booking is None
-            or booking.ban_id != table.id
-            or not is_arrival_booking(booking, now)
-        ):
-            db.rollback()
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "Đơn đặt bàn không còn phù hợp hoặc chưa đến giờ. "
-                    "Vui lòng tải lại danh sách."
-                ),
-            )
+            if (
+                booking is None
+                or booking.ban_id != table.id
+                or not is_arrival_booking(booking, now)
+            ):
+                db.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Đơn đặt bàn không còn phù hợp hoặc chưa đến giờ. "
+                        "Vui lòng tải lại danh sách."
+                    ),
+                )
     elif payload.dat_ban_id is not None:
         db.rollback()
         raise HTTPException(
@@ -652,18 +710,12 @@ def build_table_details(
             booking.gio_bat_dau,
             VIETNAM_TZ,
         )
-        service_end_at = arrival_at + timedelta(
-            minutes=booking.thoi_luong_giu_ban or 90
-        )
-        ready_at = service_end_at + timedelta(minutes=15)
-        if ready_at > now:
+        if arrival_at > now:
             upcoming_booking = UpcomingTableBookingResponse(
                 id=booking.id,
                 ho_ten_khach=booking.ho_ten_khach,
                 so_luong_khach=booking.so_luong_khach,
                 thoi_gian_den_at=arrival_at,
-                thoi_gian_ket_thuc_du_kien_at=service_end_at,
-                thoi_gian_san_sang_at=ready_at,
             )
             break
 
@@ -712,7 +764,6 @@ def read_table_by_code(
             detail="Không tìm thấy bàn.",
         )
 
-    reconcile_reserved_table(db, table, datetime.now(VIETNAM_TZ))
     return build_table_details(table, db)
 
 
@@ -725,9 +776,7 @@ def read_table(
     table_id: int,
     db: Session = Depends(get_db),
 ):
-    table = get_table(db, table_id)
-    reconcile_reserved_table(db, table, datetime.now(VIETNAM_TZ))
-    return build_table_details(table, db)
+    return build_table_details(get_table(db, table_id), db)
 
 
 @router.delete(
