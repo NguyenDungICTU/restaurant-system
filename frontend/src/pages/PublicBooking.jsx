@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AlertOutlined,
   ArrowLeftOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
+  CheckOutlined,
+  ClockCircleOutlined,
   DeleteOutlined,
+  DownOutlined,
   EnvironmentOutlined,
   FileTextOutlined,
   HistoryOutlined,
@@ -104,6 +107,116 @@ function statusColor(status) {
   if (status === 'DA_XAC_NHAN') return 'green'
   if (status === 'CHO_XAC_NHAN') return 'gold'
   return 'blue'
+}
+
+function PublicTimePicker({ value, onChange, slots = [] }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  const pickerRef = useRef(null)
+  const currentValue = draft || value || ''
+
+  useEffect(() => {
+    if (!open) return undefined
+
+    function handlePointerDown(event) {
+      if (!pickerRef.current?.contains(event.target)) setOpen(false)
+    }
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !currentValue) return
+    const grid = pickerRef.current?.querySelector('.public-time-grid')
+    const selected = grid?.querySelector('.public-time-slot.selected')
+    if (!grid || !selected) return
+
+    const gridBounds = grid.getBoundingClientRect()
+    const selectedBounds = selected.getBoundingClientRect()
+    if (selectedBounds.top < gridBounds.top) grid.scrollTop -= gridBounds.top - selectedBounds.top
+    else if (selectedBounds.bottom > gridBounds.bottom) grid.scrollTop += selectedBounds.bottom - gridBounds.bottom
+  }, [open, currentValue])
+
+  useEffect(() => {
+    if (!open) return
+    const popup = pickerRef.current?.querySelector('.public-time-popup')
+    if (!popup) return
+    const overflow = popup.getBoundingClientRect().bottom - (window.innerHeight - 20)
+    if (overflow > 0) window.scrollBy({ top: overflow, behavior: 'instant' })
+  }, [open])
+
+  function openPicker() {
+    setDraft(value || '')
+    setOpen((current) => !current)
+  }
+
+  function confirmSelection() {
+    if (draft) onChange(draft)
+    setOpen(false)
+  }
+
+  return (
+    <div className="public-time-picker" ref={pickerRef}>
+      <button
+        type="button"
+        className={`public-time-trigger ${open ? 'open' : ''} ${value ? 'has-value' : ''}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={openPicker}
+      >
+        <span className="public-time-trigger-value">
+          <ClockCircleOutlined />
+          {value || 'Chọn giờ đặt bàn'}
+        </span>
+        <DownOutlined className="public-time-trigger-arrow" />
+      </button>
+
+      {open && (
+        <div className="public-time-popup" role="dialog" aria-label="Chọn giờ đặt bàn">
+          <div className="public-time-popup-heading">
+            <div className="public-time-popup-title">
+              <span className="public-time-popup-icon"><ClockCircleOutlined /></span>
+              <span className="public-time-popup-copy"><strong>Chọn giờ đặt bàn</strong><span>Chọn một khung giờ còn khả dụng</span></span>
+            </div>
+            <span className="public-time-popup-value">{currentValue || '--:--'}</span>
+          </div>
+          <div className="public-time-grid" role="group" aria-label="Các khung giờ khả dụng">
+            {slots.length ? slots.map((slot) => {
+              const selected = draft === slot.gio
+              const unavailableReason = slot.ly_do || 'Khung giờ này hiện không khả dụng.'
+              return (
+                <button
+                  type="button"
+                  key={slot.gio}
+                  className={`public-time-slot ${selected ? 'selected' : ''}`}
+                  disabled={!slot.kha_dung}
+                  aria-pressed={selected}
+                  aria-label={`${slot.gio}${slot.kha_dung ? '' : `, ${unavailableReason}`}`}
+                  title={slot.kha_dung ? undefined : unavailableReason}
+                  onClick={() => setDraft(slot.gio)}
+                >
+                  <span>{slot.gio}</span>
+                  {selected && <CheckOutlined />}
+                </button>
+              )
+            }) : <div className="public-time-empty">Chưa có khung giờ nhận đặt bàn cho ngày này.</div>}
+          </div>
+          <div className="public-time-popup-footer">
+            <span>{draft ? `Đang chọn ${draft}` : 'Chưa chọn giờ'}</span>
+            <button type="button" disabled={!draft} onClick={confirmSelection}>Xong</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function BookingInfo({ booking, onCancel }) {
@@ -225,7 +338,7 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
     if (!/^0\d{9}$/.test(phone.trim())) return 'Số điện thoại gồm 10 chữ số và bắt đầu bằng 0.'
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Vui lòng nhập email hợp lệ để nhận xác nhận huỷ.'
     if (!Number.isInteger(guests) || guests < 1 || guests > 20) return 'Số khách phải từ 1 đến 20.'
-    if (!selectedSlot) return 'Vui lòng chọn khung giờ.'
+    if (!selectedSlot) return 'Vui lòng chọn giờ đặt bàn.'
     return ''
   }
 
@@ -477,16 +590,12 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
             </section>
 
             <section className="booking-step">
-              <div className="booking-step-heading"><span className="booking-step-num">2</span><div><h2>Chọn khung giờ</h2><p>Chỉ hiện giờ mở cửa còn bàn phù hợp. Giữ bàn {slots?.thoi_luong_giu_ban || 90} phút.</p></div></div>
+              <div className="booking-step-heading"><span className="booking-step-num">2</span><div><h2>Chọn giờ</h2><p>Chọn giờ trong giờ mở cửa. Giữ bàn {slots?.thoi_luong_giu_ban || 90} phút.</p></div></div>
               {slotsLoading ? <div className="booking-slots-loading"><LoadingOutlined spin /> Đang tải khung giờ...</div> : slots?.ly_do ? <div className="booking-slots-empty">{slots.ly_do}</div> : (
-                <div className="booking-slots">
-                  {(slots?.khung_gio || []).map((slot) => (
-                    <button key={slot.gio} type="button" disabled={!slot.kha_dung} className={`booking-slot ${selectedSlot === slot.gio ? 'selected' : ''} ${slot.kha_dung ? '' : 'disabled'}`} onClick={() => setSelectedSlot(slot.gio)} title={slot.ly_do || ''}>
-                      <span className="booking-slot-time">{slot.gio}</span>
-                      {!slot.kha_dung && slot.ly_do && <span className="booking-slot-reason">{slot.ly_do}</span>}
-                    </button>
-                  ))}
-                  {slots && !slots.khung_gio.length && <div className="booking-slots-empty">Chưa có khung giờ nhận đặt bàn cho ngày này.</div>}
+                <div className="booking-field booking-time-field">
+                  <span className="booking-field-label"><CalendarOutlined /> Giờ đặt bàn</span>
+                  <PublicTimePicker value={selectedSlot} onChange={setSelectedSlot} slots={slots?.khung_gio || []} />
+                  {slots?.ly_do && <span className="booking-time-hint">{slots.ly_do}</span>}
                 </div>
               )}
             </section>
@@ -513,7 +622,7 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
 
             {formError && <div className="booking-form-error">{formError}</div>}
             <div className="booking-submit-bar">
-              <div className="booking-submit-summary">{selectedSlot ? <span>{formatDate(date)} · {selectedSlot} · {guests} khách{areaId ? ' · có chọn khu vực' : ''}</span> : <span>Chọn khung giờ để hoàn tất.</span>}</div>
+              <div className="booking-submit-summary">{selectedSlot ? <span>{formatDate(date)} · {selectedSlot} · {guests} khách{areaId ? ' · có chọn khu vực' : ''}</span> : <span>Chọn giờ đặt bàn để hoàn tất.</span>}</div>
               <Button type="primary" htmlType="submit" size="large" loading={submitting}>Gửi yêu cầu đặt bàn</Button>
             </div>
           </form>
