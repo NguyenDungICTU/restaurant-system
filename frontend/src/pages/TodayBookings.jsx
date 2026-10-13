@@ -282,7 +282,7 @@ export default function TodayBookings() {
       title: 'Trạng thái',
       dataIndex: 'trang_thai',
       key: 'trang_thai',
-      render: (value) => {
+      render: (value, row) => {
         const meta = STATUS_META[value] || { text: value, color: 'default' }
         return (
           <Space wrap>
