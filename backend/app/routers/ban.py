@@ -33,6 +33,7 @@ from app.schemas.dat_ban import (
     NhanKhachBanRequest,
 )
 from app.services.ban_qr import area_pdf, qr_png
+from app.services.table_cleanup import finish_table_cleanup
 
 
 router = APIRouter(
@@ -235,6 +236,20 @@ def is_arrival_booking(booking: DatBan, now: datetime) -> bool:
     )
 
     return start_at <= now < end_at
+
+
+@router.post(
+    "/{table_id}/don-xong",
+    response_model=BanResponse,
+    dependencies=[Depends(require_roles("QUAN_LY", "PHUC_VU"))],
+)
+def report_table_cleaned(
+    table_id: int,
+    db: Session = Depends(get_db),
+):
+    """Waiter reports cleanup complete; next booking within 30 minutes wins."""
+    table = finish_table_cleanup(db, table_id)
+    return BanResponse.model_validate(table)
 
 
 @router.get(

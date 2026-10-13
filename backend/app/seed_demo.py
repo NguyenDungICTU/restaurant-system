@@ -297,8 +297,9 @@ def seed_restaurant_sample() -> tuple[int, int]:
                 categories_created += 1
             else:
                 category.dang_su_dung = True
-                if not category.anh_url or category.anh_url == "/media/default-category.svg":
-                    category.anh_url = DEMO_CATEGORY_PHOTOS[category_name]
+                # Always repair demo category covers to their real food-photo URL,
+                # including databases seeded by an older demo version.
+                category.anh_url = DEMO_CATEGORY_PHOTOS[category_name]
 
             for dish_index, dish_name in enumerate(dish_names, start=1):
                 dish = (

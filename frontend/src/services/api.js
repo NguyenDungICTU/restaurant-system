@@ -457,6 +457,11 @@ export async function createRestaurantTable(payload) {
   return response.data
 }
 
+export async function reportTableCleaned(tableId) {
+  const response = await api.post(`/api/ban/${tableId}/don-xong`)
+  return response.data
+}
+
 export async function updateRestaurantTableStatus(id, hoat_dong) {
   const response = await api.patch(`/api/ban/${id}/trang-thai`, {
     hoat_dong,
