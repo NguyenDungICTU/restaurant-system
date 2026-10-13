@@ -28,6 +28,7 @@ import DailyMenu from '../pages/DailyMenu'
 import OrderEntry from '../pages/OrderEntry'
 import ServiceOrders from '../pages/ServiceOrders'
 import Kitchen from '../pages/Kitchen'
+import Reports from '../pages/Reports'
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
 
@@ -235,6 +236,8 @@ export default function RestaurantShell({ user, onLogout }) {
             <OrderEntry />
           ) : page === 'service-orders' ? (
             <ServiceOrders user={user} />
+          ) : page === 'reports' ? (
+            <Reports />
           ) : page === 'kitchen' ? (
             <Kitchen />
           ) : (

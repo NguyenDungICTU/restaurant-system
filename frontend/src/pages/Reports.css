@@ -1,0 +1,268 @@
+.reports-page {
+  display: grid;
+  gap: 18px;
+  color: #f7f2ec;
+}
+
+.reports-hero,
+.reports-filter-card,
+.reports-table-card,
+.reports-summary .ant-card {
+  border: 1px solid #3b3732 !important;
+  background: #211f1c !important;
+  box-shadow: none !important;
+}
+
+.reports-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 24px;
+  border-radius: 18px;
+}
+
+.reports-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: #ff765f;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.reports-hero h1 {
+  margin: 0;
+  color: #fffaf4;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.reports-hero p {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: #a99e94;
+  line-height: 1.6;
+}
+
+.reports-filter-card .ant-card-body {
+  padding: 18px 20px;
+}
+
+.reports-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.reports-filter-grid label {
+  display: block;
+  margin-bottom: 8px;
+  color: #b9aea4;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reports-filter-grid .ant-picker,
+.reports-filter-grid .ant-segmented {
+  width: 100%;
+}
+
+.reports-filter-action .ant-btn {
+  min-width: 132px;
+}
+
+.reports-alert,
+.reports-rule-note {
+  border-radius: 12px;
+}
+
+.reports-loading {
+  display: grid;
+  min-height: 260px;
+  place-items: center;
+  border: 1px dashed #3a3632;
+  border-radius: 16px;
+  background: #181715;
+}
+
+.reports-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.reports-summary .ant-card-body {
+  padding: 18px;
+}
+
+.reports-summary span {
+  display: block;
+  margin-bottom: 8px;
+  color: #a99f95;
+  font-size: 12px;
+}
+
+.reports-summary strong {
+  color: #fffaf4;
+  font-size: 24px;
+}
+
+.reports-summary .reports-danger {
+  color: #ff7167;
+}
+
+.reports-table-card .ant-card-head {
+  border-bottom-color: #393530;
+}
+
+.reports-table-card .ant-card-head-title {
+  padding: 16px 0;
+}
+
+.reports-table-card .ant-card-body {
+  padding: 0 18px 18px;
+}
+
+.reports-card-title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.reports-card-title > span {
+  color: #ff725e;
+  font-size: 18px;
+}
+
+.reports-card-title div {
+  display: grid;
+  gap: 3px;
+}
+
+.reports-card-title strong {
+  color: #fffaf4;
+  font-size: 16px;
+}
+
+.reports-card-title div span {
+  color: #8f867e;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.reports-table-card .ant-table,
+.reports-table-card .ant-table-container,
+.reports-table-card .ant-table-cell {
+  background: transparent !important;
+}
+
+.reports-table-card .ant-table-thead > tr > th {
+  border-bottom-color: #393530 !important;
+  background: #181715 !important;
+  color: #a99f95 !important;
+  font-size: 12px;
+}
+
+.reports-table-card .ant-table-tbody > tr > td {
+  border-bottom-color: #312e2a !important;
+  color: #ddd5ce;
+}
+
+.reports-table-card .ant-table-tbody > tr:hover > td {
+  background: #282521 !important;
+}
+
+.report-rank {
+  display: inline-flex;
+  min-width: 42px;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: #302a22;
+  color: #ffbd66;
+  font-weight: 800;
+}
+
+.report-rank-1 {
+  background: #47351b;
+  color: #ffd878;
+}
+
+.report-rank-2 {
+  background: #343434;
+  color: #e4e4e4;
+}
+
+.report-rank-3 {
+  background: #3c2b22;
+  color: #e5a277;
+}
+
+.report-rank-cancelled {
+  background: #3a2020;
+  color: #ff928a;
+}
+
+.report-dish-name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.report-dish-name strong {
+  color: #fff9f3;
+}
+
+.report-money {
+  color: #7de0a3;
+}
+
+.report-reason {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.reports-cancelled-card .ant-card-head-title svg {
+  color: #ff7167;
+}
+
+@media (max-width: 900px) {
+  .reports-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-filter-action .ant-btn {
+    width: 100%;
+  }
+
+  .reports-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .reports-hero {
+    flex-direction: column;
+  }
+
+  .reports-hero .ant-btn {
+    width: 100%;
+  }
+
+  .reports-hero h1 {
+    font-size: 24px;
+  }
+
+  .reports-table-card {
+    overflow: hidden;
+  }
+
+  .reports-table-card .ant-card-body {
+    overflow-x: auto;
+  }
+}
