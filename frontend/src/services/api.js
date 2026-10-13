@@ -867,3 +867,22 @@ export async function getInvoiceDetail(invoiceId) {
   const response = await api.get(`/api/billing/invoices/${invoiceId}`)
   return response.data
 }
+
+
+/* S4-04 — Chốt ca làm việc */
+export async function getCurrentShift() {
+  const response = await api.get('/api/billing/shift/current')
+  return response.data
+}
+export async function getShiftHistory() {
+  const response = await api.get('/api/billing/shift/history')
+  return response.data
+}
+export async function closeCurrentShift(payload) {
+  const response = await api.post('/api/billing/shift/close', payload)
+  return response.data
+}
+export async function reopenShift(shiftId, ly_do) {
+  const response = await api.post(`/api/billing/shift/${shiftId}/reopen`, { ly_do })
+  return response.data
+}

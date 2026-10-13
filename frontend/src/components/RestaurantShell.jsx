@@ -29,6 +29,7 @@ import OrderEntry from '../pages/OrderEntry'
 import ServiceOrders from '../pages/ServiceOrders'
 import Kitchen from '../pages/Kitchen'
 import Billing from '../pages/Billing'
+import ShiftClose from '../pages/ShiftClose'
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
 
@@ -240,6 +241,8 @@ export default function RestaurantShell({ user, onLogout }) {
             <ServiceOrders user={user} />
           ) : page === 'kitchen' ? (
             <Kitchen />
+          ) : page === 'shift-close' ? (
+            <ShiftClose user={user} />
           ) : page === 'checkout' || page === 'invoices' ? (
             <Billing user={user} initialMode={page === 'invoices' ? 'invoices' : 'checkout'} />
           ) : (
