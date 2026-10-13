@@ -886,3 +886,14 @@ export async function reopenShift(shiftId, ly_do) {
   const response = await api.post(`/api/billing/shift/${shiftId}/reopen`, { ly_do })
   return response.data
 }
+
+
+// ─────────────────────────────────────────────
+// Báo cáo doanh thu (chỉ quản lý)
+// ─────────────────────────────────────────────
+export async function getRevenueReport(from, to) {
+  const response = await api.get('/api/reports/revenue', {
+    params: { from, to },
+  })
+  return response.data
+}
