@@ -53,6 +53,7 @@ services:
       # Customer booking lookup/cancellation.
       # Defaults use the local Mailpit demo service so teammates
       # can test cancellation emails without personal SMTP credentials.
+      RESTAURANT_NAME: ${RESTAURANT_NAME:-Nhà hàng}
       RESTAURANT_PHONE: ${RESTAURANT_PHONE:-0963217400}
       RESTAURANT_ADDRESS: ${RESTAURANT_ADDRESS:-Địa chỉ nhà hàng chưa được cấu hình}
       NOTIFICATION_WORKER_INTERVAL_SECONDS: ${NOTIFICATION_WORKER_INTERVAL_SECONDS:-10}

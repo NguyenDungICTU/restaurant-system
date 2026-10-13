@@ -1,3 +1,5 @@
+from app.models.ca_lam_viec import CaLamViec
+from app.models.hoa_don import HoaDon
 from app.models.ban import Ban, BanQRToken
 from app.models.dat_ban import DatBan
 from app.models.khu_vuc import KhuVuc
@@ -16,5 +18,5 @@ __all__ = [
     "Ban", "BanQRToken", "DatBan", "KhuVuc", "LichHoatDong",
     "NgayNghiDacBiet", "CauHinhDatBan", "MonAn", "NhanVien",
     "NhatKyThaoTac", "NhomMon", "PhienDangNhap", "PhienBan",
-    "ThongBao", "DotGoiMon", "DongGoiMon",
+    "ThongBao", "DotGoiMon", "DongGoiMon", "HoaDon", "CaLamViec",
 ]
