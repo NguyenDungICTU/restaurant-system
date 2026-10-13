@@ -839,3 +839,26 @@ export async function getProvisionalBill(tableId) {
   )
   return response.data
 }
+
+// S4 checkout / invoices
+export async function getOpenBillingSessions() {
+  const response = await api.get('/api/billing/open-sessions')
+  return response.data
+}
+export async function checkoutSession(payload) {
+  const response = await api.post('/api/billing/checkout', payload)
+  return response.data
+}
+export async function getInvoices() {
+  const response = await api.get('/api/billing/invoices')
+  return response.data
+}
+export async function cancelInvoice(invoiceId, reason) {
+  const response = await api.post(`/api/billing/invoices/${invoiceId}/cancel`, { ly_do: reason })
+  return response.data
+}
+
+export async function getInvoiceDetail(invoiceId) {
+  const response = await api.get(`/api/billing/invoices/${invoiceId}`)
+  return response.data
+}
