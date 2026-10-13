@@ -72,6 +72,7 @@ class Settings(BaseSettings):
 
     cookie_samesite: str = "lax"
 
+    restaurant_name: str = "Nhà hàng"
     restaurant_phone: str = ""
     restaurant_address: str = "Địa chỉ nhà hàng chưa được cấu hình"
     notification_worker_interval_seconds: int = Field(default=10, ge=1, le=60)

@@ -831,3 +831,11 @@ export async function cancelOrderLine(lineId, lyDoHuy) {
   )
   return response.data
 }
+
+// S4 - Hoá đơn tạm tính (chỉ đọc, không đóng phiên phục vụ).
+export async function getProvisionalBill(tableId) {
+  const response = await api.get(
+    `/api/order-ops/tables/${tableId}/provisional-bill`,
+  )
+  return response.data
+}

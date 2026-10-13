@@ -98,6 +98,7 @@ def seed_demo_menu() -> None:
                     ten_nhom=category_name,
                     thu_tu=position,
                     dang_su_dung=True,
+                    anh_url=DEMO_CATEGORY_PHOTOS[category_name],
                 )
                 db.add(category)
                 db.flush()
@@ -130,6 +131,16 @@ def seed_demo_menu() -> None:
     finally:
         db.close()
 
+
+
+# Real food photography used by the seeded demo menu (not placeholder SVGs).
+DEMO_CATEGORY_PHOTOS = {
+    "Khai vị": "https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&w=900&q=80",
+    "Món chính": "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=900&q=80",
+    "Đồ uống": "https://bizweb.dktcdn.net/100/004/714/articles/tra-dao.jpg?v=1563186774693",
+    "Lẩu": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Tráng miệng": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+}
 
 
 SAMPLE_CATEGORIES = {
@@ -181,12 +192,15 @@ def seed_restaurant_sample() -> tuple[int, int]:
                     ten_nhom=category_name,
                     thu_tu=position,
                     dang_su_dung=True,
+                    anh_url=DEMO_CATEGORY_PHOTOS[category_name],
                 )
                 db.add(category)
                 db.flush()
                 categories_created += 1
             else:
                 category.dang_su_dung = True
+                if not category.anh_url or category.anh_url == "/media/default-category.svg":
+                    category.anh_url = DEMO_CATEGORY_PHOTOS[category_name]
 
             for dish_index, dish_name in enumerate(dish_names, start=1):
                 dish = (
@@ -198,6 +212,8 @@ def seed_restaurant_sample() -> tuple[int, int]:
                     .first()
                 )
                 if dish is not None:
+                    if not dish.anh_url or dish.anh_url == "/media/default-dish.svg":
+                        dish.anh_url = DEMO_CATEGORY_PHOTOS[category_name]
                     continue
 
                 db.add(
@@ -211,7 +227,7 @@ def seed_restaurant_sample() -> tuple[int, int]:
                         mo_ta_ngan=f"Món demo: {dish_name}",
                         thoi_gian_che_bien_phut=10 + (dish_index % 4) * 5,
                         trang_thai="DANG_BAN",
-                        anh_url="/media/default-dish.svg",
+                        anh_url=DEMO_CATEGORY_PHOTOS[category_name],
                     )
                 )
                 dishes_created += 1
