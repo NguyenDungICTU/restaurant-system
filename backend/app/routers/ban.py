@@ -1,10 +1,11 @@
+from app.services.booking_timeout import table_timeout_views
 import secrets
 from _thread import LockType
 from datetime import datetime, timedelta
 from threading import Lock
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import delete, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -140,7 +141,55 @@ def list_tables(
     if khu_vuc_id is not None:
         query = query.where(Ban.khu_vuc_id == khu_vuc_id)
 
-    return list(db.scalars(query))
+    tables = list(db.scalars(query))
+    now = datetime.now(VIETNAM_TZ)
+    views = table_timeout_views(db, [table.id for table in tables], now)
+    table_ids = [table.id for table in tables]
+
+    # Include the next confirmed future booking in the table-list response so
+    # the map can distinguish "reserved later" from "occupied right now".
+    upcoming_by_table: dict[int, UpcomingTableBookingResponse] = {}
+    if table_ids:
+        upcoming_bookings = db.scalars(
+            select(DatBan)
+            .where(
+                DatBan.ban_id.in_(table_ids),
+                DatBan.trang_thai == "DA_XAC_NHAN",
+                DatBan.khach_toi_at.is_(None),
+                DatBan.ngay_dat >= now.date(),
+            )
+            .order_by(
+                DatBan.ngay_dat,
+                DatBan.gio_bat_dau,
+                DatBan.id,
+            )
+        ).all()
+
+        for booking in upcoming_bookings:
+            if booking.ban_id in upcoming_by_table:
+                continue
+            arrival_at = datetime.combine(
+                booking.ngay_dat,
+                booking.gio_bat_dau,
+                VIETNAM_TZ,
+            )
+            if arrival_at > now:
+                upcoming_by_table[booking.ban_id] = UpcomingTableBookingResponse(
+                    id=booking.id,
+                    ho_ten_khach=booking.ho_ten_khach,
+                    so_luong_khach=booking.so_luong_khach,
+                    thoi_gian_den_at=arrival_at,
+                )
+
+    return [
+        BanResponse.model_validate(table).model_copy(
+            update={
+                **views[table.id],
+                "dat_ban_sap_toi": upcoming_by_table.get(table.id),
+            }
+        )
+        for table in tables
+    ]
 
 
 def eligible_arrival_bookings(
@@ -250,31 +299,45 @@ def receive_table_guests(
     booking = None
     if table.trang_thai == "DA_DAT":
         if payload.dat_ban_id is None:
-            db.rollback()
-            raise HTTPException(
-                status_code=409,
-                detail="Cần chọn đúng đơn đặt bàn trước khi nhận khách.",
+            # Allow walk-in use today when the only reservation is on a
+            # later date. Keep that future reservation untouched.
+            future_booking = db.scalar(
+                select(DatBan.id)
+                .where(
+                    DatBan.ban_id == table.id,
+                    DatBan.trang_thai == "DA_XAC_NHAN",
+                    DatBan.khach_toi_at.is_(None),
+                    DatBan.ngay_dat > now.date(),
+                )
+                .order_by(DatBan.ngay_dat, DatBan.gio_bat_dau)
+                .limit(1)
+            )
+            if future_booking is None:
+                db.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail="Cần chọn đúng đơn đặt bàn đến giờ hoặc chọn bàn trống.",
+                )
+        else:
+            booking = db.scalar(
+                select(DatBan)
+                .where(DatBan.id == payload.dat_ban_id)
+                .with_for_update()
             )
 
-        booking = db.scalar(
-            select(DatBan)
-            .where(DatBan.id == payload.dat_ban_id)
-            .with_for_update()
-        )
-
-        if (
-            booking is None
-            or booking.ban_id != table.id
-            or not is_arrival_booking(booking, now)
-        ):
-            db.rollback()
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "Đơn đặt bàn không còn phù hợp hoặc chưa đến giờ. "
-                    "Vui lòng tải lại danh sách."
-                ),
-            )
+            if (
+                booking is None
+                or booking.ban_id != table.id
+                or not is_arrival_booking(booking, now)
+            ):
+                db.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Đơn đặt bàn không còn phù hợp hoặc chưa đến giờ. "
+                        "Vui lòng tải lại danh sách."
+                    ),
+                )
     elif payload.dat_ban_id is not None:
         db.rollback()
         raise HTTPException(
@@ -522,6 +585,8 @@ def scan_qr(
 )
 def download_area_qr(
     area_id: int,
+    request: Request,
+    frontend_origin: str | None = Query(default=None, max_length=300),
     db: Session = Depends(get_db),
 ):
     area = validate_area(
@@ -547,7 +612,16 @@ def download_area_qr(
         )
 
     return Response(
-        area_pdf(area, tables),
+        area_pdf(
+            area,
+            tables,
+            frontend_origin=frontend_origin,
+            host=(
+                request.headers.get("x-forwarded-host")
+                or request.headers.get("host")
+            ),
+            forwarded_proto=request.headers.get("x-forwarded-proto"),
+        ),
         media_type="application/pdf",
         headers={
             "Content-Disposition": (
@@ -614,7 +688,6 @@ def build_table_details(
                   ON line.dot_goi_mon_id = dgm.id
                 WHERE dgm.phien_ban_id = :session_id
                   AND line.tinh_tien IS TRUE
-                  AND line.trang_thai <> 'DA_HUY'
                 """
             ),
             {"session_id": active_session.id},
@@ -658,6 +731,13 @@ def build_table_details(
         "qr_token": table.qr_token,
         "created_at": table.created_at,
         "updated_at": table.updated_at,
+        **table_timeout_views(db, [table.id], now)[table.id],
+        "phien_ban_id": (
+            active_session.id
+            if active_session is not None and active_session.trang_thai == "DANG_PHUC_VU"
+            else None
+        ),
+        "trang_thai_phien": active_session.trang_thai if active_session is not None else None,
         "khach_dang_ngoi": guests_seated,
         "bat_dau_phuc_vu_at": service_started_at,
         "tam_tinh_hien_tai": subtotal,
@@ -895,6 +975,8 @@ def regenerate_qr(
 )
 def download_table_qr(
     table_id: int,
+    request: Request,
+    frontend_origin: str | None = Query(default=None, max_length=300),
     db: Session = Depends(get_db),
 ):
     table = get_table(
@@ -909,7 +991,15 @@ def download_table_qr(
         )
 
     return Response(
-        qr_png(table.qr_token),
+        qr_png(
+            table.qr_token,
+            frontend_origin=frontend_origin,
+            host=(
+                request.headers.get("x-forwarded-host")
+                or request.headers.get("host")
+            ),
+            forwarded_proto=request.headers.get("x-forwarded-proto"),
+        ),
         media_type="image/png",
         headers={
             "Content-Disposition": (

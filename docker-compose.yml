@@ -114,8 +114,8 @@ services:
       MP_SMTP_RELAY_AUTH: "plain"
 
       # TÀI KHOẢN GMAIL DÙNG ĐỂ GỬI
-      MP_SMTP_RELAY_USERNAME: "${SMTP_RELAY_USERNAME}"
-      MP_SMTP_RELAY_PASSWORD: "${SMTP_RELAY_PASSWORD}"
+      MP_SMTP_RELAY_USERNAME: "${SMTP_RELAY_USERNAME:-}"
+      MP_SMTP_RELAY_PASSWORD: "${SMTP_RELAY_PASSWORD:-}"
 
       # Tự động relay TẤT CẢ email nhận được
       MP_SMTP_RELAY_ALL: "true"
@@ -139,8 +139,8 @@ services:
       dockerfile: Dockerfile
 
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
-        VITE_WS_BASE_URL: ${VITE_WS_BASE_URL:-ws://localhost:8000}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_WS_BASE_URL: ${VITE_WS_BASE_URL:-}
 
     container_name: restaurant-frontend
     restart: unless-stopped

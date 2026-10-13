@@ -1,5 +1,6 @@
 import json
 import select
+from time import monotonic
 from collections.abc import Generator
 from typing import Any
 
@@ -23,6 +24,8 @@ _TRACKED_TABLE_FIELDS = (
     "loai_ban",
 )
 _TRACKED_BOOKING_FIELDS = (
+    "gia_han_giu_ban_at",
+    "khong_toi_at",
     "ban_id",
     "trang_thai",
     "khach_toi_at",
@@ -179,15 +182,18 @@ def stream_table_map_events(
         connection.commit()
         yield _sse("ready", {})
 
+        next_refresh = monotonic() + 15
         while True:
-            readable, _, _ = select.select([connection], [], [], 15)
+            readable, _, _ = select.select([connection], [], [], max(0, next_refresh - monotonic()))
             if readable:
                 connection.poll()
                 notifications = list(connection.notifies)
                 connection.notifies.clear()
                 for notification in notifications:
                     yield _sse("update", json.loads(notification.payload))
+            if monotonic() < next_refresh:
                 continue
+            next_refresh = monotonic() + 15
 
             cursor.execute(
                 """
@@ -211,6 +217,20 @@ def stream_table_map_events(
                 yield _sse("forbidden", {})
                 return
             connection.commit()
+            cursor.execute(
+                """
+                SELECT DISTINCT ban_id FROM dat_ban
+                WHERE trang_thai = 'DA_XAC_NHAN' AND khach_toi_at IS NULL
+                  AND ban_id IS NOT NULL
+                  AND COALESCE(gia_han_giu_ban_at,
+                      (ngay_dat + gio_bat_dau) AT TIME ZONE 'Asia/Ho_Chi_Minh')
+                      + INTERVAL '15 minutes' <= CURRENT_TIMESTAMP
+                """
+            )
+            overdue_ids = [row[0] for row in cursor.fetchall()]
+            connection.commit()
+            if overdue_ids:
+                yield _sse("update", {"type": "bookings_changed", "table_ids": overdue_ids})
             yield ": keep-alive\n\n"
     finally:
         cursor.close()

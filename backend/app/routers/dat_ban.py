@@ -52,10 +52,14 @@ from app.services.booking_notifications import (
     queue_booking_notification,
 )
 from app.services.today_bookings import build_today_booking_list
+from app.services.booking_timeout import (
+    timeout_view, no_show_warning, lock_timeout_booking, release_no_show_table, attach_history_warnings,
+)
 
 
 router = APIRouter(prefix="/api/dat-ban", tags=["Đặt bàn"])
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+CLEANUP_MINUTES = 15
 
 MA_DAT_BAN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
@@ -166,7 +170,7 @@ def _available_tables(
     exclude_booking_id: int | None = None,
 ):
     start = _minutes(booking.gio_bat_dau)
-    end = start + booking.thoi_luong_giu_ban
+    end = start + booking.thoi_luong_giu_ban + CLEANUP_MINUTES
 
     confirmed_query = select(DatBan).where(
         DatBan.ngay_dat == booking.ngay_dat,
@@ -183,7 +187,7 @@ def _available_tables(
 
     for existing in db.scalars(confirmed_query).all():
         existing_start = _minutes(existing.gio_bat_dau)
-        existing_end = existing_start + existing.thoi_luong_giu_ban
+        existing_end = existing_start + existing.thoi_luong_giu_ban + CLEANUP_MINUTES
 
         if overlaps(start, end, existing_start, existing_end):
             occupied_ids.add(existing.ban_id)
@@ -292,10 +296,10 @@ def _validate_booking_window(
             status_code=409,
             detail="Thời lượng giữ bàn chưa hợp lệ.",
         )
-    if start + duration > closing:
+    if start + duration + CLEANUP_MINUTES > closing:
         raise HTTPException(
             status_code=400,
-            detail=f"Không đủ {duration} phút giữ bàn trước giờ đóng cửa.",
+            detail=f"Không đủ {duration} phút phục vụ và {CLEANUP_MINUTES} phút dọn dẹp trước giờ đóng cửa.",
         )
 
     return schedule, duration
@@ -307,7 +311,7 @@ def _occupied_table_ids(
     start_minutes: int,
     duration: int,
 ) -> set[int]:
-    end = start_minutes + duration
+    end = start_minutes + duration + CLEANUP_MINUTES
     confirmed = db.scalars(
         select(DatBan).where(
             DatBan.ngay_dat == ngay_dat,
@@ -319,7 +323,7 @@ def _occupied_table_ids(
     occupied: set[int] = set()
     for existing in confirmed:
         existing_start = _minutes(existing.gio_bat_dau)
-        existing_end = existing_start + existing.thoi_luong_giu_ban
+        existing_end = existing_start + existing.thoi_luong_giu_ban + CLEANUP_MINUTES
         if existing_start < end and start_minutes < existing_end:
             occupied.add(existing.ban_id)
 
@@ -332,14 +336,16 @@ def _suitable_table_exists(
     start_minutes: int,
     duration: int,
     so_luong_khach: int,
+    khu_vuc_id: int | None = None,
 ) -> bool:
     occupied = _occupied_table_ids(db, ngay_dat, start_minutes, duration)
-    tables = db.scalars(
-        select(Ban).where(
-            Ban.trang_thai != "NGUNG_SU_DUNG",
-            Ban.suc_chua_toi_da >= so_luong_khach,
-        )
-    ).all()
+    table_query = select(Ban).where(
+        Ban.trang_thai != "NGUNG_SU_DUNG",
+        Ban.suc_chua_toi_da >= so_luong_khach,
+    )
+    if khu_vuc_id is not None:
+        table_query = table_query.where(Ban.khu_vuc_id == khu_vuc_id)
+    tables = db.scalars(table_query).all()
     return any(table.id not in occupied for table in tables)
 
 
@@ -353,7 +359,9 @@ def lay_danh_sach_dat_ban(
         DatBan.gio_bat_dau.desc(),
         DatBan.id.desc(),
     )
-    return list(db.scalars(statement).all())
+    bookings = list(db.scalars(statement).all())
+    attach_history_warnings(db, bookings, datetime.now(VIETNAM_TZ))
+    return bookings
 
 
 @router.get(
@@ -390,7 +398,17 @@ def lay_danh_sach_dat_ban_hom_nay(
     )
 
     rows = list(db.scalars(statement).all())
+    attach_history_warnings(db, rows, now)
     return build_today_booking_list(rows, now, trang_thai)
+
+
+@router.get("/lich-su-khong-toi")
+def lich_su_khong_toi(
+    so_dien_thoai: str = Query(pattern=r"^0\d{9}$"),
+    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
+    db: Session = Depends(get_db),
+):
+    return no_show_warning(db, so_dien_thoai, datetime.now(VIETNAM_TZ))
 
 
 @router.post("", response_model=DatBanResponse, status_code=201)
@@ -421,6 +439,8 @@ def tao_yeu_cau_dat_ban(
     queue_booking_notification(db, booking, CONFIRMATION)
     db.commit()
     db.refresh(booking)
+    for key, value in no_show_warning(db, booking.so_dien_thoai, datetime.now(VIETNAM_TZ)).items():
+        setattr(booking, key, value)
     return booking
 
 
@@ -443,10 +463,17 @@ def lay_khu_vuc_cong_khai(
 def lay_khung_gio_cong_khai(
     ngay: date,
     so_luong_khach: int = Query(ge=1, le=20),
+    khu_vuc_id: int | None = Query(default=None, gt=0),
     db: Session = Depends(get_db),
 ):
     today = datetime.now(VIETNAM_TZ).date()
     result = PublicTimeSlotsResponse(ngay=ngay)
+
+    if khu_vuc_id is not None:
+        area = db.get(KhuVuc, khu_vuc_id)
+        if area is None or area.trang_thai != "HOAT_DONG":
+            result.ly_do = "Khu vực đã chọn không tồn tại hoặc không nhận đặt bàn."
+            return result
 
     if ngay < today:
         result.ly_do = "Ngày đã qua. Vui lòng chọn ngày hôm nay hoặc trong tương lai."
@@ -491,7 +518,7 @@ def lay_khung_gio_cong_khai(
                 PublicTimeSlot(gio=gio, kha_dung=False, ly_do="Khung giờ đã qua.")
             )
         elif not _suitable_table_exists(
-            db, ngay, start, duration, so_luong_khach
+            db, ngay, start, duration, so_luong_khach, khu_vuc_id
         ):
             result.khung_gio.append(
                 PublicTimeSlot(
@@ -551,7 +578,12 @@ def tao_dat_ban_cong_khai(
 
     start = _minutes(payload.gio_bat_dau)
     if not _suitable_table_exists(
-        db, payload.ngay_dat, start, duration, payload.so_luong_khach
+        db,
+        payload.ngay_dat,
+        start,
+        duration,
+        payload.so_luong_khach,
+        payload.khu_vuc_id,
     ):
         raise HTTPException(
             status_code=409,
@@ -578,6 +610,7 @@ def tao_dat_ban_cong_khai(
     db.refresh(booking)
 
     return PublicBookingResponse(
+        **no_show_warning(db, booking.so_dien_thoai, datetime.now(VIETNAM_TZ)),
         ma_dat_ban=booking.ma_dat_ban,
         ho_ten_khach=booking.ho_ten_khach,
         so_dien_thoai=booking.so_dien_thoai,
@@ -871,7 +904,7 @@ def xac_nhan_va_phan_ban(
         )
 
     start = _minutes(booking.gio_bat_dau)
-    end = start + booking.thoi_luong_giu_ban
+    end = start + booking.thoi_luong_giu_ban + CLEANUP_MINUTES
     opening = _minutes(schedule.gio_mo_cua)
     closing = _minutes(schedule.gio_dong_cua)
 
@@ -926,7 +959,7 @@ def xac_nhan_va_phan_ban(
 
     for existing in confirmed:
         existing_start = _minutes(existing.gio_bat_dau)
-        existing_end = existing_start + existing.thoi_luong_giu_ban
+        existing_end = existing_start + existing.thoi_luong_giu_ban + CLEANUP_MINUTES
 
         if existing_start < end and start < existing_end:
             raise HTTPException(
@@ -940,6 +973,7 @@ def xac_nhan_va_phan_ban(
 
     if table.trang_thai == "TRONG":
         table.trang_thai = "DA_DAT"
+        table.trang_thai_changed_at = datetime.now(VIETNAM_TZ)
 
     _notify_customer(
         booking,
@@ -1091,6 +1125,7 @@ def doi_ban_dat_ban(
     booking.ban_id = new_table.id
     if new_table.trang_thai == "TRONG":
         new_table.trang_thai = "DA_DAT"
+        new_table.trang_thai_changed_at = datetime.now(VIETNAM_TZ)
 
     if old_table is not None and old_table.trang_thai == "DA_DAT":
         another = db.scalar(
@@ -1104,6 +1139,7 @@ def doi_ban_dat_ban(
         )
         if another is None:
             old_table.trang_thai = "TRONG"
+            old_table.trang_thai_changed_at = datetime.now(VIETNAM_TZ)
 
     _notify_customer(
         booking,
@@ -1174,3 +1210,41 @@ def tra_cuu_dat_ban_cho_khach(
         thong_bao_khach=booking.thong_bao_khach,
         thong_bao_gui_luc=booking.thong_bao_gui_luc,
     )
+
+@router.post("/{booking_id}/gia-han")
+def gia_han_dat_ban(
+    booking_id: int,
+    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(VIETNAM_TZ)
+    booking, _ = lock_timeout_booking(db, booking_id, now)
+    if booking.gia_han_giu_ban_at is not None:
+        raise HTTPException(409, "Chỉ được gia hạn giữ bàn một lần.")
+    booking.gia_han_giu_ban_at = now
+    _audit(db, current_user, "GIA_HAN_GIU_BAN", booking.id, None,
+           {"gia_han_giu_ban_at": now.isoformat()})
+    db.commit()
+    return {"id": booking.id, "trang_thai": booking.trang_thai, **timeout_view(booking, now)}
+
+
+@router.post("/{booking_id}/khong-toi")
+def danh_dau_khong_toi(
+    booking_id: int,
+    current_user: NhanVien = Depends(require_roles("QUAN_LY", "PHUC_VU")),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(VIETNAM_TZ)
+    booking, table = lock_timeout_booking(db, booking_id, now)
+    release_no_show_table(db, table)
+    old_status = booking.trang_thai
+    booking.trang_thai = "KHACH_KHONG_TOI"
+    booking.khong_toi_at = now
+    _audit(db, current_user, "KHACH_KHONG_TOI", booking.id,
+           {"trang_thai": old_status}, {"trang_thai": booking.trang_thai, "ban_id": booking.ban_id,
+                                       "khong_toi_at": now.isoformat()})
+    db.commit()
+    return {"id": booking.id, "ban_id": booking.ban_id,
+            "trang_thai": booking.trang_thai, "khong_toi_at": booking.khong_toi_at,
+            "trang_thai_ban": table.trang_thai if table else None,
+            **no_show_warning(db, booking.so_dien_thoai, now)}

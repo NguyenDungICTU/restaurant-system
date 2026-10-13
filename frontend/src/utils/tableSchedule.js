@@ -87,7 +87,7 @@ export function bookingOverlapsWindow(booking, window) {
 
   const start = timestamp(day, startMinute)
   const end =
-    start + Number(booking.thoi_luong_giu_ban) * 60_000
+    start + (Number(booking.thoi_luong_giu_ban) + 15) * 60_000
 
   return start < window.end && window.start < end
 }

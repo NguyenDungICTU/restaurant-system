@@ -25,9 +25,19 @@ class BanCreateRequest(BaseModel):
     khu_vuc_id: int = Field(gt=0)
 
 
+class UpcomingTableBookingResponse(BaseModel):
+    id: int
+    ho_ten_khach: str
+    so_luong_khach: int
+    thoi_gian_den_at: datetime
+
+
 class BanResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    qua_gio_hen: bool = False
+    dat_ban_qua_gio: list[dict] = Field(default_factory=list)
+    dat_ban_sap_toi: UpcomingTableBookingResponse | None = None
     id: int
     ma_ban: str
     khu_vuc_id: int
@@ -41,19 +51,14 @@ class BanResponse(BaseModel):
     updated_at: datetime
 
 
-class UpcomingTableBookingResponse(BaseModel):
-    id: int
-    ho_ten_khach: str
-    so_luong_khach: int
-    thoi_gian_den_at: datetime
-
-
 class SeatedGuestResponse(BaseModel):
     ho_ten_khach: str
     so_luong_khach: int
 
 
 class BanDetailsResponse(BanResponse):
+    phien_ban_id: int | None = None
+    trang_thai_phien: Literal["DANG_PHUC_VU", "CHO_THANH_TOAN"] | None = None
     khach_dang_ngoi: SeatedGuestResponse | None
     bat_dau_phuc_vu_at: datetime | None
     tam_tinh_hien_tai: Decimal | None

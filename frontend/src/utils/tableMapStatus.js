@@ -63,3 +63,29 @@ export function getTableStatusPresentation(table) {
     colors: unconfiguredColors,
   }
 }
+
+
+/**
+ * Presentation for the live table map.
+ * A future reservation does not mean the table is occupied now; keep the
+ * visual status as empty until the reservation start time. The actual backend
+ * status remains unchanged so arrival/check-in rules are still enforced.
+ */
+export function getCurrentTableStatusPresentation(table, now = new Date()) {
+  const upcomingAt = table?.dat_ban_sap_toi?.thoi_gian_den_at
+  if (
+    table?.da_cau_hinh &&
+    table.trang_thai === 'DA_DAT' &&
+    upcomingAt
+  ) {
+    const arrivalTime = new Date(upcomingAt)
+    if (!Number.isNaN(arrivalTime.getTime()) && arrivalTime > now) {
+      return {
+        label: statuses.TRONG,
+        colors: statusColors.TRONG,
+      }
+    }
+  }
+
+  return getTableStatusPresentation(table)
+}

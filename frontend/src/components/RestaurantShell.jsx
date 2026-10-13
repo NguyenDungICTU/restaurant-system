@@ -7,6 +7,7 @@ import {
   TeamOutlined, UnorderedListOutlined, UserOutlined,
 } from '@ant-design/icons'
 import { Button, Tooltip } from 'antd'
+import './RestaurantShell.css'
 import {
   checkWorkspaceAccess,
   getHealth,
@@ -25,6 +26,8 @@ import TodayBookings from '../pages/TodayBookings'
 import RoleWorkspace from '../pages/RoleWorkspace'
 import DailyMenu from '../pages/DailyMenu'
 import OrderEntry from '../pages/OrderEntry'
+import ServiceOrders from '../pages/ServiceOrders'
+import Kitchen from '../pages/Kitchen'
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
 
@@ -36,6 +39,7 @@ const ROLE_NAVIGATION = {
     { key: 'menu-management', label: 'Thực đơn', icon: UnorderedListOutlined },
     { key: 'daily-menu', label: 'Món trong ngày', icon: FireOutlined },
     { key: 'orders', label: 'Đơn hàng', icon: ShoppingCartOutlined },
+    { key: 'service-orders', label: 'Theo dõi món', icon: BellOutlined },
     { key: 'employees', label: 'Nhân viên', icon: TeamOutlined },
     { key: 'areas', label: 'Khu vực', icon: ApartmentOutlined },
     { key: 'tables', label: 'Quản lý bàn', icon: TableOutlined },
@@ -47,6 +51,7 @@ const ROLE_NAVIGATION = {
     { key: 'table-map', label: 'Sơ đồ bàn', icon: TableOutlined },
     { key: 'bookings', label: 'Danh sách đặt bàn', icon: CalendarOutlined },
     { key: 'order-entry', label: 'Gọi món', icon: ShoppingCartOutlined },
+    { key: 'service-orders', label: 'Theo dõi món', icon: BellOutlined },
   ],
   BEP: [
     { key: 'kitchen', label: 'Màn hình bếp', icon: FireOutlined },
@@ -64,7 +69,7 @@ const PATH_TO_PAGE = {
   '/menu-management': 'menu-management', '/orders': 'orders', '/employees': 'employees',
   '/areas': 'areas', '/tables': 'tables', '/reports': 'reports', '/audit': 'audit',
   '/opening-hours': 'opening-hours', '/table-map': 'table-map', '/order-entry': 'order-entry',
-  '/kitchen': 'kitchen', '/daily-menu': 'daily-menu', '/checkout': 'checkout',
+  '/kitchen': 'kitchen', '/service-orders': 'service-orders', '/daily-menu': 'daily-menu', '/checkout': 'checkout',
   '/invoices': 'invoices', '/shift-close': 'shift-close',
 }
 
@@ -168,7 +173,7 @@ export default function RestaurantShell({ user, onLogout }) {
   const label = navigation.find((item) => item.key === page)?.label || 'Không có quyền truy cập'
 
   return (
-    <div className="app-shell" style={{ display: 'flex', width: '100vw', minHeight: '100vh', overflowX: 'hidden' }}>
+    <div className={`app-shell ${collapsed ? 'app-shell--sidebar-collapsed' : ''}`}>
       <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
         <div className="brand"><div className="brand-mark">R</div>{!collapsed && <div><strong>Resto</strong><span>Management</span></div>}</div>
         <div className="nav-section">
@@ -185,7 +190,7 @@ export default function RestaurantShell({ user, onLogout }) {
         <div className="user-card"><div className="avatar"><UserOutlined /></div>{!collapsed && <div className="user-copy"><strong>{user?.full_name || 'Nhân viên'}</strong><span>{ROLE_LABELS[role] || role}</span></div>}</div>
       </aside>
 
-      <main className="main-content" style={{ flex: 1, minWidth: 0, maxWidth: '100%', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <main className="main-content">
         <header className="topbar">
           <Button type="text" className="collapse-button" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed((v) => !v)} />
           <div className="breadcrumb"><span>Nhà hàng</span><b>/</b><strong>{label}</strong></div>
@@ -228,6 +233,10 @@ export default function RestaurantShell({ user, onLogout }) {
             role === 'PHUC_VU' ? <TodayBookings /> : <BookingDemo focusedBookingId={focusedBookingId} />
           ) : page === 'order-entry' ? (
             <OrderEntry />
+          ) : page === 'service-orders' ? (
+            <ServiceOrders user={user} />
+          ) : page === 'kitchen' ? (
+            <Kitchen />
           ) : (
             <RoleWorkspace resource={page} />
           )}
