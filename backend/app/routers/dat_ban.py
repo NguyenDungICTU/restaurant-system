@@ -27,6 +27,10 @@ from app.schemas.dat_ban import (
     DatBanHomNayResponse,
     DatBanResponse,
     DoiBanDatBan,
+    EmailOtpSendRequest,
+    EmailOtpSendResponse,
+    EmailOtpVerifyRequest,
+    EmailOtpVerifyResponse,
     PublicBookingCreate,
     PublicBookingLookupResponse,
     PublicBookingResponse,
@@ -50,6 +54,15 @@ from app.services.booking_notifications import (
     CANCELLATION,
     CONFIRMATION,
     queue_booking_notification,
+)
+from app.services.email_verification import (
+    OtpDeliveryError,
+    OtpRateLimitError,
+    OtpVerificationError,
+    consume_verified_nonce,
+    send_email_otp,
+    validate_email_verification_token,
+    verify_email_otp,
 )
 from app.services.today_bookings import build_today_booking_list
 from app.services.booking_timeout import (
@@ -535,11 +548,79 @@ def lay_khung_gio_cong_khai(
     return result
 
 
+@router.post(
+    "/cong-khai/email/send-otp",
+    response_model=EmailOtpSendResponse,
+)
+def gui_otp_email_dat_ban(
+    payload: EmailOtpSendRequest,
+):
+    try:
+        cooldown = send_email_otp(payload.email)
+    except OtpRateLimitError as exc:
+        raise HTTPException(
+            status_code=429,
+            detail=str(exc),
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        ) from exc
+    except OtpDeliveryError as exc:
+        print(f"Booking OTP email failed: {exc}")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Không gửi được mã OTP tới Gmail. "
+                "Vui lòng kiểm tra cấu hình Gmail SMTP và thử lại."
+            ),
+        ) from exc
+
+    return EmailOtpSendResponse(
+        message=(
+            "Mã OTP 6 số đã được gửi tới Gmail. "
+            "Mã có hiệu lực trong 10 phút."
+        ),
+        resend_after_seconds=cooldown,
+    )
+
+
+@router.post(
+    "/cong-khai/email/verify-otp",
+    response_model=EmailOtpVerifyResponse,
+)
+def xac_minh_otp_email_dat_ban(
+    payload: EmailOtpVerifyRequest,
+):
+    try:
+        token = verify_email_otp(payload.email, payload.otp)
+    except OtpVerificationError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return EmailOtpVerifyResponse(
+        verification_token=token,
+        expires_in_seconds=(
+            settings.email_verification_token_minutes * 60
+        ),
+    )
+
+
 @router.post("/cong-khai", response_model=PublicBookingResponse, status_code=201)
 def tao_dat_ban_cong_khai(
     payload: PublicBookingCreate,
     db: Session = Depends(get_db),
 ):
+    try:
+        verified_email_nonce = validate_email_verification_token(
+            payload.email,
+            payload.email_verification_token,
+        )
+    except OtpVerificationError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
     _, duration = _validate_booking_window(
         db, payload.ngay_dat, payload.gio_bat_dau
     )
@@ -589,6 +670,17 @@ def tao_dat_ban_cong_khai(
             status_code=409,
             detail="Khung giờ này đã hết bàn phù hợp. Vui lòng chọn khung giờ khác.",
         )
+
+    try:
+        consume_verified_nonce(
+            payload.email,
+            verified_email_nonce,
+        )
+    except OtpVerificationError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
 
     booking = DatBan(
         ho_ten_khach=payload.ho_ten_khach,
