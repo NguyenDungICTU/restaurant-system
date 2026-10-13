@@ -13,6 +13,7 @@ from app.database.session import SessionLocal
 from app.models.nhan_vien import NhanVien
 from app.models.nhom_mon import NhomMon
 from app.models.mon_an import MonAn
+from app.seed_table_map_demo import seed_table_map_demo
 
 
 DEFAULT_USERNAME = "manager"
@@ -130,6 +131,108 @@ def seed_demo_menu() -> None:
         db.close()
 
 
+
+SAMPLE_CATEGORIES = {
+    "Khai vị": [
+        "Gỏi cuốn", "Chả giò", "Salad rau củ", "Súp cua", "Khoai tây chiên",
+        "Ngô chiên", "Đậu phụ chiên", "Nộm gà", "Gỏi ngó sen", "Nem chua rán",
+        "Salad bò", "Súp bí đỏ",
+    ],
+    "Món chính": [
+        "Cơm chiên", "Bò lúc lắc", "Phở bò", "Bún chả", "Cơm sườn",
+        "Gà chiên nước mắm", "Cá kho tộ", "Bò sốt tiêu đen", "Mì xào hải sản",
+        "Thịt rang cháy cạnh", "Sườn nướng", "Cá chiên giòn",
+    ],
+    "Đồ uống": [
+        "Trà đào", "Nước suối", "Cà phê đen", "Cà phê sữa", "Trà chanh",
+        "Nước cam", "Sinh tố xoài", "Sinh tố bơ", "Nước dừa", "Trà tắc",
+        "Nước ép dưa hấu", "Soda chanh",
+    ],
+    "Lẩu": [
+        "Lẩu thái", "Lẩu gà lá é", "Lẩu bò", "Lẩu riêu cua", "Lẩu hải sản",
+        "Lẩu nấm", "Lẩu gà thuốc bắc", "Lẩu cá chua cay", "Lẩu ếch",
+        "Lẩu kim chi", "Lẩu sườn sụn", "Lẩu thập cẩm",
+    ],
+    "Tráng miệng": [
+        "Chè đậu đỏ", "Chè khúc bạch", "Rau câu dừa", "Sữa chua",
+        "Kem vani", "Kem socola", "Bánh flan", "Hoa quả theo mùa",
+        "Chè thập cẩm", "Bánh tiramisu", "Panna cotta", "Thạch trái cây",
+    ],
+}
+
+
+def seed_restaurant_sample() -> tuple[int, int]:
+    """Ensure a repeatable demo menu with five categories and at least 60 dishes."""
+    categories_created = 0
+    dishes_created = 0
+
+    db = SessionLocal()
+    try:
+        for position, (category_name, dish_names) in enumerate(
+            SAMPLE_CATEGORIES.items(), start=1
+        ):
+            category = (
+                db.query(NhomMon)
+                .filter(NhomMon.ten_nhom == category_name)
+                .first()
+            )
+            if category is None:
+                category = NhomMon(
+                    ten_nhom=category_name,
+                    thu_tu=position,
+                    dang_su_dung=True,
+                )
+                db.add(category)
+                db.flush()
+                categories_created += 1
+            else:
+                category.dang_su_dung = True
+
+            for dish_index, dish_name in enumerate(dish_names, start=1):
+                dish = (
+                    db.query(MonAn)
+                    .filter(
+                        MonAn.ten_mon == dish_name,
+                        MonAn.nhom_mon_id == category.id,
+                    )
+                    .first()
+                )
+                if dish is not None:
+                    continue
+
+                db.add(
+                    MonAn(
+                        ten_mon=dish_name,
+                        nhom_mon_id=category.id,
+                        gia=(
+                            15000 + ((position * 7 + dish_index * 11) % 36) * 5000
+                        ),
+                        don_vi_tinh="phần",
+                        mo_ta_ngan=f"Món demo: {dish_name}",
+                        thoi_gian_che_bien_phut=10 + (dish_index % 4) * 5,
+                        trang_thai="DANG_BAN",
+                        anh_url="/media/default-dish.svg",
+                    )
+                )
+                dishes_created += 1
+
+        db.commit()
+        print(
+            "Demo restaurant sample ready: "
+            f"{len(SAMPLE_CATEGORIES)} categories, at least "
+            f"{sum(len(items) for items in SAMPLE_CATEGORIES.values())} named dishes "
+            f"({categories_created} categories and {dishes_created} dishes created)."
+        )
+        return categories_created, dishes_created
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     seed_demo_account()
     seed_demo_menu()
+    seed_restaurant_sample()
+    seed_table_map_demo()

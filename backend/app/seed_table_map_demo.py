@@ -8,8 +8,8 @@ from app.models.ban import Ban, BanQRToken
 from app.models.khu_vuc import KhuVuc
 
 
-AREA_NAMES = ("S2-07 Demo A", "S2-07 Demo B")
-TABLE_STATUSES = ("TRONG", "DA_DAT", "DANG_SU_DUNG", "DANG_DON")
+AREA_NAMES = ("Demo - Tầng 1", "Demo - Tầng 2", "Demo - Sân vườn")
+TABLE_STATUSES = ("TRONG",)
 
 
 def create_unique_qr_token(db: Session) -> str:
@@ -46,45 +46,27 @@ def seed_table_map_demo() -> tuple[int, int]:
                 areas[name] = area
                 areas_created += 1
 
-        table_codes = {
-            f"S207-DEMO-{area_suffix}-{table_number:02d}"
-            for area_suffix in ("A", "B")
-            for table_number in range(1, 5)
-        }
-        existing_codes = set(
-            db.scalars(
-                select(Ban.ma_ban).where(Ban.ma_ban.in_(table_codes))
-            )
-        )
-
-        for area_suffix, area_name in zip(("A", "B"), AREA_NAMES):
-            for table_number, table_status in enumerate(
-                TABLE_STATUSES,
-                start=1,
-            ):
-                table_code = (
-                    f"S207-DEMO-{area_suffix}-{table_number:02d}"
-                )
-                if table_code in existing_codes:
+        # Idempotently ensure 25 tables spread across the three demo areas.
+        for area_index, area_name in enumerate(AREA_NAMES, start=1):
+            area = areas[area_name]
+            count_for_area = (9, 8, 8)[area_index - 1]
+            for local_number in range(1, count_for_area + 1):
+                table_code = f"DEMO-{area_index}-{local_number:02d}"
+                exists = db.scalar(select(Ban.id).where(Ban.ma_ban == table_code))
+                if exists is not None:
                     continue
-
                 table = Ban(
                     ma_ban=table_code,
-                    khu_vuc_id=areas[area_name].id,
+                    khu_vuc_id=area.id,
                     suc_chua_toi_thieu=1,
-                    suc_chua_toi_da=4,
-                    loai_ban="THUONG",
-                    trang_thai=table_status,
+                    suc_chua_toi_da=4 if local_number % 3 else 6,
+                    loai_ban="PHONG_RIENG" if local_number % 7 == 0 else "THUONG",
+                    trang_thai="TRONG",
                     qr_token=create_unique_qr_token(db),
                 )
                 db.add(table)
                 db.flush()
-                db.add(
-                    BanQRToken(
-                        token=table.qr_token,
-                        ban_id=table.id,
-                    )
-                )
+                db.add(BanQRToken(token=table.qr_token, ban_id=table.id))
                 tables_created += 1
 
     print(
