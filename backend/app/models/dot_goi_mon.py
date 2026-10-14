@@ -17,6 +17,9 @@ class DotGoiMon(Base):
         ForeignKey("phien_ban.id", ondelete="CASCADE"), nullable=False, index=True
     )
     so_dot: Mapped[int] = mapped_column(Integer, nullable=False)
+    phien_ban_goc_id: Mapped[int | None] = mapped_column(
+        ForeignKey("phien_ban.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     gui_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
