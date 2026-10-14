@@ -53,6 +53,7 @@ import {
   createAdditionalOrder,
   receiveTableGuests,
   regenerateQR,
+  reportTableCleaned,
   SESSION_EXPIRED_EVENT,
   SESSION_ENDING_EVENT,
   updateTable,
@@ -73,6 +74,8 @@ import {
   statuses,
   unconfiguredColors,
 } from '../utils/tableMapStatus'
+import { canReportTableCleaned, isCleanupOverdue } from '../utils/tableCleanup'
+import GopBanPanel from '../components/GopBanPanel'
 import './Ban.css'
 import './RestaurantManagement.css'
 
@@ -287,6 +290,7 @@ export default function Ban({ user }) {
   const [areaId, setAreaId] = useState()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [clockNow, setClockNow] = useState(Date.now())
   const [editing, setEditing] = useState(null)
   const [open, setOpen] = useState(false)
   const [notice, setNotice] = useState(null)
@@ -1384,6 +1388,7 @@ export default function Ban({ user }) {
 
   return (
     <section className="table-map-page">
+      {canReceiveGuests && <GopBanPanel tables={tables} onChanged={() => loadTablesFresh(true)} />}
       <div className="table-map-page-heading">
         <div>
           <h1>Quản lý bàn</h1>
@@ -1791,6 +1796,12 @@ export default function Ban({ user }) {
                     ['TRONG', 'DA_DAT'].includes(
                       table.trang_thai
                     )
+                  const canReportCleanup = canReportTableCleaned(
+                    table,
+                    user?.role,
+                    viewMode,
+                  )
+                  const cleanupOverdue = isCleanupOverdue(table, clockNow)
                   const scheduleStatus = !configured
                     ? {
                         label: 'Chưa cấu hình',
@@ -1923,6 +1934,11 @@ export default function Ban({ user }) {
                           <ClockCircleOutlined /> Quá giờ 15 phút
                         </Tag>
                       )}
+                      {cleanupOverdue && (
+                        <Tag color="red" className="table-map-overdue-tag" onClick={event => event.stopPropagation()}>
+                          <ClockCircleOutlined /> Đang dọn quá 10 phút
+                        </Tag>
+                      )}
                       <span className="table-map-card-status">
                         <i
                           style={{
@@ -1931,7 +1947,7 @@ export default function Ban({ user }) {
                         />
                         {statusLabel}
                       </span>
-                      {(isManager || canCheckIn) && (
+                      {(isManager || canCheckIn || canReportCleanup) && (
                         <div className="table-map-card-actions">
                           {isManager &&
                             (configured ? (
@@ -1958,6 +1974,24 @@ export default function Ban({ user }) {
                                 Cấu hình
                               </Button>
                             ))}
+                          {canReportCleanup && (
+                            <Button
+                              type="primary"
+                              className="table-map-checkin-button"
+                              disabled={busy}
+                              onClick={event => {
+                                event.stopPropagation()
+                                void run(
+                                  () => reportTableCleaned(table.id),
+                                  result => result.trang_thai === 'DA_DAT'
+                                    ? `Đã dọn xong ${table.ma_ban}; bàn chuyển sang Đã đặt cho khách sắp tới.`
+                                    : `Đã dọn xong ${table.ma_ban}; bàn hiện đang trống.`,
+                                )
+                              }}
+                            >
+                              <CheckCircleOutlined /> Đã dọn xong
+                            </Button>
+                          )}
                           {canCheckIn && (
                             <Button
                               type="primary"

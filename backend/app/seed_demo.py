@@ -98,6 +98,7 @@ def seed_demo_menu() -> None:
                     ten_nhom=category_name,
                     thu_tu=position,
                     dang_su_dung=True,
+                    anh_url=DEMO_CATEGORY_PHOTOS[category_name],
                 )
                 db.add(category)
                 db.flush()
@@ -132,6 +133,16 @@ def seed_demo_menu() -> None:
 
 
 
+# Real food photography used by the seeded demo menu (not placeholder SVGs).
+DEMO_CATEGORY_PHOTOS = {
+    "Khai vị": "https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&w=900&q=80",
+    "Món chính": "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=900&q=80",
+    "Đồ uống": "https://bizweb.dktcdn.net/100/004/714/articles/tra-dao.jpg?v=1563186774693",
+    "Lẩu": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Tráng miệng": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+}
+
+
 SAMPLE_CATEGORIES = {
     "Khai vị": [
         "Gỏi cuốn", "Chả giò", "Salad rau củ", "Súp cua", "Khoai tây chiên",
@@ -161,6 +172,104 @@ SAMPLE_CATEGORIES = {
 }
 
 
+
+# Individual photo URLs for the sample dishes. Each dish has its own photograph;
+# category cover photos remain separate from dish photos.
+DISH_PHOTOS = {
+    "Gỏi cuốn": "https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&w=900&q=80",
+    "Chả giò": "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=80",
+    "Salad rau củ": "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80",
+    "Súp cua": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Khoai tây chiên": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=900&q=80",
+    "Ngô chiên": "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=900&q=80",
+    "Đậu phụ chiên": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=80",
+    "Nộm gà": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Gỏi ngó sen": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80",
+    "Nem chua rán": "https://images.unsplash.com/photo-1601050690117-94f5f6fa8bd7?auto=format&fit=crop&w=900&q=80",
+    "Salad bò": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=80",
+    "Súp bí đỏ": "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?auto=format&fit=crop&w=900&q=80",
+    "Cơm chiên": "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=900&q=80",
+    "Bò lúc lắc": "https://snapcalorie-webflow-website.s3.us-east-2.amazonaws.com/media/food_pics_v2/medium/bo_luc_lac.jpg",
+    "Phở bò": "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&w=900&q=80",
+    "Bún chả": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=900&q=80",
+    "Cơm sườn": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Gà chiên nước mắm": "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=900&q=80",
+    "Cá kho tộ": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=900&q=80",
+    "Bò sốt tiêu đen": "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=900&q=80",
+    "Mì xào hải sản": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=900&q=80",
+    "Thịt rang cháy cạnh": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80",
+    "Sườn nướng": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80",
+    "Cá chiên giòn": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=900&q=80",
+    "Trà đào": "https://bizweb.dktcdn.net/100/004/714/articles/tra-dao.jpg?v=1563186774693",
+    "Nước suối": "https://cdn.hstatic.net/products/200001078872/z7164457794762_2eb24bc9b6d259462f521b188dcfd740_770c1030dd844f11bbbdd4d46476e167.jpg",
+    "Cà phê đen": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80",
+    "Cà phê sữa": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=900&q=80",
+    "Trà chanh": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=900&q=80",
+    "Nước cam": "https://images.unsplash.com/photo-1600271886742-f049cd451bba?auto=format&fit=crop&w=900&q=80",
+    "Sinh tố xoài": "https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?auto=format&fit=crop&w=900&q=80",
+    "Sinh tố bơ": "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=900&q=80",
+    "Nước dừa": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=900&q=80",
+    "Trà tắc": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=900&q=80",
+    "Nước ép dưa hấu": "https://images.unsplash.com/photo-1587049352851-8d4e89133924?auto=format&fit=crop&w=900&q=80",
+    "Soda chanh": "https://images.unsplash.com/photo-1513558161293-cdae765edfd7?auto=format&fit=crop&w=900&q=80",
+    "Lẩu thái": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu gà lá é": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu bò": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu riêu cua": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu hải sản": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu nấm": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu gà thuốc bắc": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu cá chua cay": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu ếch": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu kim chi": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu sườn sụn": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Lẩu thập cẩm": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
+    "Chè đậu đỏ": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+    "Chè khúc bạch": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+    "Rau câu dừa": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+    "Sữa chua": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+    "Kem vani": "https://images.unsplash.com/photo-1560008581-09826d1de69e?auto=format&fit=crop&w=900&q=80",
+    "Kem socola": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=900&q=80",
+    "Bánh flan": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+    "Hoa quả theo mùa": "https://images.unsplash.com/photo-1490818387583-1baba5e638af?auto=format&fit=crop&w=900&q=80",
+    "Bánh tiramisu": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&w=900&q=80",
+    "Panna cotta": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+    "Thạch trái cây": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+}
+
+
+# Keep the sample dishes from reusing the same image URL for different dishes.
+# These are distinct food-photo assets hosted by Unsplash.
+DISH_PHOTO_UNIQUE_OVERRIDES = {
+    "Gỏi ngó sen": "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80",
+    "Nộm gà": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=80",
+    "Cơm sườn": "https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=900&q=80",
+    "Lẩu thái": "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=900&q=80",
+    "Lẩu gà lá é": "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=900&q=80",
+    "Lẩu bò": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=80",
+    "Lẩu riêu cua": "https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=900&q=80",
+    "Lẩu hải sản": "https://images.unsplash.com/photo-1601050690117-94f5f6fa8bd7?auto=format&fit=crop&w=900&q=80",
+    "Lẩu nấm": "https://images.unsplash.com/photo-1576402187878-974f70c890a5?auto=format&fit=crop&w=900&q=80",
+    "Lẩu gà thuốc bắc": "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=900&q=80",
+    "Lẩu cá chua cay": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=80",
+    "Lẩu ếch": "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=900&q=80",
+    "Lẩu kim chi": "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=900&q=80",
+    "Lẩu sườn sụn": "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=900&q=80",
+    "Lẩu thập cẩm": "https://images.unsplash.com/photo-1576402187878-974f70c890a5?auto=format&fit=crop&w=900&q=80",
+    "Salad bò": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=81",
+    "Cá chiên giòn": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=900&q=80",
+    "Sườn nướng": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80",
+    "Chè khúc bạch": "https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=900&q=80",
+    "Rau câu dừa": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&w=900&q=81",
+    "Sữa chua": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=900&q=80",
+    "Bánh flan": "https://images.unsplash.com/photo-1560008581-09826d1de69e?auto=format&fit=crop&w=900&q=80",
+    "Panna cotta": "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=900&q=80",
+    "Thạch trái cây": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&w=900&q=80",
+    "Chè thập cẩm": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80",
+}
+DISH_PHOTOS.update(DISH_PHOTO_UNIQUE_OVERRIDES)
+
+
 def seed_restaurant_sample() -> tuple[int, int]:
     """Ensure a repeatable demo menu with five categories and at least 60 dishes."""
     categories_created = 0
@@ -181,12 +290,16 @@ def seed_restaurant_sample() -> tuple[int, int]:
                     ten_nhom=category_name,
                     thu_tu=position,
                     dang_su_dung=True,
+                    anh_url=DEMO_CATEGORY_PHOTOS[category_name],
                 )
                 db.add(category)
                 db.flush()
                 categories_created += 1
             else:
                 category.dang_su_dung = True
+                # Always repair demo category covers to their real food-photo URL,
+                # including databases seeded by an older demo version.
+                category.anh_url = DEMO_CATEGORY_PHOTOS[category_name]
 
             for dish_index, dish_name in enumerate(dish_names, start=1):
                 dish = (
@@ -198,6 +311,8 @@ def seed_restaurant_sample() -> tuple[int, int]:
                     .first()
                 )
                 if dish is not None:
+                    if dish_name in DISH_PHOTOS:
+                        dish.anh_url = DISH_PHOTOS[dish_name]
                     continue
 
                 db.add(
@@ -211,7 +326,7 @@ def seed_restaurant_sample() -> tuple[int, int]:
                         mo_ta_ngan=f"Món demo: {dish_name}",
                         thoi_gian_che_bien_phut=10 + (dish_index % 4) * 5,
                         trang_thai="DANG_BAN",
-                        anh_url="/media/default-dish.svg",
+                        anh_url=DISH_PHOTOS.get(dish_name, DEMO_CATEGORY_PHOTOS[category_name]),
                     )
                 )
                 dishes_created += 1

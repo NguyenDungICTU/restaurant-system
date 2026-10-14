@@ -29,6 +29,9 @@ import OrderEntry from '../pages/OrderEntry'
 import ServiceOrders from '../pages/ServiceOrders'
 import Kitchen from '../pages/Kitchen'
 import Reports from '../pages/Reports'
+import Billing from '../pages/Billing'
+import ShiftClose from '../pages/ShiftClose'
+import RevenueReport from '../pages/RevenueReport'
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
 
@@ -45,6 +48,8 @@ const ROLE_NAVIGATION = {
     { key: 'areas', label: 'Khu vực', icon: ApartmentOutlined },
     { key: 'tables', label: 'Quản lý bàn', icon: TableOutlined },
     { key: 'reports', label: 'Báo cáo', icon: FileTextOutlined },
+    { key: 'checkout', label: 'Thanh toán', icon: DollarOutlined },
+    { key: 'invoices', label: 'Hóa đơn', icon: FileTextOutlined },
     { key: 'audit', label: 'Nhật ký hệ thống', icon: SafetyOutlined },
     { key: 'opening-hours', label: 'Giờ mở cửa', icon: SettingOutlined },
   ],
@@ -240,6 +245,12 @@ export default function RestaurantShell({ user, onLogout }) {
             <Reports />
           ) : page === 'kitchen' ? (
             <Kitchen />
+          ) : page === 'reports' ? (
+            <RevenueReport />
+          ) : page === 'shift-close' ? (
+            <ShiftClose user={user} />
+          ) : page === 'checkout' || page === 'invoices' ? (
+            <Billing user={user} initialMode={page === 'invoices' ? 'invoices' : 'checkout'} />
           ) : (
             <RoleWorkspace resource={page} />
           )}
