@@ -50,6 +50,7 @@ from app.routers.customer_order import router as customer_order_router
 from app.routers.order_ops import router as order_ops_router
 from app.routers.billing import router as billing_router
 from app.routers.reports import router as reports_router
+from app.routers.table_merge import router as table_merge_router
 
 
 logger = logging.getLogger(__name__)
@@ -180,6 +181,7 @@ app.include_router(customer_order_router)
 app.include_router(order_ops_router)
 app.include_router(billing_router)
 app.include_router(reports_router)
+app.include_router(table_merge_router)
 app.include_router(mon_an_router)
 app.include_router(dat_ban_router)
 app.include_router(lich_hoat_dong_router)

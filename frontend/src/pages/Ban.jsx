@@ -75,6 +75,7 @@ import {
   unconfiguredColors,
 } from '../utils/tableMapStatus'
 import { canReportTableCleaned, isCleanupOverdue } from '../utils/tableCleanup'
+import GopBanPanel from '../components/GopBanPanel'
 import './Ban.css'
 import './RestaurantManagement.css'
 
@@ -1387,6 +1388,7 @@ export default function Ban({ user }) {
 
   return (
     <section className="table-map-page">
+      {canReceiveGuests && <GopBanPanel tables={tables} onChanged={() => loadTablesFresh(true)} />}
       <div className="table-map-page-heading">
         <div>
           <h1>Quản lý bàn</h1>

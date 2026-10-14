@@ -897,3 +897,16 @@ export async function getRevenueReport(from, to) {
   })
   return response.data
 }
+
+
+/** Merge two active table sessions into one billable session. */
+export async function mergeTables(banIds) {
+  const response = await api.post('/api/gop-ban', { ban_ids: banIds })
+  return response.data
+}
+
+/** Undo an unpaid table merge and restore order batches to their source sessions. */
+export async function unmergeTables(mainSessionId) {
+  const response = await api.post(`/api/gop-ban/${mainSessionId}/huy`)
+  return response.data
+}
