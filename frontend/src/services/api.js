@@ -427,6 +427,16 @@ export async function getPublicTimeSlots(params) {
   return response.data
 }
 
+export async function requestPublicBookingEmailOtp(email) {
+  const response = await api.post('/api/dat-ban/cong-khai/email/send-otp', { email })
+  return response.data
+}
+
+export async function verifyPublicBookingEmailOtp(email, otp) {
+  const response = await api.post('/api/dat-ban/cong-khai/email/verify-otp', { email, otp })
+  return response.data
+}
+
 export async function createPublicBooking(payload) {
   const response = await api.post('/api/dat-ban/cong-khai', payload)
   return response.data
@@ -684,7 +694,7 @@ export function createTableMapEventStream(onEvent, onStatus) {
         ) {
           retryDelay = 1000
         }
-      } catch (error) {
+      } catch {
         if (controller.signal.aborted) return
         onStatus?.('disconnected')
         await waitBeforeRetry(retryDelay)

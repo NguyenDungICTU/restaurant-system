@@ -13,6 +13,12 @@ from app.services.email_service import (
     send_booking_confirmation_email,
     send_cancellation_email,
 )
+from app.services.booking_reminders import (
+    REMINDER,
+    queue_due_booking_reminders,
+    reminder_block_reason,
+    send_booking_reminder_email,
+)
 
 logger = logging.getLogger(__name__)
 VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
@@ -119,7 +125,25 @@ def process_pending_notifications() -> int:
                 processed += 1
                 continue
 
-            if notification.loai == CONFIRMATION:
+            if notification.loai == REMINDER:
+                reason = reminder_block_reason(booking, now)
+                if reason:
+                    notification.trang_thai = "THAT_BAI"
+                    notification.lan_tiep_theo_at = None
+                    notification.loi_cuoi = reason
+                    notification.updated_at = now
+                    db.commit()
+                    processed += 1
+                    continue
+
+                if booking.email != notification.email:
+                    notification.email = booking.email
+
+                ok, error = send_booking_reminder_email(
+                    notification=notification,
+                    booking=booking,
+                )
+            elif notification.loai == CONFIRMATION:
                 ok, error = send_booking_confirmation_email(
                     notification=notification,
                     booking=booking,
@@ -173,6 +197,12 @@ async def notification_worker() -> None:
 
     while True:
         try:
+            db = SessionLocal()
+            try:
+                queue_due_booking_reminders(db)
+            finally:
+                db.close()
+
             process_pending_notifications()
         except Exception:
             logger.exception("Booking notification worker failed.")

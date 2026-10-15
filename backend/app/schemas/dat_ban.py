@@ -53,6 +53,10 @@ class DatBanResponse(DatBanCreate):
     email_huy_so_lan_thu: int = 0
     email_huy_gui_luc: datetime | None = None
     email_huy_loi_cuoi: str | None = None
+    email_nhac_trang_thai: str | None = None
+    email_nhac_so_lan_thu: int = 0
+    email_nhac_gui_luc: datetime | None = None
+    email_nhac_loi_cuoi: str | None = None
     ly_do_tu_choi: str | None = None
     created_at: datetime
 
@@ -89,6 +93,10 @@ class DatBanHomNayResponse(BaseModel):
     email_huy_so_lan_thu: int = 0
     email_huy_gui_luc: datetime | None = None
     email_huy_loi_cuoi: str | None = None
+    email_nhac_trang_thai: str | None = None
+    email_nhac_so_lan_thu: int = 0
+    email_nhac_gui_luc: datetime | None = None
+    email_nhac_loi_cuoi: str | None = None
 
 
 class XacNhanDatBan(BaseModel):
@@ -176,10 +184,62 @@ class PublicBookingResponse(BaseModel):
     ten_ban: str | None = None
 
 
+class EmailOtpSendRequest(BaseModel):
+    email: str = Field(min_length=11, max_length=254)
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    @field_validator("email")
+    @classmethod
+    def validate_gmail(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not __import__("re").fullmatch(
+            r"[a-z0-9._%+-]+@gmail\.com",
+            normalized,
+            flags=__import__("re").IGNORECASE,
+        ):
+            raise ValueError(
+                "Chỉ chấp nhận địa chỉ Gmail hợp lệ có đuôi @gmail.com."
+            )
+        return normalized
+
+
+class EmailOtpSendResponse(BaseModel):
+    message: str
+    resend_after_seconds: int
+
+
+class EmailOtpVerifyRequest(BaseModel):
+    email: str = Field(min_length=11, max_length=254)
+    otp: str = Field(pattern=r"^\d{6}$")
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    @field_validator("email")
+    @classmethod
+    def validate_gmail(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not __import__("re").fullmatch(
+            r"[a-z0-9._%+-]+@gmail\.com",
+            normalized,
+            flags=__import__("re").IGNORECASE,
+        ):
+            raise ValueError(
+                "Chỉ chấp nhận địa chỉ Gmail hợp lệ có đuôi @gmail.com."
+            )
+        return normalized
+
+
+class EmailOtpVerifyResponse(BaseModel):
+    verification_token: str
+    expires_in_seconds: int
+
+
 class PublicBookingCreate(BaseModel):
     ho_ten_khach: str = Field(min_length=1, max_length=100)
     so_dien_thoai: str = Field(pattern=r"^0\d{9}$")
-    email: str = Field(min_length=5, max_length=254)
+    email: str = Field(min_length=11, max_length=254)
+    email_verification_token: str = Field(min_length=20, max_length=2048)
     so_luong_khach: int = Field(ge=1, le=20)
     ngay_dat: date
     gio_bat_dau: time
@@ -198,10 +258,16 @@ class PublicBookingCreate(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, value: str) -> str:
-        value = value.strip()
-        if "@" not in value or "." not in value.rsplit("@", 1)[-1]:
-            raise ValueError("Email không hợp lệ.")
-        return value
+        normalized = value.strip().lower()
+        if not __import__("re").fullmatch(
+            r"[a-z0-9._%+-]+@gmail\.com",
+            normalized,
+            flags=__import__("re").IGNORECASE,
+        ):
+            raise ValueError(
+                "Chỉ chấp nhận địa chỉ Gmail hợp lệ có đuôi @gmail.com."
+            )
+        return normalized
 
     @field_validator("gio_bat_dau")
     @classmethod

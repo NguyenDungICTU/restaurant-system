@@ -28,6 +28,7 @@ import DailyMenu from '../pages/DailyMenu'
 import OrderEntry from '../pages/OrderEntry'
 import ServiceOrders from '../pages/ServiceOrders'
 import Kitchen from '../pages/Kitchen'
+import Reports from '../pages/Reports'
 import Billing from '../pages/Billing'
 import ShiftClose from '../pages/ShiftClose'
 import RevenueReport from '../pages/RevenueReport'
@@ -240,6 +241,8 @@ export default function RestaurantShell({ user, onLogout }) {
             <OrderEntry />
           ) : page === 'service-orders' ? (
             <ServiceOrders user={user} />
+          ) : page === 'reports' ? (
+            <Reports />
           ) : page === 'kitchen' ? (
             <Kitchen />
           ) : page === 'reports' ? (
