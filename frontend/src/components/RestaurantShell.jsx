@@ -47,7 +47,8 @@ const ROLE_NAVIGATION = {
     { key: 'employees', label: 'Nhân viên', icon: TeamOutlined },
     { key: 'areas', label: 'Khu vực', icon: ApartmentOutlined },
     { key: 'tables', label: 'Quản lý bàn', icon: TableOutlined },
-    { key: 'reports', label: 'Báo cáo', icon: FileTextOutlined },
+    { key: 'reports', label: 'Báo cáo món ăn', icon: FileTextOutlined },
+    { key: 'revenue-report', label: 'Báo cáo doanh thu', icon: DollarOutlined },
     { key: 'checkout', label: 'Thanh toán', icon: DollarOutlined },
     { key: 'invoices', label: 'Hóa đơn', icon: FileTextOutlined },
     { key: 'audit', label: 'Nhật ký hệ thống', icon: SafetyOutlined },
@@ -73,7 +74,8 @@ const ROLE_NAVIGATION = {
 const PATH_TO_PAGE = {
   '/': null, '/dashboard': 'dashboard', '/bookings': 'bookings', '/customers': 'customers',
   '/menu-management': 'menu-management', '/orders': 'orders', '/employees': 'employees',
-  '/areas': 'areas', '/tables': 'tables', '/reports': 'reports', '/audit': 'audit',
+  '/areas': 'areas', '/tables': 'tables', '/reports': 'reports',
+  '/revenue-report': 'revenue-report', '/audit': 'audit',
   '/opening-hours': 'opening-hours', '/table-map': 'table-map', '/order-entry': 'order-entry',
   '/kitchen': 'kitchen', '/service-orders': 'service-orders', '/daily-menu': 'daily-menu', '/checkout': 'checkout',
   '/invoices': 'invoices', '/shift-close': 'shift-close',
@@ -245,7 +247,7 @@ export default function RestaurantShell({ user, onLogout }) {
             <Reports />
           ) : page === 'kitchen' ? (
             <Kitchen />
-          ) : page === 'reports' ? (
+          ) : page === 'revenue-report' ? (
             <RevenueReport />
           ) : page === 'shift-close' ? (
             <ShiftClose user={user} />
