@@ -5309,3 +5309,34 @@
 .employee-dashboard .employee-table .status-badge {
   font-weight: 500;
 }
+
+/* FIX: Mat khau tam hien thi ngang */
+.credential-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.credential-row b {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: auto !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis;
+    display: block !important;
+}
+
+.credential-row button {
+    flex-shrink: 0 !important;
+    width: 36px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
