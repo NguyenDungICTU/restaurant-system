@@ -53,6 +53,22 @@ def _invoice_dict(inv, session=None, table=None):
             "ma_tham_chieu": inv.ma_tham_chieu, "trang_thai": inv.trang_thai,
             "chot_at": inv.chot_at, "ly_do_huy": inv.ly_do_huy}
 
+def _merged_table_names(db, session, primary_table):
+    """Return all table codes billed together under this primary session."""
+    members = db.execute(
+        select(Ban.ma_ban)
+        .join(PhienBan, PhienBan.ban_id == Ban.id)
+        .where(
+            PhienBan.phien_chinh_id == session.id,
+            PhienBan.trang_thai.in_({"DA_GOP", "DA_DONG"}),
+        )
+        .order_by(Ban.ma_ban)
+    ).scalars().all()
+    names = [primary_table.ma_ban] if primary_table is not None else []
+    names.extend(name for name in members if name not in names)
+    return " + ".join(names) if names else None
+
+
 def _session_bill(db, session):
     rows = db.execute(select(DongGoiMon, MonAn).join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
         .join(MonAn, MonAn.id == DongGoiMon.mon_an_id).where(DotGoiMon.phien_ban_id == session.id)
@@ -187,7 +203,15 @@ def open_sessions(db: Session=Depends(get_db), _: NhanVien=Depends(require_roles
 def invoices(db: Session=Depends(get_db), _: NhanVien=Depends(require_roles("THU_NGAN","QUAN_LY"))):
     rows=db.execute(select(HoaDon,PhienBan,Ban).join(PhienBan,PhienBan.id==HoaDon.phien_ban_id)
                     .join(Ban,Ban.id==PhienBan.ban_id).order_by(HoaDon.chot_at.desc()).limit(500)).all()
-    return [_invoice_dict(inv,session,table) for inv,session,table in rows]
+    result = []
+    for inv, session, table in rows:
+        invoice = _invoice_dict(inv, session, table)
+        invoice["ma_ban"] = _merged_table_names(db, session, table)
+        # Include line items in search/list so details and reprints remain
+        # available after checkout and table cleanup.
+        invoice["items"], _ = _session_bill(db, session)
+        result.append(invoice)
+    return result
 
 @router.post("/checkout", status_code=201)
 def checkout(payload: CheckoutRequest, db: Session=Depends(get_db),
@@ -226,12 +250,35 @@ def checkout(payload: CheckoutRequest, db: Session=Depends(get_db),
     old_status=session.trang_thai
     session.trang_thai="DA_DONG"; session.dong_at=now
     table.trang_thai="DANG_DON"; table.trang_thai_changed_at=now
+    # A merged bill belongs to every member table. Close their source sessions
+    # and put every physical table into cleanup, not just the primary table.
+    member_sessions = list(db.scalars(
+        select(PhienBan).where(
+            PhienBan.phien_chinh_id == session.id,
+            PhienBan.trang_thai == "DA_GOP",
+        ).with_for_update()
+    ))
+    member_table_ids = [member.ban_id for member in member_sessions]
+    for member in member_sessions:
+        member.trang_thai = "DA_DONG"
+        member.dong_at = now
+    if member_table_ids:
+        member_tables = list(db.scalars(
+            select(Ban).where(Ban.id.in_(member_table_ids)).with_for_update()
+        ))
+        for member_table in member_tables:
+            member_table.trang_thai = "DANG_DON"
+            member_table.trang_thai_changed_at = now
     db.add(NhatKyThaoTac(nhan_vien_id=user.id,hanh_dong="CHOT_HOA_DON",doi_tuong="HOA_DON",
         doi_tuong_id=inv.id,du_lieu_cu={"phien_ban_id":session.id,"trang_thai_phien":old_status,"tong_tien_hang":subtotal},
         du_lieu_moi={"so_hoa_don":inv.so_hoa_don,"tong_thanh_toan":disc["total"],"giam_gia":disc["discount"],
                      "ly_do_giam_gia":inv.ly_do_giam_gia,"phuong_thuc":inv.phuong_thuc,"ma_tham_chieu":inv.ma_tham_chieu}))
     db.commit(); db.refresh(inv)
-    return {**_invoice_dict(inv,session,table),"items":items}
+    invoice = _invoice_dict(inv,session,table)
+    invoice["ma_ban"] = " + ".join([table.ma_ban] + [
+        t.ma_ban for t in db.scalars(select(Ban).where(Ban.id.in_(member_table_ids)).order_by(Ban.ma_ban))
+    ]) if member_table_ids else table.ma_ban
+    return {**invoice,"items":items}
 
 @router.get("/invoices/{invoice_id}")
 def invoice_detail(invoice_id: int, db: Session=Depends(get_db),
@@ -241,7 +288,9 @@ def invoice_detail(invoice_id: int, db: Session=Depends(get_db),
     if row is None: raise HTTPException(404,"Không tìm thấy hóa đơn.")
     inv,session,table=row
     items,_=_session_bill(db,session)
-    return {**_invoice_dict(inv,session,table),"items":items}
+    invoice = _invoice_dict(inv,session,table)
+    invoice["ma_ban"] = _merged_table_names(db, session, table)
+    return {**invoice,"items":items}
 
 @router.post("/invoices/{invoice_id}/cancel")
 def cancel_invoice(invoice_id:int,payload:CancelInvoiceRequest,db:Session=Depends(get_db),

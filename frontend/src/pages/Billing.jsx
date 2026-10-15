@@ -8,7 +8,7 @@ import './Billing.css'
 const { Title, Text } = Typography
 const money = formatVnd
 
-function printInvoice(invoice, items = []) {
+function printInvoice(invoice, items = invoice.items || []) {
   const rows = items.map((x) => `<tr><td>${String(x.ten_mon).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}${x.ghi_chu ? `<small>${String(x.ghi_chu).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</small>` : ''}</td><td>${x.so_luong}</td><td>${money(x.don_gia)}</td><td>${money(x.thanh_tien)}</td></tr>`).join('')
   const w = window.open('', '_blank', 'width=480,height=720')
   if (!w) return
@@ -83,7 +83,7 @@ export default function Billing({ user, initialMode = 'checkout' }) {
     { title: 'Hình thức', dataIndex: 'phuong_thuc', key: 'method', render: v => v === 'TIEN_MAT' ? 'Tiền mặt' : 'Chuyển khoản' },
     { title: 'Thời điểm', dataIndex: 'chot_at', key: 'date', render: v => v ? new Date(v).toLocaleString('vi-VN') : '—' },
     { title: 'Trạng thái', dataIndex: 'trang_thai', key: 'status', render: v => <Tag color={v === 'DA_HUY' ? 'red' : 'green'}>{v === 'DA_HUY' ? 'Đã hủy' : 'Đã chốt'}</Tag> },
-    { title: '', key: 'actions', render: (_, x) => <Space><Button icon={<PrinterOutlined />} onClick={async () => { try { printInvoice(await getInvoiceDetail(x.id)) } catch (e) { message.error(e.response?.data?.detail || "Không tải được chi tiết hóa đơn.") } }} title="In hóa đơn"/>{isManager && x.trang_thai === 'DA_CHOT' && <Button danger icon={<StopOutlined />} onClick={() => doCancel(x)}>Hủy</Button>}</Space> },
+    { title: '', key: 'actions', render: (_, x) => <Space><Button icon={<PrinterOutlined />} onClick={async () => { try { const detail = await getInvoiceDetail(x.id); printInvoice(detail, detail.items || []) } catch (e) { message.error(e.response?.data?.detail || "Không tải được chi tiết hóa đơn.") } }} title="In hóa đơn"/>{isManager && x.trang_thai === 'DA_CHOT' && <Button danger icon={<StopOutlined />} onClick={() => doCancel(x)}>Hủy</Button>}</Space> },
   ]
   return <section className="billing-page">
     <div className="billing-header"><div><Text type="secondary">THU NGÂN · S4</Text><Title level={2}>Thanh toán & hóa đơn</Title><Text type="secondary">Tính tiền theo dữ liệu món đã ghi nhận; không sửa trực tiếp đơn giá hoặc thành tiền.</Text></div><Button icon={<ReloadOutlined />} onClick={reload} loading={loading}>Làm mới</Button></div>
@@ -98,6 +98,35 @@ export default function Billing({ user, initialMode = 'checkout' }) {
         <div className="billing-totals"><div><span>Tiền hàng</span><b>{money(selected.tong_tien_hang)}</b></div><div><span>Giảm giá</span><b>− {money(preview.discount)}</b></div><div className="grand-total"><span>Khách cần trả</span><strong>{money(preview.total)}</strong></div></div>
         <Button type="primary" block size="large" icon={<CheckCircleOutlined />} onClick={doCheckout}>Chốt hóa đơn và đóng bàn</Button></div>
       </Card></Col>}
-    </Row> : <Card title="Hóa đơn đã phát hành"><Table rowKey="id" columns={invoiceColumns} dataSource={invoices} loading={loading} pagination={{pageSize:10}} scroll={{x:900}} locale={{emptyText:'Chưa có hóa đơn'}}/></Card>}
+    </Row> : <Card title="Hóa đơn đã phát hành"><Table
+      rowKey="id"
+      columns={invoiceColumns}
+      dataSource={invoices}
+      loading={loading}
+      pagination={{ pageSize: 10 }}
+      scroll={{ x: 900 }}
+      locale={{ emptyText: 'Chưa có hóa đơn' }}
+      expandable={{
+        expandedRowRender: invoice => (
+          <div style={{ padding: '8px 0' }}>
+            <Text strong>Chi tiết món đã gọi</Text>
+            <Table
+              size="small"
+              rowKey="dong_mon_id"
+              pagination={false}
+              dataSource={invoice.items || []}
+              locale={{ emptyText: 'Hóa đơn chưa có dữ liệu chi tiết món.' }}
+              columns={[
+                { title: 'Món', dataIndex: 'ten_mon', key: 'dish' },
+                { title: 'Số lượng', dataIndex: 'so_luong', key: 'qty', width: 100 },
+                { title: 'Đơn giá', dataIndex: 'don_gia', key: 'price', render: money, width: 140 },
+                { title: 'Thành tiền', dataIndex: 'thanh_tien', key: 'amount', render: money, width: 150 },
+                { title: 'Ghi chú', dataIndex: 'ghi_chu', key: 'note' },
+              ]}
+            />
+          </div>
+        ),
+      }}
+    /></Card>}
   </section>
 }

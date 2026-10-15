@@ -265,6 +265,26 @@ def create_staff_order(
         .limit(1)
         .with_for_update()
     )
+    # A merged member's session is DA_GOP. Route orders from that table into
+    # the primary session, while retaining the member session as provenance
+    # so unmerge can restore these order batches to the correct table.
+    source_session_id = None
+    if session is None:
+        member_session = db.scalar(
+            select(PhienBan)
+            .where(PhienBan.ban_id == table.id, PhienBan.trang_thai == "DA_GOP")
+            .order_by(PhienBan.bat_dau_at.desc(), PhienBan.id.desc())
+            .limit(1)
+            .with_for_update()
+        )
+        if member_session is not None and member_session.phien_chinh_id is not None:
+            source_session_id = member_session.id
+            session = db.scalar(
+                select(PhienBan).where(
+                    PhienBan.id == member_session.phien_chinh_id,
+                    PhienBan.trang_thai == "DANG_PHUC_VU",
+                ).with_for_update()
+            )
 
     if session is None:
         raise HTTPException(
@@ -317,6 +337,7 @@ def create_staff_order(
     batch = DotGoiMon(
         phien_ban_id=session.id,
         so_dot=max_batch + 1,
+        phien_ban_goc_id=source_session_id,
         gui_at=now,
         created_by=current_user.id,
     )
@@ -1059,29 +1080,12 @@ def close_service_session(
             ),
         )
 
+    # Closing the service-order screen is NOT checkout. Keep the table occupied
+    # until the cashier finalizes the invoice; checkout then moves it to DANG_DON.
     now = datetime.now(VIETNAM_TZ)
-
-    session.trang_thai = "DA_DONG"
-    session.dong_at = now
-
-    upcoming = db.scalar(
-        select(DatBan.id)
-        .where(
-            DatBan.ban_id == table.id,
-            DatBan.trang_thai == "DA_XAC_NHAN",
-            DatBan.khach_toi_at.is_(None),
-            DatBan.ngay_dat >= now.date(),
-        )
-        .limit(1)
-    )
-
-    table.trang_thai = (
-        "DA_DAT"
-        if upcoming is not None
-        else "TRONG"
-    )
-    table.trang_thai_changed_at = now
-
+    session.trang_thai = "CHO_THANH_TOAN"
+    session.cho_thanh_toan_at = now
+    # Deliberately leave table.trang_thai as DANG_SU_DUNG.
     db.commit()
 
     return {
@@ -1090,4 +1094,5 @@ def close_service_session(
         "ma_ban": table.ma_ban,
         "trang_thai_phien": session.trang_thai,
         "trang_thai_ban": table.trang_thai,
+        "message": "Phiên đã chuyển sang chờ thanh toán; bàn chỉ chuyển sang đang dọn sau khi thu ngân chốt hóa đơn.",
     }
