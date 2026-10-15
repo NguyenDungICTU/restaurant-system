@@ -32,6 +32,7 @@ import Reports from '../pages/Reports'
 import Billing from '../pages/Billing'
 import ShiftClose from '../pages/ShiftClose'
 import RevenueReport from '../pages/RevenueReport'
+import Overview from '../pages/Overview'
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
 
@@ -220,7 +221,7 @@ export default function RestaurantShell({ user, onLogout }) {
           ) : !accessState.allowed ? (
             <Forbidden message={accessState.message} />
           ) : page === 'dashboard' ? (
-            <RoleWorkspace resource="dashboard" />
+            <Overview onNavigate={goTo} />
           ) : page === 'employees' ? (
             <Employees />
           ) : page === 'areas' ? (
