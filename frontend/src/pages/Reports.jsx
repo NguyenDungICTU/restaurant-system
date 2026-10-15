@@ -128,75 +128,40 @@ export default function Reports() {
     if (!report) return
 
     const rangeText = `${report.from_date}_den_${report.to_date}`
-    const modeLabel =
-      rankingMode === 'quantity'
-        ? 'Top 10 theo số lượng'
-        : 'Top 10 theo doanh thu'
-
     const rows = [
       ['BÁO CÁO MÓN BÁN CHẠY VÀ MÓN BỊ HUỶ'],
       ['Từ ngày', report.from_date],
       ['Đến ngày', report.to_date],
-      ['Kiểu xếp hạng', modeLabel],
       [],
-      [modeLabel.toUpperCase()],
-      [
-        'Hạng',
-        'Tên món',
-        'Trạng thái hiện tại',
-        'Số lượng bán',
-        'Doanh thu (VND)',
-      ],
-      ...rankingRows.map((item) => [
-        item.rank,
-        item.ten_mon,
-        currentStatusLabel(item),
-        item.so_luong_ban,
+      ['TOP 10 MÓN BÁN CHẠY THEO SỐ LƯỢNG'],
+      ['Hạng', 'Tên món', 'Trạng thái hiện tại', 'Số lượng bán', 'Doanh thu (VND)'],
+      ...(report.top_by_quantity || []).map((item) => [
+        item.rank, item.ten_mon, currentStatusLabel(item), item.so_luong_ban,
+        Number(item.doanh_thu || 0),
+      ]),
+      [],
+      ['TOP 10 MÓN BÁN CHẠY THEO DOANH THU'],
+      ['Hạng', 'Tên món', 'Trạng thái hiện tại', 'Số lượng bán', 'Doanh thu (VND)'],
+      ...(report.top_by_revenue || []).map((item) => [
+        item.rank, item.ten_mon, currentStatusLabel(item), item.so_luong_ban,
         Number(item.doanh_thu || 0),
       ]),
       [],
       ['MÓN BỊ HUỶ NHIỀU NHẤT'],
-      [
-        'Hạng',
-        'Tên món',
-        'Trạng thái hiện tại',
-        'Số lượng bị huỷ',
-        'Lý do huỷ phổ biến nhất',
-      ],
+      ['Hạng', 'Tên món', 'Trạng thái hiện tại', 'Số lượng bị huỷ', 'Lý do huỷ phổ biến nhất'],
       ...(report.cancelled_items || []).map((item) => [
-        item.rank,
-        item.ten_mon,
-        currentStatusLabel(item),
-        item.so_luong_huy,
+        item.rank, item.ten_mon, currentStatusLabel(item), item.so_luong_huy,
         item.ly_do_pho_bien,
       ]),
     ]
 
-    const delimiter = ';'
-    const eol = String.fromCharCode(13, 10)
-
     const csv = rows
-      .map((row) => row.map(escapeCsv).join(delimiter))
-      .join(eol)
-
-    // Excel Windows đọc UTF-16LE + BOM ổn định hơn UTF-8 CSV theo locale.
-    const bytes = new Uint8Array(2 + csv.length * 2)
-    bytes[0] = 0xff
-    bytes[1] = 0xfe
-
-    for (let index = 0; index < csv.length; index += 1) {
-      const code = csv.charCodeAt(index)
-      bytes[2 + index * 2] = code & 0xff
-      bytes[3 + index * 2] = code >> 8
-    }
-
-    const blob = new Blob(
-      [bytes],
-      { type: 'text/csv;charset=utf-16le;' },
-    )
+      .map((row) => row.map(escapeCsv).join(';'))
+      .join(String.fromCharCode(13, 10))
+    // UTF-8 BOM helps Excel detect Vietnamese characters correctly.
+    const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-
     link.href = url
     link.download = `bao-cao-mon_${rangeText}.csv`
     document.body.appendChild(link)

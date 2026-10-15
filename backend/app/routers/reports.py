@@ -246,7 +246,8 @@ from app.models.nhan_vien import NhanVien
 from app.models.phien_ban import PhienBan
 from app.services.revenue_report import build_hourly_revenue, summarize_invoices, validate_report_range
 
-router = APIRouter(prefix="/api/reports", tags=["Báo cáo doanh thu"])
+# Reuse the router declared above so both /dishes and /revenue are registered.
+# Do not reassign `router` here: main.py imports this module-level object.
 TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 
