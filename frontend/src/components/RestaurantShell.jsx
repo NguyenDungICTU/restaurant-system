@@ -39,10 +39,8 @@ const ROLE_NAVIGATION = {
   QUAN_LY: [
     { key: 'dashboard', label: 'Tổng quan', icon: DashboardOutlined },
     { key: 'bookings', label: 'Đặt bàn', icon: CalendarOutlined },
-    { key: 'customers', label: 'Khách hàng', icon: TeamOutlined },
     { key: 'menu-management', label: 'Thực đơn', icon: UnorderedListOutlined },
     { key: 'daily-menu', label: 'Món trong ngày', icon: FireOutlined },
-    { key: 'orders', label: 'Đơn hàng', icon: ShoppingCartOutlined },
     { key: 'service-orders', label: 'Theo dõi món', icon: BellOutlined },
     { key: 'employees', label: 'Nhân viên', icon: TeamOutlined },
     { key: 'areas', label: 'Khu vực', icon: ApartmentOutlined },
