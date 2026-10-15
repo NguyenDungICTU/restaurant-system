@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Card,
+  ConfigProvider,
   DatePicker,
   Empty,
   Segmented,
@@ -21,6 +22,24 @@ import { getDishReport } from '../services/reportsApi'
 import './Reports.css'
 
 const { RangePicker } = DatePicker
+
+const REPORT_THEME = {
+  token: {
+    colorPrimary: '#9f2f27',
+    colorText: '#27231f',
+    colorTextSecondary: '#766e66',
+    colorBorder: '#ebe7e1',
+    colorBgContainer: '#ffffff',
+    colorBgElevated: '#ffffff',
+    colorBgLayout: '#f7f5f2',
+    colorInfo: '#9f2f27',
+    colorInfoBg: '#fbf6ef',
+    colorInfoBorder: '#eadfce',
+    colorSuccess: '#2d8a56',
+    colorWarning: '#c8841b',
+    colorError: '#c8473d',
+  },
+}
 
 function formatVnd(value) {
   return `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))} ₫`
@@ -246,6 +265,7 @@ export default function Reports() {
   ]
 
   return (
+    <ConfigProvider theme={REPORT_THEME}>
     <div className="reports-page">
       <section className="reports-hero">
         <div>
@@ -435,5 +455,6 @@ export default function Reports() {
         </>
       ) : null}
     </div>
+    </ConfigProvider>
   )
 }
