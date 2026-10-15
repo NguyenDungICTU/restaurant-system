@@ -356,7 +356,7 @@ export default function Employees() {
         .employee-dashboard {
           padding: 24px;
           min-height: 100%;
-          background: #f6f8fc;
+          background: #f7f5f2 !important;
           color: #17233d;
           font-family: inherit;
         }
