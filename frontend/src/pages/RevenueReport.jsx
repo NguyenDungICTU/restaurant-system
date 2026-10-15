@@ -61,7 +61,7 @@ export default function RevenueReport() {
         <Button onClick={() => load(appliedRange, true)} loading={refreshing}>Làm mới</Button>
       </div>
 
-      <div className="revenue-filter">
+      <div data-tour="revenue-filters" className="revenue-filter">
         <label> Từ ngày
           <DatePicker value={dayjs(from)} format="DD/MM/YYYY" allowClear={false}
             onChange={(v) => v && setFrom(v.format('YYYY-MM-DD'))} />
@@ -84,7 +84,7 @@ export default function RevenueReport() {
           <span>{refreshing ? 'Đang cập nhật…' : `Tự cập nhật mỗi 60 giây · Cập nhật lúc ${dayjs(data.updated_at).format('HH:mm:ss')}`}</span>
         </div>
 
-        <div className="revenue-metrics">
+        <div data-tour="revenue-results" className="revenue-metrics">
           <Metric label="Doanh thu" value={formatVnd(data.revenue)} detail="Tổng hóa đơn đã chốt" accent />
           <Metric label="Số hóa đơn" value={data.invoice_count.toLocaleString('vi-VN')} detail="Không tính hóa đơn đã hủy" />
           <Metric label="Lượt khách ghi nhận" value={data.guest_count.toLocaleString('vi-VN')} detail="Khách đã check-in đặt bàn" />

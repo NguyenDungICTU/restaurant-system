@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   ApartmentOutlined, BellOutlined, CalendarOutlined, CheckSquareOutlined,
   DashboardOutlined, DollarOutlined, FileTextOutlined, FireOutlined,
@@ -33,6 +33,8 @@ import Billing from '../pages/Billing'
 import ShiftClose from '../pages/ShiftClose'
 import RevenueReport from '../pages/RevenueReport'
 import Overview from '../pages/Overview'
+
+const AssistantWidget = lazy(() => import('./AssistantWidget'))
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
 
@@ -215,7 +217,7 @@ export default function RestaurantShell({ user, onLogout }) {
             <section key={title} className="nav-group" aria-label={title}>
               {!collapsed && <h2 className="nav-title">{title}</h2>}
               {items.map(({ key, label: text, icon: Icon }) => (
-                <button key={key} className={`nav-item ${page === key ? 'active' : ''}`} onClick={() => goTo(key)} title={collapsed ? text : undefined}>
+                <button key={key} data-assistant-nav={key} className={`nav-item ${page === key ? 'active' : ''}`} onClick={() => goTo(key)} title={collapsed ? text : undefined}>
                   <Icon />{!collapsed && <span>{text}</span>}
                 </button>
               ))}
@@ -240,6 +242,8 @@ export default function RestaurantShell({ user, onLogout }) {
         </header>
 
         <div
+          data-assistant-page={page}
+          data-assistant-ready={accessState.page === page && accessState.allowed && !accessState.loading ? 'true' : 'false'}
           className={`page-content ${
             page === 'tables' || page === 'table-map'
               ? 'page-content--table-map'
@@ -288,6 +292,10 @@ export default function RestaurantShell({ user, onLogout }) {
           )}
         </div>
       </main>
+      <Suspense fallback={null}>
+        <AssistantWidget key={`${user?.id}-${role}`} page={page} navigation={navigation}
+          ready={accessState.page === page && accessState.allowed && !accessState.loading} onNavigate={goTo} />
+      </Suspense>
     </div>
   )
 }

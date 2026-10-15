@@ -134,14 +134,14 @@ export default function DailyMenu() {
         </div>
       </div>
 
-      <div className="daily-menu-summary">
+      <div data-tour="daily-summary" className="daily-menu-summary">
         <div><strong>{groups.length}</strong><span>Nhóm món</span></div>
         <div><strong>{dishes.length}</strong><span>Tổng số món</span></div>
         <div className={soldOutCount ? 'has-sold-out' : ''}><strong>{soldOutCount}</strong><span>Đang tạm hết</span></div>
         <div><strong>{availableCount}</strong><span>Còn hàng</span></div>
       </div>
 
-      <div className="daily-menu-toolbar">
+      <div data-tour="daily-search" className="daily-menu-toolbar">
         <Input
           allowClear
           prefix={<SearchOutlined />}

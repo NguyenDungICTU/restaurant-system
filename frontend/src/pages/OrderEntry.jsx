@@ -130,7 +130,7 @@ export default function OrderEntry() {
 
       {notice && <Alert type={notice.type} showIcon message={notice.message} closable onClose={() => setNotice(null)} style={{ marginBottom: 14 }} />}
 
-      <div className="order-entry-toolbar order-entry-table-toolbar">
+      <div data-tour="order-table" className="order-entry-toolbar order-entry-table-toolbar">
         <div>
           <strong>Bàn đang phục vụ</strong>
           <span>Chỉ hiển thị bàn đã nhận khách và đang có phiên phục vụ.</span>
@@ -146,7 +146,7 @@ export default function OrderEntry() {
       </div>
 
       <div className="order-entry-layout">
-        <div className="order-entry-menu">
+        <div data-tour="order-menu" className="order-entry-menu">
           <div className="order-entry-toolbar">
             <Input
               prefix={<SearchOutlined />}
@@ -188,7 +188,7 @@ export default function OrderEntry() {
           )}
         </div>
 
-        <aside className="order-entry-cart">
+        <aside data-tour="order-cart" className="order-entry-cart">
           <div className="order-entry-cart-heading">
             <div>
               <p className="eyebrow"><ShoppingCartOutlined /> ĐƠN MỚI</p>
