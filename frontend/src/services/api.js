@@ -920,3 +920,8 @@ export async function unmergeTables(mainSessionId) {
   const response = await api.post(`/api/gop-ban/${mainSessionId}/huy`)
   return response.data
 }
+
+export async function getMergeGroups() {
+  const response = await api.get('/api/gop-ban/groups')
+  return response.data
+}

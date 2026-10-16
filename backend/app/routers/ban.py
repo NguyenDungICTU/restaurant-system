@@ -666,6 +666,26 @@ def build_table_details(
             .order_by(PhienBan.bat_dau_at.desc(), PhienBan.id.desc())
             .limit(1)
         )
+        # A merged member session is marked DA_GOP, but its table must still
+        # expose the primary active session so the service UI can add dishes.
+        if active_session is None:
+            member_session = db.scalar(
+                select(PhienBan)
+                .where(
+                    PhienBan.ban_id == table.id,
+                    PhienBan.trang_thai == "DA_GOP",
+                    PhienBan.phien_chinh_id.is_not(None),
+                )
+                .order_by(PhienBan.bat_dau_at.desc(), PhienBan.id.desc())
+                .limit(1)
+            )
+            if member_session is not None:
+                active_session = db.scalar(
+                    select(PhienBan).where(
+                        PhienBan.id == member_session.phien_chinh_id,
+                        PhienBan.trang_thai.in_({"DANG_PHUC_VU", "CHO_THANH_TOAN"}),
+                    )
+                )
 
     current_booking = None
     subtotal = None
