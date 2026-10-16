@@ -5200,3 +5200,145 @@
 .employee-panel .employee-table tbody tr td:nth-child(5) * {
   font-weight: 400 !important;
 }
+
+/* ==========================================
+   CHINH MAU GIAO DIEN QUAN LY NHAN VIEN
+   ========================================== */
+
+/* 1. Toan bo chu trong bang mau den */
+.employee-dashboard .employee-table tbody td {
+  color: #111111 !important;
+}
+
+/* 2. STT, ho ten, SDT, ten dang nhap */
+.employee-dashboard .employee-table tbody td:nth-child(1),
+.employee-dashboard .employee-table tbody td:nth-child(2),
+.employee-dashboard .employee-table tbody td:nth-child(3),
+.employee-dashboard .employee-table tbody td:nth-child(4),
+.employee-dashboard .employee-table tbody td:nth-child(4) a {
+  color: #111111 !important;
+  font-weight: 400 !important;
+}
+
+/* 3. Vai tro: nen trang, chu den */
+.employee-dashboard .employee-table .role-badge,
+.employee-dashboard .employee-table .role-quan_ly,
+.employee-dashboard .employee-table .role-bep,
+.employee-dashboard .employee-table .role-thu_ngan,
+.employee-dashboard .employee-table .role-phuc_vu {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  font-weight: 400 !important;
+  box-shadow: none !important;
+}
+
+/* 4. Nut thao tac: nen trang, icon den */
+.employee-dashboard .employee-table .employee-action-btn {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+/* 5. Nut sua, khoa, mo khoa, xem */
+.employee-dashboard .employee-table .employee-action-btn.edit,
+.employee-dashboard .employee-table .employee-action-btn.stop,
+.employee-dashboard .employee-table .employee-action-btn.enable,
+.employee-dashboard .employee-table .employee-action-btn.view {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border-color: #d9d9d9 !important;
+}
+
+/* 6. Icon thao tac mau den */
+.employee-dashboard .employee-table
+.employee-action-btn:not(.delete) svg,
+.employee-dashboard .employee-table
+.employee-action-btn:not(.delete) .anticon {
+  color: #111111 !important;
+}
+
+/* 7. Nut XOA: vien do, icon do, nen trang */
+.employee-dashboard .employee-table .employee-action-btn.delete {
+  background: #ffffff !important;
+  color: #ff4d4f !important;
+  border: 1px solid #ff4d4f !important;
+  box-shadow: none !important;
+}
+
+/* 8. Icon xoa mau do */
+.employee-dashboard .employee-table
+.employee-action-btn.delete svg,
+.employee-dashboard .employee-table
+.employee-action-btn.delete .anticon {
+  color: #ff4d4f !important;
+}
+
+/* 9. Hover cac nut thao tac */
+.employee-dashboard .employee-table
+.employee-action-btn:not(.delete):hover {
+  background: #f5f5f5 !important;
+  color: #111111 !important;
+  border-color: #bfbfbf !important;
+}
+
+/* 10. Hover nut xoa */
+.employee-dashboard .employee-table
+.employee-action-btn.delete:hover {
+  background: #fff1f0 !important;
+  color: #ff4d4f !important;
+  border-color: #ff4d4f !important;
+}
+
+/* 11. Tieu de bang mau den */
+.employee-dashboard .employee-table thead th {
+  color: #111111 !important;
+  font-weight: 600 !important;
+}
+
+/* 12. Bo in dam ho ten va vai tro */
+.employee-dashboard .employee-table tbody td:nth-child(2),
+.employee-dashboard .employee-table tbody td:nth-child(5) {
+  font-weight: 400 !important;
+}
+
+/* 13. Giu nguyen mau trang thai */
+.employee-dashboard .employee-table .status-badge {
+  font-weight: 500;
+}
+
+/* FIX: Mat khau tam hien thi ngang */
+.credential-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.credential-row b {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: auto !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis;
+    display: block !important;
+}
+
+.credential-row button {
+    flex-shrink: 0 !important;
+    width: 36px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
