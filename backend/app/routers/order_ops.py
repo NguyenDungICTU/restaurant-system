@@ -265,9 +265,9 @@ def create_staff_order(
         .limit(1)
         .with_for_update()
     )
-    # A merged member's session is DA_GOP. Route orders from that table into
-    # the primary session, while retaining the member session as provenance
-    # so unmerge can restore these order batches to the correct table.
+    # A merged member's session is DA_GOP. Resolve the primary session to
+    # validate the group, but keep new order batches attached to the original
+    # member session so unmerge preserves each table's own bill.
     source_session_id = None
     if session is None:
         member_session = db.scalar(
@@ -337,7 +337,7 @@ def create_staff_order(
     batch = DotGoiMon(
         phien_ban_id=session.id,
         so_dot=max_batch + 1,
-        phien_ban_goc_id=source_session_id,
+        phien_ban_goc_id=source_session_id or session.id,
         gui_at=now,
         created_by=current_user.id,
     )
@@ -842,15 +842,24 @@ def create_additional_order(
             ),
         )
 
-    table = db.scalar(
-        select(Ban).where(Ban.id == session.ban_id)
-    )
-
+    table_id = payload.ban_id or session.ban_id
+    table = db.scalar(select(Ban).where(Ban.id == table_id))
     if table is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Không tìm thấy bàn.",
-        )
+        raise HTTPException(status_code=404, detail="Không tìm thấy bàn.")
+
+    source_session_id = None
+    if table.id != session.ban_id:
+        member_session = db.scalar(select(PhienBan).where(
+            PhienBan.ban_id == table.id,
+            PhienBan.phien_chinh_id == session.id,
+            PhienBan.trang_thai == "DA_GOP",
+        ).with_for_update())
+        if member_session is None:
+            raise HTTPException(
+                status_code=409,
+                detail="Bàn được chọn không thuộc nhóm gộp của phiên này.",
+            )
+        source_session_id = member_session.id
 
     if not payload.items:
         raise HTTPException(
@@ -896,6 +905,7 @@ def create_additional_order(
     batch = DotGoiMon(
         phien_ban_id=session.id,
         so_dot=next_batch_number,
+        phien_ban_goc_id=source_session_id or session.id,
         gui_at=now,
         created_by=staff.id,
     )

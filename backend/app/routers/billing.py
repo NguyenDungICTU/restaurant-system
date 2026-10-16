@@ -70,8 +70,12 @@ def _merged_table_names(db, session, primary_table):
 
 
 def _session_bill(db, session):
+    # Merged order batches are consolidated under the primary session.
+    # Use the session ID directly; the previous implementation referenced an
+    # undefined `session_ids` variable, causing HTTP 500 on both billing APIs.
     rows = db.execute(select(DongGoiMon, MonAn).join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
-        .join(MonAn, MonAn.id == DongGoiMon.mon_an_id).where(DotGoiMon.phien_ban_id == session.id)
+        .join(MonAn, MonAn.id == DongGoiMon.mon_an_id)
+        .where(DotGoiMon.phien_ban_id == session.id)
         .order_by(DongGoiMon.thoi_diem_tiep_nhan, DongGoiMon.id)).all()
     items=[]; subtotal=0
     for line,dish in rows:

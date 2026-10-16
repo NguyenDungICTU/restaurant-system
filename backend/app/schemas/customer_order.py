@@ -102,4 +102,7 @@ class CancelOrderLineRequest(BaseModel):
     ly_do_huy: str = Field(min_length=1, max_length=100)
 class StaffAdditionalOrderCreate(BaseModel):
     phien_ban_id: int = Field(gt=0)
+    # Physical table selected in the table map. For a merged group this lets
+    # the backend retain the source session on the shared order batch.
+    ban_id: int | None = Field(default=None, gt=0)
     items: list[CustomerOrderItem] = Field(min_length=1, max_length=30)

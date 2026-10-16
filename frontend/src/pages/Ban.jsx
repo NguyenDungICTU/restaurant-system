@@ -2555,6 +2555,7 @@ export default function Ban({ user }) {
                                   sessionId,
                                   {
                                     phien_ban_id: sessionId,
+                                    ban_id: detailData?.id,
                                     items: Object.values(additionalOrderCart).map(item => ({
                                       mon_an_id: item.mon_an_id,
                                       so_luong: item.so_luong,
