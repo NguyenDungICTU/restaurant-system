@@ -37,6 +37,24 @@
   scrollbar-color: #51443e #211b18;
 }
 
+.app-shell .nav-group + .nav-group {
+  margin-top: 16px;
+}
+
+.app-shell .nav-group .nav-title {
+  margin: 0 12px 8px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid #39322e;
+  color: #9d9187;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.app-shell .sidebar.collapsed .nav-group + .nav-group {
+  padding-top: 12px;
+  border-top: 1px solid #39322e;
+}
+
 .app-shell .sidebar-bottom,
 .app-shell .user-card {
   flex: 0 0 auto;

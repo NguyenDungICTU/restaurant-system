@@ -70,6 +70,29 @@ const ROLE_NAVIGATION = {
   ],
 }
 
+const NAVIGATION_GROUPS = [
+  {
+    title: 'ĐIỀU HÀNH',
+    keys: ['dashboard', 'bookings', 'tables', 'table-map', 'order-entry', 'service-orders', 'kitchen'],
+  },
+  {
+    title: 'DANH MỤC',
+    keys: ['menu-management', 'daily-menu', 'areas'],
+  },
+  {
+    title: 'TÀI CHÍNH',
+    keys: ['checkout', 'invoices', 'shift-close'],
+  },
+  {
+    title: 'BÁO CÁO',
+    keys: ['reports', 'revenue-report'],
+  },
+  {
+    title: 'HỆ THỐNG',
+    keys: ['employees', 'opening-hours', 'audit'],
+  },
+]
+
 const PATH_TO_PAGE = {
   '/': null, '/dashboard': 'dashboard', '/bookings': 'bookings', '/customers': 'customers',
   '/menu-management': 'menu-management', '/orders': 'orders', '/employees': 'employees',
@@ -89,6 +112,10 @@ function apiErrorMessage(error) {
 export default function RestaurantShell({ user, onLogout }) {
   const role = user?.role || 'PHUC_VU'
   const navigation = useMemo(() => ROLE_NAVIGATION[role] || [], [role])
+  const navigationGroups = useMemo(() => NAVIGATION_GROUPS.map(({ title, keys }) => ({
+    title,
+    items: keys.map((key) => navigation.find((item) => item.key === key)).filter(Boolean),
+  })).filter((group) => group.items.length > 0), [navigation])
   const firstAllowedPage = navigation[0]?.key || 'dashboard'
   const initialPathPage = pageFromPath()
   const [page, setPage] = useState(initialPathPage || firstAllowedPage)
@@ -183,14 +210,18 @@ export default function RestaurantShell({ user, onLogout }) {
     <div className={`app-shell ${collapsed ? 'app-shell--sidebar-collapsed' : ''}`}>
       <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
         <div className="brand"><div className="brand-mark">R</div>{!collapsed && <div><strong>Resto</strong><span>Management</span></div>}</div>
-        <div className="nav-section">
-          {!collapsed && <p className="nav-title">CÔNG VIỆC</p>}
-          {navigation.map(({ key, label: text, icon: Icon }) => (
-            <button key={key} className={`nav-item ${page === key ? 'active' : ''}`} onClick={() => goTo(key)} title={collapsed ? text : undefined}>
-              <Icon />{!collapsed && <span>{text}</span>}
-            </button>
+        <nav className="nav-section" aria-label="Chức năng">
+          {navigationGroups.map(({ title, items }) => (
+            <section key={title} className="nav-group" aria-label={title}>
+              {!collapsed && <h2 className="nav-title">{title}</h2>}
+              {items.map(({ key, label: text, icon: Icon }) => (
+                <button key={key} className={`nav-item ${page === key ? 'active' : ''}`} onClick={() => goTo(key)} title={collapsed ? text : undefined}>
+                  <Icon />{!collapsed && <span>{text}</span>}
+                </button>
+              ))}
+            </section>
           ))}
-        </div>
+        </nav>
         <div className="sidebar-bottom">
           <button className="nav-item logout-nav" onClick={signout}><LogoutOutlined />{!collapsed && <span>Đăng xuất</span>}</button>
         </div>
