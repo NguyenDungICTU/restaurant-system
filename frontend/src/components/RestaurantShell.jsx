@@ -33,6 +33,7 @@ import Billing from '../pages/Billing'
 import ShiftClose from '../pages/ShiftClose'
 import RevenueReport from '../pages/RevenueReport'
 import Overview from '../pages/Overview'
+import PermissionMatrix from '../pages/PermissionMatrix'
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
 
@@ -51,6 +52,7 @@ const ROLE_NAVIGATION = {
     { key: 'checkout', label: 'Thanh toán', icon: DollarOutlined },
     { key: 'invoices', label: 'Hóa đơn', icon: FileTextOutlined },
     { key: 'audit', label: 'Nhật ký hệ thống', icon: SafetyOutlined },
+    { key: 'permission-matrix', label: 'Ma trận phân quyền', icon: SafetyOutlined },
     { key: 'opening-hours', label: 'Giờ mở cửa', icon: SettingOutlined },
   ],
   PHUC_VU: [
@@ -89,7 +91,7 @@ const NAVIGATION_GROUPS = [
   },
   {
     title: 'HỆ THỐNG',
-    keys: ['employees', 'opening-hours', 'audit'],
+    keys: ['employees', 'opening-hours', 'audit', 'permission-matrix'],
   },
 ]
 
@@ -100,7 +102,7 @@ const PATH_TO_PAGE = {
   '/revenue-report': 'revenue-report', '/audit': 'audit',
   '/opening-hours': 'opening-hours', '/table-map': 'table-map', '/order-entry': 'order-entry',
   '/kitchen': 'kitchen', '/service-orders': 'service-orders', '/daily-menu': 'daily-menu', '/checkout': 'checkout',
-  '/invoices': 'invoices', '/shift-close': 'shift-close',
+  '/invoices': 'invoices', '/shift-close': 'shift-close', '/permission-matrix': 'permission-matrix',
 }
 
 function pageFromPath() { return PATH_TO_PAGE[window.location.pathname] || null }
@@ -265,6 +267,8 @@ export default function RestaurantShell({ user, onLogout }) {
             <DailyMenu />
           ) : page === 'audit' ? (
             <AuditLogs />
+          ) : page === 'permission-matrix' ? (
+            <PermissionMatrix />
           ) : page === 'opening-hours' ? (
             <OpeningHoursSettings />
           ) : page === 'bookings' ? (
