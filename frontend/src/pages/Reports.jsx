@@ -339,21 +339,6 @@ export default function Reports() {
         />
       )}
 
-      <Alert
-        className="reports-rule-note"
-        type="info"
-        showIcon
-        message="Quy tắc đang áp dụng"
-        description={
-          <>
-            Chỉ tính bán khi món đã ở trạng thái <b>Đã phục vụ</b> và có tính
-            tiền. Doanh thu dùng <b>giá đã chốt trên dòng order</b>, không dùng
-            giá hiện tại. Bảng huỷ lấy tối đa 10 món; nếu nhiều lý do đồng hạng,
-            hệ thống hiển thị tất cả lý do đồng hạng.
-          </>
-        }
-      />
-
       {loading && !report ? (
         <div className="reports-loading">
           <Spin size="large" tip="Đang tổng hợp báo cáo..." />
