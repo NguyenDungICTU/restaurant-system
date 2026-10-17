@@ -278,6 +278,7 @@ export default function Reports() {
         </div>
 
         <Button
+          data-tour="dish-export"
           icon={<DownloadOutlined />}
           onClick={exportCsv}
           disabled={!report || loading}
@@ -287,7 +288,7 @@ export default function Reports() {
       </section>
 
       <Card className="reports-filter-card" bordered={false}>
-        <div className="reports-filter-grid">
+        <div data-tour="dish-filters" className="reports-filter-grid">
           <div>
             <label>Khoảng ngày báo cáo</label>
             <RangePicker

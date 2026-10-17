@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Annotated, Any
 
-from pydantic import BeforeValidator, Field, HttpUrl
+from pydantic import BeforeValidator, Field, HttpUrl, SecretStr
 from pydantic_settings import (
     BaseSettings,
     NoDecode,
@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     )
 
     database_url: str
+
+    # Server only; never forward these as VITE_* variables.
+    ai_enabled: bool = False
+    openai_api_key: SecretStr = SecretStr("")
+    ai_model: str = ""
+    ai_timeout_seconds: int = Field(default=20, ge=5, le=30)
+    ai_requests_per_minute: int = Field(default=12, ge=1, le=60)
 
     session_cookie_name: str = (
         "restaurant_session"

@@ -35,6 +35,7 @@ PERMISSIONS = {
         "checkout",
         "invoices",
         "shift-close",
+        "permission-matrix",
     },
     "PHUC_VU": {
         "table-map",
@@ -76,6 +77,7 @@ RESOURCE_LABELS = {
     "checkout": "Thanh toán",
     "invoices": "Hóa đơn",
     "shift-close": "Chốt ca",
+    "permission-matrix": "Ma trận phân quyền",
 }
 
 
