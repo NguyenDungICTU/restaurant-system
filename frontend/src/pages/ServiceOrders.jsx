@@ -365,12 +365,12 @@ export default function ServiceOrders({ user }) {
 
     try {
       await closeServiceSession(sessionId)
-      message.success('Đã kết thúc phiên phục vụ.')
+      message.success('Đã chuyển phiên sang chờ thanh toán. Bàn sẽ chuyển sang đang dọn sau khi thu ngân chốt hóa đơn.')
       await load()
     } catch (error) {
       message.error(
         error?.response?.data?.detail ||
-          'Không thể kết thúc phiên phục vụ.',
+          'Không thể chuyển phiên sang chờ thanh toán.',
       )
     } finally {
       setClosing(null)
@@ -541,7 +541,7 @@ export default function ServiceOrders({ user }) {
                       loading={closing === sessionId}
                       onClick={() => closeSession(sessionId)}
                     >
-                      Kết thúc phiên
+                      Chuyển sang chờ thanh toán
                     </Button>
                   </div>
                 </header>

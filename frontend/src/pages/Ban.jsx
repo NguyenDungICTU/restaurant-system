@@ -1388,7 +1388,7 @@ export default function Ban({ user }) {
 
   return (
     <section className="table-map-page">
-      {canReceiveGuests && <GopBanPanel tables={tables} onChanged={() => loadTablesFresh(true)} />}
+      {canReceiveGuests && <GopBanPanel tables={tables} areaId={areaId} onChanged={() => loadTablesFresh(true)} />}
       <div className="table-map-page-heading">
         <div>
           <h1>Quản lý bàn</h1>
@@ -2555,6 +2555,7 @@ export default function Ban({ user }) {
                                   sessionId,
                                   {
                                     phien_ban_id: sessionId,
+                                    ban_id: detailData?.id,
                                     items: Object.values(additionalOrderCart).map(item => ({
                                       mon_an_id: item.mon_an_id,
                                       so_luong: item.so_luong,

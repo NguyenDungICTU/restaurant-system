@@ -62,20 +62,25 @@ def merge_tables(
             raise HTTPException(409, "Một bàn đã thuộc nhóm gộp. Hãy huỷ gộp trước.")
         main = sessions[0]
         secondary = sessions[1]
-        # Preserve the source session id on each order batch so undo can restore the exact session.
-        batches = list(db.scalars(select(DotGoiMon).where(
-            DotGoiMon.phien_ban_id == secondary.id
-        ).with_for_update()))
-        for batch in batches:
-            batch.phien_ban_goc_id = secondary.id
-            batch.phien_ban_id = main.id
-        # Mark batches already on main as sourced from main, making all rows reversible.
+        # Consolidate order batches under the primary session so kitchen and
+        # billing continue to use the normal active-session path. Preserve the
+        # original session on every batch, and renumber batches to satisfy the
+        # unique (phien_ban_id, so_dot) constraint after consolidation.
         main_batches = list(db.scalars(select(DotGoiMon).where(
             DotGoiMon.phien_ban_id == main.id
-        ).with_for_update()))
+        ).order_by(DotGoiMon.gui_at, DotGoiMon.id).with_for_update()))
         for batch in main_batches:
             if batch.phien_ban_goc_id is None:
                 batch.phien_ban_goc_id = main.id
+        secondary_batches = list(db.scalars(select(DotGoiMon).where(
+            DotGoiMon.phien_ban_id == secondary.id
+        ).order_by(DotGoiMon.gui_at, DotGoiMon.id).with_for_update()))
+        next_batch_number = max((batch.so_dot for batch in main_batches), default=0)
+        for batch in secondary_batches:
+            batch.phien_ban_goc_id = secondary.id
+            batch.phien_ban_id = main.id
+            next_batch_number += 1
+            batch.so_dot = next_batch_number
         secondary.trang_thai = "DA_GOP"
         secondary.phien_chinh_id = main.id
         db.commit()
@@ -92,6 +97,48 @@ def merge_tables(
     except Exception:
         db.rollback()
         raise
+
+
+
+
+@router.get("/groups")
+def merged_groups(
+    db: Session = Depends(get_db),
+    user: NhanVien = Depends(require_roles("PHUC_VU", "QUAN_LY")),
+):
+    """List active reversible groups so staff do not need to remember a session ID."""
+    mains = list(db.scalars(
+        select(PhienBan).where(
+            PhienBan.trang_thai == "DANG_PHUC_VU",
+            PhienBan.id.in_(
+                select(PhienBan.phien_chinh_id).where(
+                    PhienBan.trang_thai == "DA_GOP",
+                    PhienBan.phien_chinh_id.is_not(None),
+                )
+            ),
+        ).order_by(PhienBan.bat_dau_at.desc())
+    ))
+    result = []
+    for main in mains:
+        main_table = db.get(Ban, main.ban_id)
+        members = list(db.scalars(
+            select(PhienBan).where(
+                PhienBan.phien_chinh_id == main.id,
+                PhienBan.trang_thai == "DA_GOP",
+            ).order_by(PhienBan.id)
+        ))
+        member_tables = [db.get(Ban, member.ban_id) for member in members]
+        tables = [t for t in [main_table, *member_tables] if t is not None]
+        if main_table is None or not members:
+            continue
+        result.append({
+            "phien_chinh_id": main.id,
+            "khu_vuc_id": main_table.khu_vuc_id,
+            "ban_ids": [t.id for t in tables],
+            "ma_cac_ban": [t.ma_ban for t in tables],
+            "label": " + ".join(t.ma_ban for t in tables),
+        })
+    return result
 
 
 @router.post("/{session_id}/huy")
@@ -122,9 +169,29 @@ def unmerge_tables(
             batch.phien_ban_goc_id = None
         elif origin == main.id:
             batch.phien_ban_goc_id = None
+    # Re-number the restored batches in their original session, because the
+    # merged group uses one shared sequence while active.
+    for origin_id in member_ids:
+        restored = list(db.scalars(select(DotGoiMon).where(
+            DotGoiMon.phien_ban_id == origin_id
+        ).order_by(DotGoiMon.gui_at, DotGoiMon.id).with_for_update()))
+        for number, batch in enumerate(restored, start=1):
+            batch.so_dot = number
+    main_batches = list(db.scalars(select(DotGoiMon).where(
+        DotGoiMon.phien_ban_id == main.id
+    ).order_by(DotGoiMon.gui_at, DotGoiMon.id).with_for_update()))
+    for number, batch in enumerate(main_batches, start=1):
+        batch.so_dot = number
+    # Restore the secondary sessions and make every member table usable again.
+    table_ids = {main.ban_id, *(member.ban_id for member in members)}
+    tables = list(db.scalars(select(Ban).where(Ban.id.in_(table_ids)).with_for_update()))
+    now = datetime.now(TZ)
     for member in members:
         member.trang_thai = "DANG_PHUC_VU"
         member.phien_chinh_id = None
+    for table in tables:
+        table.trang_thai = "DANG_SU_DUNG"
+        table.trang_thai_changed_at = now
     db.commit()
     return {"phien_chinh_id": main.id, "restored_session_ids": sorted(member_ids),
             "message": "Đã huỷ gộp; các đợt gọi món trở về phiên gốc."}
