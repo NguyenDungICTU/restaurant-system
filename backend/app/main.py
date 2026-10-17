@@ -27,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.routers.audit import router as audit_router
+from app.routers.assistant import router as assistant_router
 from app.routers.auth import router as auth_router
 from app.routers.ban import router as ban_router
 from app.routers.table_map_events import router as table_map_events_router
@@ -190,6 +191,7 @@ app.include_router(dat_ban_router)
 app.include_router(lich_hoat_dong_router)
 app.include_router(workspace_router)
 app.include_router(audit_router)
+app.include_router(assistant_router)
 
 
 @app.get("/")

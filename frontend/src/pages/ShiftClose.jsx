@@ -74,8 +74,8 @@ export default function ShiftClose({ user }) {
     ...(isManager ? [{ title: '', key: 'action', render: (_, x) => x.trang_thai === 'DA_CHOT' ? <Button icon={<UnlockOutlined />} onClick={() => doReopen(x)}>Mở lại</Button> : null }] : []),
   ]
 
-  return <section className="shift-close-page">
-    <div className="shift-header"><div><Text type="secondary">THU NGÂN · S4-04</Text><Title level={2}>Chốt ca cuối buổi</Title><Text type="secondary">Đối chiếu số liệu hệ thống với tiền mặt thực đếm trong két.</Text></div><Button icon={<ReloadOutlined />} loading={loading} onClick={reload}>Làm mới</Button></div>
+  return <section data-tour="shift-content" className="shift-close-page">
+    <div data-tour="shift-heading" className="shift-header"><div><Text type="secondary">THU NGÂN · S4-04</Text><Title level={2}>Chốt ca cuối buổi</Title><Text type="secondary">Đối chiếu số liệu hệ thống với tiền mặt thực đếm trong két.</Text></div><Button icon={<ReloadOutlined />} loading={loading} onClick={reload}>Làm mới</Button></div>
     {shift && <>
       <Card title={`Ca #${shift.id}`} extra={<Tag color={shift.trang_thai === 'DANG_MO' ? 'blue' : 'green'}>{shift.trang_thai === 'DANG_MO' ? 'Đang mở' : shift.trang_thai === 'DA_CHOT' ? 'Đã chốt' : shift.trang_thai}</Tag>}>
         <Row gutter={[12,12]}>

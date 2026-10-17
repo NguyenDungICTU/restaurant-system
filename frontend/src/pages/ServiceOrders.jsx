@@ -402,7 +402,7 @@ export default function ServiceOrders({ user }) {
         </Button>
       </div>
 
-      <section className="ready-orders-panel">
+      <section data-tour="service-ready" className="ready-orders-panel">
         <div className="ready-orders-heading">
           <div>
             <p className="eyebrow">
@@ -484,7 +484,7 @@ export default function ServiceOrders({ user }) {
         )}
       </section>
 
-      <div className="order-history-heading">
+      <div data-tour="service-history" className="order-history-heading">
         <div>
           <p className="eyebrow">TOÀN BỘ PHIÊN PHỤC VỤ</p>
           <h2>Trạng thái món theo bàn</h2>

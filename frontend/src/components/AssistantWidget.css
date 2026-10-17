@@ -1,0 +1,95 @@
+.resto-assistant-launcher.ant-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 90;
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 24px;
+  background: #9f2f27;
+  box-shadow: 0 6px 22px #4a201e30;
+}
+
+.resto-assistant-title { display: inline-flex; align-items: center; gap: 9px; color: #9f2f27; }
+.resto-assistant-drawer .ant-drawer-section { background: #f7f5f2; color: #27231f; }
+.resto-assistant-drawer .ant-drawer-header { background: #fff; }
+.resto-assistant-status { flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px; padding: 10px 16px; font-size: 11px; color: #766e66; border-bottom: 1px solid #e9e2db; line-height: 1.5; }
+.resto-assistant-status .ant-btn { padding: 0; font-size: 11px; height: auto; }
+.resto-assistant-tabs { flex: 1; min-height: 0; }
+.resto-assistant-tabs > .ant-tabs-nav { padding: 0 18px; margin-bottom: 0; background: #fff; }
+.resto-assistant-tabs .ant-tabs-body-holder { min-height: 0; overflow: hidden; }
+.resto-assistant-tabs .ant-tabs-body { height: 100%; min-height: 0; }
+.resto-assistant-tabs .ant-tabs-content { min-height: 0; flex: 1; overflow: hidden; }
+.resto-assistant-tabs .ant-tabs-content-active { height: 100%; display: flex; flex-direction: column; }
+.resto-assistant-conversation { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 16px; overscroll-behavior: contain; }
+.resto-assistant-welcome h3 { margin: 0 0 8px; font-size: 21px; color: #27231f; }
+.resto-assistant-welcome p, .resto-assistant-catalog > p { color: #766e66; line-height: 1.6; }
+.resto-assistant-welcome .ant-btn { display: block; margin: 9px 0; max-width: 100%; white-space: normal; height: auto; min-height: 34px; text-align: left; }
+.resto-assistant-message { margin-bottom: 16px; padding: 12px; border: 1px solid #e9e2db; border-radius: 12px; background: #fff; overflow-wrap: anywhere; }
+.resto-assistant-message--user { background: #f0e5e1; margin-left: 32px; border-color: #e9d6cf; }
+.resto-assistant-message > small { display: block; color: #766e66; font-size: 11px; }
+.resto-assistant-message p { white-space: pre-wrap; line-height: 1.65; margin: 6px 0; }
+.resto-assistant-message .resto-assistant-notice { padding: 8px; background: #f7f5f2; border-radius: 6px; color: #766e66; font-size: 12px; }
+.resto-assistant-source { border-top: 1px solid #eee7e0; margin-top: 12px; padding-top: 12px; }
+.resto-assistant-source-version { display: block; color: #766e66; font-size: 10px; margin-top: 4px; }
+.resto-assistant-source ol { padding-left: 20px; margin: 8px 0 12px; }
+.resto-assistant-source li { margin-bottom: 7px; line-height: 1.6; }
+.resto-assistant-source > div, .resto-assistant-guide > div { display: flex; gap: 6px; flex-wrap: wrap; }
+.resto-assistant-compose { flex-shrink: 0; padding: 12px 16px; border-top: 1px solid #e9e2db; background: #fff; }
+.resto-assistant-compose > label { display: block; font-size: 12px; margin-bottom: 6px; color: #766e66; }
+.resto-assistant-compose > div { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-top: 8px; }
+.resto-assistant-compose small { color: #766e66; font-size: 11px; line-height: 1.4; }
+.resto-assistant-catalog { overflow-y: auto; padding: 16px 20px; }
+.resto-assistant-catalog > .ant-btn { margin: 6px 0; height: auto; min-height: 38px; white-space: normal; }
+.resto-assistant-guide { padding: 14px 0; border-bottom: 1px solid #e9e2db; }
+.resto-assistant-guide > strong { display: block; margin-bottom: 9px; }
+.resto-assistant-dates { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; }
+.resto-assistant-dates label { flex: 1; font-size: 12px; color: #766e66; min-width: 130px; }
+.resto-assistant-dates input { display: block; box-sizing: border-box; width: 100%; margin-top: 6px; padding: 8px; border: 1px solid #d9d1c8; border-radius: 7px; background: #fff; color: #27231f; font: inherit; }
+.resto-assistant-dates small { width: 100%; color: #766e66; }
+.resto-assistant-loading { display: flex; padding: 16px; align-items: center; justify-content: center; gap: 10px; color: #766e66; }
+.resto-assistant-footer { flex-shrink: 0; padding: 9px 16px; color: #766e66; border-top: 1px solid #e9e2db; font-size: 11px; line-height: 1.5; }
+.resto-assistant-data > strong { display: block; margin-top: 10px; }
+.resto-assistant-data > small { display: block; margin: 10px 0; color: #766e66; }
+.resto-assistant-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.resto-assistant-metrics > div { background: #f7f5f2; border-radius: 8px; padding: 10px; }
+.resto-assistant-metrics span { display: block; color: #766e66; font-size: 12px; }
+.resto-assistant-metrics b { display: block; margin-top: 6px; color: #9f2f27; font-size: 17px; }
+.resto-assistant-table { overflow-x: auto; margin: 12px 0; }
+.resto-assistant-table table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.resto-assistant-table th, .resto-assistant-table td { text-align: left; border-bottom: 1px solid #e9e2db; padding: 7px; }
+.resto-assistant-tour-copy { white-space: pre-line; line-height: 1.7; }
+.resto-assistant-tour-wait { position: fixed; z-index: 1200; right: 18px; bottom: 18px; display: flex; gap: 10px; align-items: center; padding: 12px; background: #fff; color: #27231f; border: 1px solid #d9d1c8; border-radius: 10px; box-shadow: 0 4px 20px #0002; }
+.resto-assistant-hero { padding: 20px; margin: -4px -2px 20px; background: linear-gradient(135deg, #f1e3dd, #f8f1e9); border: 1px solid #e8d3c9; border-radius: 14px; }
+.resto-assistant-hero > span { font-size: 10px; letter-spacing: 1.6px; color: #9f2f27; font-weight: 700; }
+.resto-assistant-hero h3 { margin-top: 12px; font-size: 22px; line-height: 1.35; }
+.resto-assistant-hero p { margin-bottom: 0; font-size: 13px; }
+.resto-assistant-group-label { display: block; font-size: 12px; color: #766e66; margin: 18px 0 9px; }
+.resto-assistant-welcome > .ant-btn { width: 100%; padding: 10px 12px; border-radius: 9px; }
+.resto-assistant-data .resto-assistant-summary { font-size: 14px; line-height: 1.7; margin: 12px 0; }
+.resto-assistant-period { font-size: 12px; color: #766e66; }
+.resto-assistant-comparison { display: flex; flex-direction: column; gap: 7px; padding: 12px; background: #f1ebe6; border: 1px solid #e8d3c9; border-radius: 9px; margin: 12px 0; }
+.resto-assistant-comparison strong { color: #9f2f27; font-size: 17px; }
+.resto-assistant-comparison small { color: #766e66; }
+.resto-assistant-chart { margin: 16px 0; }
+.resto-assistant-chart figcaption { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+.resto-assistant-chart figcaption small { font-weight: 400; color: #766e66; }
+.resto-assistant-chart > div { overflow-x: auto; border-radius: 8px; background: #f9f7f4; }
+.resto-assistant-chart svg { display: block; }
+.resto-assistant-chart > small, .resto-assistant-data-note { color: #766e66; font-size: 12px; }
+.resto-assistant-daily-table summary { cursor: pointer; font-size: 12px; color: #9f2f27; padding: 9px 0; }
+.resto-assistant-insights { padding-left: 18px; font-size: 12px; line-height: 1.7; color: #766e66; }
+.resto-assistant-data-actions { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 8px; }
+.resto-assistant-followups { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.resto-assistant-followups .ant-btn { max-width: 100%; height: auto; white-space: normal; padding: 5px 9px; text-align: left; }
+.resto-assistant-catalog > .ant-checkbox-wrapper { font-size: 12px; margin-bottom: 14px; }
+.resto-assistant-compose > .resto-assistant-context { margin: 0 0 10px; gap: 6px; padding: 7px 8px; background: #f3ebe5; border: 1px solid #eadbd1; border-radius: 8px; font-size: 11px; color: #766e66; line-height: 1.5; }
+.resto-assistant-context > span { min-width: 0; overflow-wrap: anywhere; }
+.resto-assistant-context .ant-btn { flex-shrink: 0; color: #9f2f27; }
+
+@media (max-width: 600px) {
+  .resto-assistant-launcher.ant-btn { right: 14px; bottom: 14px; }
+  .resto-assistant-drawer .ant-drawer-content-wrapper { max-width: 100vw; }
+  .resto-assistant-tabs > .ant-tabs-nav { padding: 0 12px; }
+  .resto-assistant-tabs .ant-tabs-tab { margin-left: 0; margin-right: 16px; font-size: 13px; }
+}
