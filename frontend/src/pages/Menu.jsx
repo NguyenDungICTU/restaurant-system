@@ -640,13 +640,7 @@ export default function Menu() {
         )}
       </div>
 
-      <div className="implementation-note">
-        <div className="note-icon">i</div>
-        <div>
-          <strong>Mỗi món ăn bắt buộc thuộc một nhóm món</strong>
-          <p>Backend lưu <code>mon_an.nhom_mon_id</code> làm khóa ngoại tới <code>nhom_mon.id</code>. Giao diện này chỉ thay đổi cách hiển thị, không thay đổi API hay dữ liệu backend.</p>
-        </div>
-      </div>
+      
 
       <CategoryFormModal
         open={categoryModalOpen}
