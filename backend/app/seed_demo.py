@@ -351,3 +351,5 @@ if __name__ == "__main__":
     seed_demo_menu()
     seed_restaurant_sample()
     seed_table_map_demo()
+    from app.seed_demo_invoices import seed_demo_invoices
+    seed_demo_invoices()

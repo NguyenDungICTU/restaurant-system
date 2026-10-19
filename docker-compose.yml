@@ -140,8 +140,8 @@ services:
       # Cho phép Mailpit giữ lại email để xem trên localhost:8025
       MP_SMTP_RELAY_FWD_SMTP_ERRORS: "true"
 
-      MP_SMTP_RELAY_OVERRIDE_FROM: "${SMTP_RELAY_USERNAME}"
-      MP_SMTP_RELAY_RETURN_PATH: "${SMTP_RELAY_USERNAME}"
+      MP_SMTP_RELAY_OVERRIDE_FROM: "${SMTP_RELAY_USERNAME:-no-reply@restaurant.local}"
+      MP_SMTP_RELAY_RETURN_PATH: "${SMTP_RELAY_USERNAME:-no-reply@restaurant.local}"
 
     ports:
       - "8025:8025"

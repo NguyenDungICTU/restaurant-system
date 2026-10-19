@@ -192,8 +192,8 @@ def reopen_shift(shift_id: int, payload: ReopenShiftRequest, db: Session=Depends
 @router.get("/open-sessions")
 def open_sessions(db: Session=Depends(get_db), _: NhanVien=Depends(require_roles("THU_NGAN","QUAN_LY"))):
     sessions=db.execute(select(PhienBan,Ban).join(Ban,Ban.id==PhienBan.ban_id)
-        .where(PhienBan.trang_thai.in_({"DANG_PHUC_VU","CHO_THANH_TOAN"}))
-        .order_by(PhienBan.bat_dau_at)).all()
+        .where(PhienBan.trang_thai == "CHO_THANH_TOAN")
+        .order_by(PhienBan.cho_thanh_toan_at, PhienBan.bat_dau_at)).all()
     result=[]
     for session,table in sessions:
         if db.scalar(select(HoaDon.id).where(HoaDon.phien_ban_id==session.id,HoaDon.trang_thai=="DA_CHOT")): continue
