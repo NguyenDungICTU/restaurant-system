@@ -223,8 +223,8 @@ export default function Kitchen() {
   )).length
 
   return (
-    <section className={`kitchen-page ${largeText ? 'kitchen-page--large' : ''}`}>
-      <div className="kitchen-heading">
+    <section data-tour="kitchen-work" className={`kitchen-page ${largeText ? 'kitchen-page--large' : ''}`}>
+      <div data-tour="kitchen-heading" className="kitchen-heading">
         <div>
           <p className="eyebrow"><FireOutlined /> BẾP</p>
           <h1>Món cần làm</h1>
@@ -391,7 +391,7 @@ export default function Kitchen() {
       ) : null}
 
       {completedGrouped.length > 0 && (
-        <section className="kitchen-ready-area">
+        <section data-tour="kitchen-ready" className="kitchen-ready-area">
           <div className="kitchen-ready-heading">
             <div>
               <p className="eyebrow">ĐÃ HOÀN THÀNH</p>

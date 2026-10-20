@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   ApartmentOutlined, BellOutlined, CalendarOutlined, CheckSquareOutlined,
   DashboardOutlined, DollarOutlined, FileTextOutlined, FireOutlined,
@@ -28,6 +28,14 @@ import DailyMenu from '../pages/DailyMenu'
 import OrderEntry from '../pages/OrderEntry'
 import ServiceOrders from '../pages/ServiceOrders'
 import Kitchen from '../pages/Kitchen'
+import Reports from '../pages/Reports'
+import Billing from '../pages/Billing'
+import ShiftClose from '../pages/ShiftClose'
+import RevenueReport from '../pages/RevenueReport'
+import Overview from '../pages/Overview'
+import PermissionMatrix from '../pages/PermissionMatrix'
+
+const AssistantWidget = lazy(() => import('./AssistantWidget'))
 
 const ROLE_LABELS = { QUAN_LY: 'Quản lý', PHUC_VU: 'Phục vụ', BEP: 'Bếp', THU_NGAN: 'Thu ngân' }
 
@@ -35,16 +43,18 @@ const ROLE_NAVIGATION = {
   QUAN_LY: [
     { key: 'dashboard', label: 'Tổng quan', icon: DashboardOutlined },
     { key: 'bookings', label: 'Đặt bàn', icon: CalendarOutlined },
-    { key: 'customers', label: 'Khách hàng', icon: TeamOutlined },
     { key: 'menu-management', label: 'Thực đơn', icon: UnorderedListOutlined },
     { key: 'daily-menu', label: 'Món trong ngày', icon: FireOutlined },
-    { key: 'orders', label: 'Đơn hàng', icon: ShoppingCartOutlined },
     { key: 'service-orders', label: 'Theo dõi món', icon: BellOutlined },
     { key: 'employees', label: 'Nhân viên', icon: TeamOutlined },
     { key: 'areas', label: 'Khu vực', icon: ApartmentOutlined },
     { key: 'tables', label: 'Quản lý bàn', icon: TableOutlined },
-    { key: 'reports', label: 'Báo cáo', icon: FileTextOutlined },
+    { key: 'reports', label: 'Báo cáo món ăn', icon: FileTextOutlined },
+    { key: 'revenue-report', label: 'Báo cáo doanh thu', icon: DollarOutlined },
+    { key: 'checkout', label: 'Thanh toán', icon: DollarOutlined },
+    { key: 'invoices', label: 'Hóa đơn', icon: FileTextOutlined },
     { key: 'audit', label: 'Nhật ký hệ thống', icon: SafetyOutlined },
+    { key: 'permission-matrix', label: 'Ma trận phân quyền', icon: SafetyOutlined },
     { key: 'opening-hours', label: 'Giờ mở cửa', icon: SettingOutlined },
   ],
   PHUC_VU: [
@@ -64,13 +74,37 @@ const ROLE_NAVIGATION = {
   ],
 }
 
+const NAVIGATION_GROUPS = [
+  {
+    title: 'ĐIỀU HÀNH',
+    keys: ['dashboard', 'bookings', 'tables', 'table-map', 'order-entry', 'service-orders', 'kitchen'],
+  },
+  {
+    title: 'DANH MỤC',
+    keys: ['menu-management', 'daily-menu', 'areas'],
+  },
+  {
+    title: 'TÀI CHÍNH',
+    keys: ['checkout', 'invoices', 'shift-close'],
+  },
+  {
+    title: 'BÁO CÁO',
+    keys: ['reports', 'revenue-report'],
+  },
+  {
+    title: 'HỆ THỐNG',
+    keys: ['employees', 'opening-hours', 'audit', 'permission-matrix'],
+  },
+]
+
 const PATH_TO_PAGE = {
   '/': null, '/dashboard': 'dashboard', '/bookings': 'bookings', '/customers': 'customers',
   '/menu-management': 'menu-management', '/orders': 'orders', '/employees': 'employees',
-  '/areas': 'areas', '/tables': 'tables', '/reports': 'reports', '/audit': 'audit',
+  '/areas': 'areas', '/tables': 'tables', '/reports': 'reports',
+  '/revenue-report': 'revenue-report', '/audit': 'audit',
   '/opening-hours': 'opening-hours', '/table-map': 'table-map', '/order-entry': 'order-entry',
   '/kitchen': 'kitchen', '/service-orders': 'service-orders', '/daily-menu': 'daily-menu', '/checkout': 'checkout',
-  '/invoices': 'invoices', '/shift-close': 'shift-close',
+  '/invoices': 'invoices', '/shift-close': 'shift-close', '/permission-matrix': 'permission-matrix',
 }
 
 function pageFromPath() { return PATH_TO_PAGE[window.location.pathname] || null }
@@ -82,6 +116,10 @@ function apiErrorMessage(error) {
 export default function RestaurantShell({ user, onLogout }) {
   const role = user?.role || 'PHUC_VU'
   const navigation = useMemo(() => ROLE_NAVIGATION[role] || [], [role])
+  const navigationGroups = useMemo(() => NAVIGATION_GROUPS.map(({ title, keys }) => ({
+    title,
+    items: keys.map((key) => navigation.find((item) => item.key === key)).filter(Boolean),
+  })).filter((group) => group.items.length > 0), [navigation])
   const firstAllowedPage = navigation[0]?.key || 'dashboard'
   const initialPathPage = pageFromPath()
   const [page, setPage] = useState(initialPathPage || firstAllowedPage)
@@ -176,14 +214,18 @@ export default function RestaurantShell({ user, onLogout }) {
     <div className={`app-shell ${collapsed ? 'app-shell--sidebar-collapsed' : ''}`}>
       <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
         <div className="brand"><div className="brand-mark">R</div>{!collapsed && <div><strong>Resto</strong><span>Management</span></div>}</div>
-        <div className="nav-section">
-          {!collapsed && <p className="nav-title">CÔNG VIỆC</p>}
-          {navigation.map(({ key, label: text, icon: Icon }) => (
-            <button key={key} className={`nav-item ${page === key ? 'active' : ''}`} onClick={() => goTo(key)} title={collapsed ? text : undefined}>
-              <Icon />{!collapsed && <span>{text}</span>}
-            </button>
+        <nav className="nav-section" aria-label="Chức năng">
+          {navigationGroups.map(({ title, items }) => (
+            <section key={title} className="nav-group" aria-label={title}>
+              {!collapsed && <h2 className="nav-title">{title}</h2>}
+              {items.map(({ key, label: text, icon: Icon }) => (
+                <button key={key} data-assistant-nav={key} className={`nav-item ${page === key ? 'active' : ''}`} onClick={() => goTo(key)} title={collapsed ? text : undefined}>
+                  <Icon />{!collapsed && <span>{text}</span>}
+                </button>
+              ))}
+            </section>
           ))}
-        </div>
+        </nav>
         <div className="sidebar-bottom">
           <button className="nav-item logout-nav" onClick={signout}><LogoutOutlined />{!collapsed && <span>Đăng xuất</span>}</button>
         </div>
@@ -202,6 +244,8 @@ export default function RestaurantShell({ user, onLogout }) {
         </header>
 
         <div
+          data-assistant-page={page}
+          data-assistant-ready={accessState.page === page && accessState.allowed && !accessState.loading ? 'true' : 'false'}
           className={`page-content ${
             page === 'tables' || page === 'table-map'
               ? 'page-content--table-map'
@@ -214,7 +258,7 @@ export default function RestaurantShell({ user, onLogout }) {
           ) : !accessState.allowed ? (
             <Forbidden message={accessState.message} />
           ) : page === 'dashboard' ? (
-            <RoleWorkspace resource="dashboard" />
+            <Overview onNavigate={goTo} />
           ) : page === 'employees' ? (
             <Employees />
           ) : page === 'areas' ? (
@@ -227,6 +271,8 @@ export default function RestaurantShell({ user, onLogout }) {
             <DailyMenu />
           ) : page === 'audit' ? (
             <AuditLogs />
+          ) : page === 'permission-matrix' ? (
+            <PermissionMatrix />
           ) : page === 'opening-hours' ? (
             <OpeningHoursSettings />
           ) : page === 'bookings' ? (
@@ -235,13 +281,25 @@ export default function RestaurantShell({ user, onLogout }) {
             <OrderEntry />
           ) : page === 'service-orders' ? (
             <ServiceOrders user={user} />
+          ) : page === 'reports' ? (
+            <Reports />
           ) : page === 'kitchen' ? (
             <Kitchen />
+          ) : page === 'revenue-report' ? (
+            <RevenueReport />
+          ) : page === 'shift-close' ? (
+            <ShiftClose user={user} />
+          ) : page === 'checkout' || page === 'invoices' ? (
+            <Billing user={user} initialMode={page === 'invoices' ? 'invoices' : 'checkout'} />
           ) : (
             <RoleWorkspace resource={page} />
           )}
         </div>
       </main>
+      <Suspense fallback={null}>
+        <AssistantWidget key={`${user?.id}-${role}`} page={page} navigation={navigation}
+          ready={accessState.page === page && accessState.allowed && !accessState.loading} onNavigate={goTo} />
+      </Suspense>
     </div>
   )
 }

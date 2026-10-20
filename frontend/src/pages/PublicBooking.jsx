@@ -9,7 +9,9 @@ import {
   FileTextOutlined,
   HistoryOutlined,
   LoadingOutlined,
+  MailOutlined,
   PhoneOutlined,
+  SafetyCertificateOutlined,
   SearchOutlined,
   TeamOutlined,
   UserOutlined,
@@ -21,6 +23,8 @@ import {
   getPublicBookingAreas,
   getPublicTimeSlots,
   lookupPublicBooking,
+  requestPublicBookingEmailOtp,
+  verifyPublicBookingEmailOtp,
 } from '../services/api'
 import './PublicBooking.css'
 
@@ -149,7 +153,11 @@ function BookingInfo({ booking, onCancel }) {
   )
 }
 
-export default function PublicBooking({ onBack, initialMode = 'create' }) {
+export default function PublicBooking({
+  onBack,
+  initialMode = 'create',
+  initialLookupCode = '',
+}) {
   const [mode, setMode] = useState(initialMode)
   const [today] = useState(() => vietnamToday())
 
@@ -164,13 +172,24 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [emailOtp, setEmailOtp] = useState('')
+  const [otpRequested, setOtpRequested] = useState(false)
+  const [otpSending, setOtpSending] = useState(false)
+  const [otpVerifying, setOtpVerifying] = useState(false)
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [emailVerificationToken, setEmailVerificationToken] = useState('')
+  const [otpError, setOtpError] = useState('')
+  const [otpMessage, setOtpMessage] = useState('')
+  const [resendSeconds, setResendSeconds] = useState(0)
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const [summary, setSummary] = useState(null)
 
   const [history, setHistory] = useState(() => readHistory())
-  const [lookupCode, setLookupCode] = useState('')
+  const [lookupCode, setLookupCode] = useState(
+    () => initialLookupCode.trim().toUpperCase()
+  )
   const [lookupPhone, setLookupPhone] = useState('')
   const [lookupResult, setLookupResult] = useState(null)
   const [lookupLoading, setLookupLoading] = useState(false)
@@ -184,6 +203,14 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
       .finally(() => { if (!cancelled) setAreasLoading(false) })
     return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return undefined
+    const timer = window.setInterval(() => {
+      setResendSeconds((current) => Math.max(0, current - 1))
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [resendSeconds])
 
   useEffect(() => {
     if (mode !== 'create') return undefined
@@ -221,10 +248,71 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
     setSlotsLoading(true)
   }
 
+  function handleEmailChange(value) {
+    setEmail(value)
+    setEmailOtp('')
+    setOtpRequested(false)
+    setEmailVerified(false)
+    setEmailVerificationToken('')
+    setOtpError('')
+    setOtpMessage('')
+    setResendSeconds(0)
+  }
+
+  async function handleSendEmailOtp() {
+    const normalizedEmail = email.trim().toLowerCase()
+    setOtpError('')
+    setOtpMessage('')
+    if (!/^[a-z0-9._%+-]+@gmail\.com$/i.test(normalizedEmail)) {
+      setOtpError('Chỉ chấp nhận địa chỉ Gmail hợp lệ có đuôi @gmail.com.')
+      return
+    }
+    setOtpSending(true)
+    try {
+      const result = await requestPublicBookingEmailOtp(normalizedEmail)
+      setOtpRequested(true)
+      setEmailOtp('')
+      setEmailVerified(false)
+      setEmailVerificationToken('')
+      setResendSeconds(Number(result?.resend_after_seconds || 60))
+      setOtpMessage(result?.message || 'Mã OTP 6 số đã được gửi tới Gmail. Mã có hiệu lực trong 10 phút.')
+    } catch (cause) {
+      setOtpError(apiError(cause))
+    } finally {
+      setOtpSending(false)
+    }
+  }
+
+  async function handleVerifyEmailOtp() {
+    const normalizedEmail = email.trim().toLowerCase()
+    const normalizedOtp = emailOtp.trim()
+    setOtpError('')
+    setOtpMessage('')
+    if (!/^\d{6}$/.test(normalizedOtp)) {
+      setOtpError('Mã xác minh phải gồm đúng 6 chữ số.')
+      return
+    }
+    setOtpVerifying(true)
+    try {
+      const result = await verifyPublicBookingEmailOtp(normalizedEmail, normalizedOtp)
+      if (!result?.verification_token) throw new Error('Máy chủ chưa trả về token xác minh email.')
+      setEmailVerified(true)
+      setEmailVerificationToken(result.verification_token)
+      setOtpMessage('Gmail đã được xác minh. Bạn có thể gửi yêu cầu đặt bàn.')
+    } catch (cause) {
+      setEmailVerified(false)
+      setEmailVerificationToken('')
+      setOtpError(apiError(cause))
+    } finally {
+      setOtpVerifying(false)
+    }
+  }
+
   function validate() {
     if (!name.trim()) return 'Vui lòng nhập họ tên khách.'
     if (!/^0\d{9}$/.test(phone.trim())) return 'Số điện thoại gồm 10 chữ số và bắt đầu bằng 0.'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Vui lòng nhập email hợp lệ để nhận xác nhận huỷ.'
+    if (!/^[a-z0-9._%+-]+@gmail\.com$/i.test(email.trim())) return 'Chỉ chấp nhận địa chỉ Gmail hợp lệ có đuôi @gmail.com.'
+    if (!emailVerified || !emailVerificationToken) return 'Vui lòng xác minh Gmail bằng mã OTP trước khi đặt bàn.'
     if (!Number.isInteger(guests) || guests < 1 || guests > 20) return 'Số khách phải từ 1 đến 20.'
     if (!selectedSlot) return 'Vui lòng chọn khung giờ.'
     return ''
@@ -243,7 +331,8 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
       const created = await createPublicBooking({
         ho_ten_khach: name.trim(),
         so_dien_thoai: phone.trim(),
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
+        email_verification_token: emailVerificationToken,
         so_luong_khach: guests,
         ngay_dat: date,
         gio_bat_dau: selectedSlot,
@@ -265,6 +354,15 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
     setName('')
     setPhone('')
     setEmail('')
+    setEmailOtp('')
+    setOtpRequested(false)
+    setOtpSending(false)
+    setOtpVerifying(false)
+    setEmailVerified(false)
+    setEmailVerificationToken('')
+    setOtpError('')
+    setOtpMessage('')
+    setResendSeconds(0)
     setNote('')
     setAreaId('')
     setSelectedSlot('')
@@ -511,11 +609,43 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
             </section>
 
             <section className="booking-step">
-              <div className="booking-step-heading"><span className="booking-step-num">4</span><div><h2>Thông tin khách</h2><p>Email được lưu để gửi xác nhận đặt bàn và thông báo nếu lượt đặt bị huỷ.</p></div></div>
+              <div className="booking-step-heading"><span className="booking-step-num">4</span><div><h2>Thông tin khách</h2><p>Gmail phải được xác minh bằng OTP trước khi gửi yêu cầu. Gmail đã xác minh sẽ nhận xác nhận và email nhắc lịch S4-08.</p></div></div>
               <div className="booking-step-grid booking-step-grid-stack">
                 <label className="booking-field"><span className="booking-field-label"><UserOutlined /> Họ tên khách</span><Input value={name} maxLength={100} placeholder="Nhập họ tên" onChange={(event) => setName(event.target.value)} /></label>
                 <label className="booking-field"><span className="booking-field-label"><PhoneOutlined /> Số điện thoại</span><Input value={phone} maxLength={10} placeholder="Ví dụ: 0912345678" onChange={(event) => setPhone(event.target.value)} /></label>
-                <label className="booking-field"><span className="booking-field-label"><FileTextOutlined /> Email</span><Input type="email" value={email} maxLength={254} placeholder="you@example.com" onChange={(event) => setEmail(event.target.value)} /></label>
+                <div className="booking-field booking-email-verification">
+                  <span className="booking-field-label"><MailOutlined /> Gmail nhận thông báo</span>
+                  <div className="booking-email-action-row">
+                    <Input type="email" value={email} maxLength={254} placeholder="tenban@gmail.com" disabled={emailVerified} onChange={(event) => handleEmailChange(event.target.value)} />
+                    <Button type={emailVerified ? 'default' : 'primary'} disabled={emailVerified || resendSeconds > 0 || !email.trim()} loading={otpSending} onClick={handleSendEmailOtp}>
+                      {emailVerified ? 'Đã xác minh' : resendSeconds > 0 ? `Gửi lại (${resendSeconds}s)` : otpRequested ? 'Gửi lại mã' : 'Gửi mã'}
+                    </Button>
+                  </div>
+                  <div className="booking-email-rule">Chỉ chấp nhận <strong>@gmail.com</strong>. Gmail phải nhận được OTP thật mới có thể hoàn tất đặt bàn.</div>
+
+                  {(otpRequested || emailVerified) && (
+                    <div className={`booking-otp-panel ${emailVerified ? 'verified' : ''}`}>
+                      <div className="booking-otp-title">
+                        <SafetyCertificateOutlined />
+                        <div>
+                          <strong>{emailVerified ? 'Gmail đã xác minh' : 'Nhập mã OTP 6 số'}</strong>
+                          <span>{emailVerified ? email.trim().toLowerCase() : 'Kiểm tra hộp thư Gmail (kể cả Spam) rồi nhập mã trong 10 phút.'}</span>
+                        </div>
+                      </div>
+                      {!emailVerified && (
+                        <div className="booking-otp-row">
+                          <Input value={emailOtp} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" onChange={(event) => setEmailOtp(event.target.value.replace(/\D/g, ''))} />
+                          <Button type="primary" disabled={emailOtp.length !== 6} loading={otpVerifying} onClick={handleVerifyEmailOtp}>Xác minh</Button>
+                        </div>
+                      )}
+                      {emailVerified && (
+                        <div className="booking-email-verified-badge"><CheckCircleOutlined /> Email này đã được xác minh và sẽ nhận email nhắc lịch.</div>
+                      )}
+                    </div>
+                  )}
+                  {otpMessage && <div className="booking-otp-message success">{otpMessage}</div>}
+                  {otpError && <div className="booking-otp-message error">{otpError}</div>}
+                </div>
                 <label className="booking-field"><span className="booking-field-label"><FileTextOutlined /> Ghi chú</span><Input.TextArea value={note} maxLength={1000} rows={3} placeholder="Yêu cầu thêm (không bắt buộc)" onChange={(event) => setNote(event.target.value)} /></label>
               </div>
             </section>
@@ -523,7 +653,9 @@ export default function PublicBooking({ onBack, initialMode = 'create' }) {
             {formError && <div className="booking-form-error">{formError}</div>}
             <div className="booking-submit-bar">
               <div className="booking-submit-summary">{selectedSlot ? <span>{formatDate(date)} · {selectedSlot} · {guests} khách{areaId ? ' · có chọn khu vực' : ''}</span> : <span>Chọn khung giờ để hoàn tất.</span>}</div>
-              <Button type="primary" htmlType="submit" size="large" loading={submitting}>Gửi yêu cầu đặt bàn</Button>
+              <Button type="primary" htmlType="submit" size="large" loading={submitting} disabled={!emailVerified} title={!emailVerified ? 'Hãy xác minh Gmail trước khi đặt bàn.' : ''}>
+                {emailVerified ? 'Gửi yêu cầu đặt bàn' : 'Xác minh Gmail để tiếp tục'}
+              </Button>
             </div>
           </form>
         )}

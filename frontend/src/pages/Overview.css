@@ -1,0 +1,201 @@
+.resto-overview {
+  --overview-accent: var(--wine, #9f2f27);
+  --overview-text: var(--text, #27231f);
+  --overview-muted: var(--muted, #7d766e);
+  --overview-border: var(--border, #ebe7e1);
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+  color: var(--overview-text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.resto-overview-heading,
+.resto-overview-heading-actions,
+.resto-overview-panel-heading,
+.resto-overview-metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.resto-overview-heading { margin-bottom: 24px; }
+.resto-overview-heading h1 { margin: 0; font-size: 28px; letter-spacing: -.6px; }
+.resto-overview-heading p { margin: 8px 0 0; color: var(--overview-muted); line-height: 1.7; }
+.resto-overview-heading-actions { flex-shrink: 0; gap: 12px; }
+.resto-overview-heading-actions .ant-btn { height: 38px; padding-inline: 15px; font-size: 13px; }
+.resto-overview-date { display: flex; align-items: center; gap: 8px; color: var(--overview-muted); font-size: 12px; }
+.resto-overview-alert { margin-bottom: 18px; }
+.resto-overview-alert ul { margin: 4px 0; padding-left: 18px; overflow-wrap: anywhere; }
+.resto-overview-alert li + li { margin-top: 5px; }
+
+.resto-overview-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+.resto-overview-metric,
+.resto-overview-panel { min-width: 0; border: 1px solid var(--overview-border); border-radius: 14px; background: #fff; box-shadow: 0 3px 14px rgb(54 38 27 / 4%); }
+.resto-overview-metric { display: flex; flex-direction: column; padding: 19px 20px 12px; }
+.resto-overview-metric--accent { background: #fcf5f3; border-color: #ecd8d3; }
+.resto-overview-metric-top { gap: 8px; color: #675f57; font-size: 12px; line-height: 1.5; }
+.resto-overview-metric-icon { display: grid; place-items: center; flex: 0 0 32px; height: 32px; border-radius: 9px; background: #f7eeeb; color: var(--overview-accent); font-size: 17px; }
+.resto-overview-metric-value { display: block; margin-top: 14px; font-size: clamp(21px, 1.85vw, 29px); line-height: 1.4; letter-spacing: -.7px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.resto-overview-metric--accent .resto-overview-metric-value { color: var(--overview-accent); }
+.resto-overview-metric-value small { color: var(--overview-muted); font-size: 13px; font-weight: 400; letter-spacing: 0; }
+.resto-overview-metric p { flex: 1; margin: 7px 0 12px; color: var(--overview-muted); font-size: 11px; line-height: 1.6; }
+.resto-overview-metric > .ant-btn { align-self: flex-start; padding-inline: 0; font-size: 11px; }
+.resto-overview-metric .ant-skeleton { margin-top: 14px; }
+.resto-overview-metric .ant-skeleton-input { width: 100%; min-width: 0; }
+
+.resto-overview-content-grid { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); gap: 18px; align-items: stretch; }
+.resto-overview-panel { padding: 22px; }
+.resto-overview-panel-heading { align-items: flex-start; flex-wrap: wrap; margin-bottom: 20px; gap: 10px; }
+.resto-overview-panel-heading h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; line-height: 1.5; }
+.resto-overview-panel-heading p { margin: 5px 0 0; color: var(--overview-muted); font-size: 11px; line-height: 1.6; }
+.resto-overview-panel-heading > .ant-btn { flex-shrink: 0; padding-inline: 0; font-size: 12px; }
+.resto-overview-panel-loading { min-height: 240px; padding-top: 12px; }
+.resto-overview-chip { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; padding: 5px 9px; border-radius: 6px; background: #fbefed; color: var(--overview-accent); font-size: 10px; }
+.resto-overview-chip i,
+.resto-overview-chart-figure figcaption i { width: 7px; height: 7px; background: var(--overview-accent); border-radius: 2px; }
+.resto-overview-empty,
+.resto-overview-unavailable { display: flex; min-height: 245px; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; color: var(--overview-muted); }
+.resto-overview-empty .ant-empty { margin: 8px 0; }
+.resto-overview-empty p { max-width: 340px; margin: 0; font-size: 12px; line-height: 1.7; }
+.resto-overview-chart-figure { margin: 26px 0 0; }
+.resto-overview-chart { display: flex; height: 218px; gap: 12px; }
+.resto-overview-axis { display: flex; flex-direction: column; flex: 0 0 48px; justify-content: space-between; padding-bottom: 27px; text-align: right; color: #958c83; font-size: 10px; font-variant-numeric: tabular-nums; }
+.resto-overview-chart-plot { position: relative; flex: 1; min-width: 0; }
+.resto-overview-gridlines { position: absolute; inset: 5px 0 30px; display: flex; flex-direction: column; justify-content: space-between; }
+.resto-overview-gridlines i { border-top: 1px dashed var(--overview-border); }
+.resto-overview-bars { position: relative; display: flex; height: 100%; gap: 6px; padding: 5px 3px 0; }
+.resto-overview-bar-column { display: flex; flex: 1 1 0; min-width: 0; flex-direction: column; align-items: center; border-radius: 3px; }
+.resto-overview-bar-column:focus-visible { outline: 2px solid var(--overview-accent); outline-offset: 3px; }
+.resto-overview-bar-track { display: flex; width: 72%; max-width: 34px; flex: 1; align-items: flex-end; }
+.resto-overview-bar { width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--overview-accent); opacity: .85; }
+.resto-overview-bar-column:hover .resto-overview-bar,
+.resto-overview-bar-column:focus .resto-overview-bar { opacity: 1; }
+.resto-overview-bar--zero { background: #e9ded9; }
+.resto-overview-bar-label { width: 100%; height: 30px; padding-top: 12px; color: #8c837b; text-align: center; font-size: 10px; }
+.resto-overview-chart-figure figcaption { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 17px; color: var(--overview-muted); font-size: 11px; }
+.resto-overview-revenue > .ant-alert { margin-top: 16px; font-size: 12px; }
+
+.resto-overview-table-summary { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; }
+.resto-overview-table-summary strong { font-size: 30px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.resto-overview-table-summary > span { color: var(--overview-muted); font-size: 12px; }
+.resto-overview-status-track { display: flex; gap: 3px; height: 8px; margin-bottom: 15px; overflow: hidden; border-radius: 5px; }
+.resto-overview-status-track > span { flex-basis: 0; min-width: 0; border-radius: 2px; }
+.resto-overview-table-states { list-style: none; padding: 0; margin: 0; }
+.resto-overview-table-states li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid #f3f0ec; font-size: 12px; }
+.resto-overview-table-states li > span { display: flex; align-items: center; gap: 9px; }
+.resto-overview-table-states i { width: 8px; height: 8px; border-radius: 50%; }
+.resto-overview-table-states strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+.resto-overview-table-states small { color: var(--overview-muted); font-size: 11px; font-weight: 400; }
+.resto-overview-table-note { color: var(--overview-muted); font-size: 10px; line-height: 1.7; margin: 12px 0 0; }
+
+.resto-overview-count { display: inline-flex; min-width: 23px; height: 22px; align-items: center; justify-content: center; padding: 0 6px; border-radius: 5px; background: #f5efeb; color: var(--overview-accent); font-size: 11px; font-weight: 600; }
+.resto-overview-booking-table { width: 100%; border-collapse: collapse; table-layout: fixed; text-align: left; font-size: 12px; }
+.resto-overview-booking-table th { padding: 11px 8px; background: #f8f5f1; color: #7a7067; font-size: 11px; font-weight: 500; line-height: 1.5; }
+.resto-overview-booking-table th:first-child { border-radius: 6px 0 0 6px; }
+.resto-overview-booking-table th:last-child { border-radius: 0 6px 6px 0; }
+.resto-overview-booking-table td { padding: 14px 8px; border-bottom: 1px solid #f0ece7; vertical-align: middle; overflow-wrap: anywhere; line-height: 1.6; }
+.resto-overview-booking-table tbody tr:hover { background: #fdfaf7; }
+.resto-overview-arrival { font-weight: 600; font-variant-numeric: tabular-nums; }
+.resto-overview-customer strong { display: block; font-size: 12px; font-weight: 600; }
+.resto-overview-customer small { display: block; margin-top: 2px; color: #958b82; font-size: 10px; }
+.resto-overview-muted { color: #958b82; font-size: 11px; }
+.resto-overview-booking-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 5px; font-size: 10px; line-height: 1.5; }
+.resto-overview-booking-status i { flex: 0 0 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.resto-overview-booking-status--warning { background: #fff7df; color: #805d0a; }
+.resto-overview-booking-status--success { background: #edf8ef; color: #246536; }
+.resto-overview-booking-status--neutral { background: #f2f3f5; color: #6b625c; }
+.resto-overview-booking-status--danger { background: #fff0ed; color: #972c24; }
+.resto-overview-pagination { justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
+.resto-overview-task-clock { color: var(--overview-accent); font-size: 19px; }
+.resto-overview-task { padding: 15px 0 12px; border-bottom: 1px solid #f0ece7; }
+.resto-overview-task:first-child { padding-top: 0; }
+.resto-overview-task:last-child { padding-bottom: 0; border-bottom: 0; }
+.resto-overview-task-top { display: flex; align-items: center; gap: 9px; }
+.resto-overview-task-icon { display: grid; width: 29px; height: 29px; flex: 0 0 29px; place-items: center; border-radius: 8px; background: #f7efeb; color: var(--overview-accent); font-size: 15px; }
+.resto-overview-task h3 { flex: 1; margin: 0; font-size: 12px; font-weight: 600; line-height: 1.5; }
+.resto-overview-task-top > strong { min-width: 26px; text-align: right; color: var(--overview-accent); font-size: 21px; font-variant-numeric: tabular-nums; }
+.resto-overview-task p { margin: 7px 0 2px; color: var(--overview-muted); font-size: 11px; line-height: 1.7; }
+.resto-overview-task > .ant-btn { height: 25px; padding-inline: 0; font-size: 11px; }
+.resto-overview-all-done { display: flex; align-items: center; gap: 7px; color: #246536; font-size: 11px; margin: 17px 0 0; }
+.resto-overview-updated { margin: 18px 0 0; color: #958b82; font-size: 10px; line-height: 1.7; text-align: right; }
+.resto-overview-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (max-width: 1250px) {
+  .resto-overview-heading { align-items: flex-start; }
+  .resto-overview-heading-actions { flex-direction: column; align-items: flex-end; gap: 8px; }
+  .resto-overview-metric { padding: 16px 15px 10px; }
+  .resto-overview-panel { padding: 19px; }
+}
+
+@media (max-width: 1100px) {
+  .resto-overview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .resto-overview-content-grid { grid-template-columns: minmax(0, 1fr); }
+  .resto-overview-metric-value { font-size: 27px; }
+}
+
+@media (max-width: 640px) {
+  .resto-overview-heading { flex-direction: column; gap: 15px; margin-bottom: 18px; }
+  .resto-overview-heading h1 { font-size: 25px; }
+  .resto-overview-heading-actions { width: 100%; flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .resto-overview-date { font-size: 11px; }
+  .resto-overview-metrics { gap: 10px; }
+  .resto-overview-metric-top { align-items: flex-start; font-size: 11px; }
+  .resto-overview-metric-icon { flex-basis: 26px; height: 26px; font-size: 14px; }
+  .resto-overview-metric-value { font-size: 23px; }
+  .resto-overview-metric-value small { font-size: 11px; }
+  .resto-overview-panel { padding: 17px 14px; }
+  .resto-overview-panel-heading h2 { font-size: 15px; }
+  .resto-overview-panel-heading > .ant-btn { font-size: 11px; }
+  .resto-overview-axis { flex-basis: 37px; font-size: 9px; }
+  .resto-overview-chart { gap: 6px; }
+  .resto-overview-bars { gap: 3px; }
+  .resto-overview-bar-label { font-size: 9px; }
+  .resto-overview-booking-table colgroup,
+  .resto-overview-booking-table thead { display: none; }
+  .resto-overview-booking-table,
+  .resto-overview-booking-table tbody,
+  .resto-overview-booking-table tr,
+  .resto-overview-booking-table td { display: block; }
+  .resto-overview-booking-table tr { padding: 10px 0; border-bottom: 1px solid var(--overview-border); }
+  .resto-overview-booking-table td { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 6px 0; border: 0; text-align: right; }
+  .resto-overview-booking-table td::before { content: attr(data-label); flex: 0 0 74px; text-align: left; color: var(--overview-muted); font-size: 11px; }
+  .resto-overview-alert { flex-wrap: wrap; }
+  .resto-overview-alert .ant-alert-actions { margin: 10px 0 0; }
+  .resto-overview-updated { text-align: left; }
+}
+
+@media (max-width: 430px) {
+  .resto-overview-heading-actions { min-width: 0; }
+  .resto-overview-date { min-width: 0; align-items: flex-start; }
+  .resto-overview-date > .anticon { margin-top: 3px; }
+  .resto-overview-metrics { grid-template-columns: minmax(0, 1fr); }
+  .resto-overview-metric { padding: 16px 18px 10px; }
+  .resto-overview-metric-top { align-items: center; font-size: 12px; }
+  .resto-overview-metric-value { font-size: 27px; }
+  .resto-overview-booking-table td { display: block; text-align: left; }
+  .resto-overview-booking-table td::before { display: block; margin-bottom: 3px; }
+  .resto-overview-task-top { flex-wrap: wrap; }
+  .resto-overview-task h3 { flex-basis: 55px; }
+}
+
+@container (max-width: 260px) {
+  .resto-overview-panel { padding: 16px 10px; }
+  .resto-overview-metric-top,
+  .resto-overview-table-summary,
+  .resto-overview-table-states li { flex-wrap: wrap; }
+  .resto-overview-panel-heading h2 { flex-wrap: wrap; }
+  .resto-overview-heading-actions,
+  .resto-overview-date { flex-wrap: wrap; }
+  .resto-overview .ant-btn { max-width: 100%; min-height: 28px; height: auto; padding: 4px 6px; white-space: normal; }
+  .resto-overview-chart-plot { overflow: hidden; }
+  .resto-overview-bars { gap: 1px; }
+  .resto-overview-axis { display: none; }
+  .resto-overview-bar-label { font-size: 8px; }
+  .resto-overview-chip { flex-shrink: 1; max-width: 100%; }
+  .resto-overview-booking-status { max-width: 100%; }
+  .resto-overview-booking-table td { display: block; text-align: left; }
+  .resto-overview-booking-table td::before { display: block; margin-bottom: 3px; }
+}

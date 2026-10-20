@@ -356,7 +356,7 @@ export default function Employees() {
         .employee-dashboard {
           padding: 24px;
           min-height: 100%;
-          background: #f6f8fc;
+          background: #f7f5f2 !important;
           color: #17233d;
           font-family: inherit;
         }
@@ -750,8 +750,9 @@ export default function Employees() {
           width: 32px;
           height: 32px;
           border-radius: 7px;
-          background: #f0444b;
-          color: white;
+          background: #ffffff !important;
+          border: 1px solid #1677ff !important;
+          color: #1677ff !important;
           display: flex;
           align-items: center;
           justify-content: center;

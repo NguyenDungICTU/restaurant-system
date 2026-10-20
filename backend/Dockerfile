@@ -27,4 +27,6 @@ COPY entrypoint.py .
 
 EXPOSE 8000
 
+COPY tests ./tests
+
 CMD ["python", "entrypoint.py"]

@@ -136,6 +136,15 @@ export default function QuetQR({ token }) {
     return () => window.clearTimeout(initialTimer)
   }, [load])
 
+  // Poll table/menu state so staff's temporary sold-out changes appear
+  // without requiring the customer to refresh the page.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void load()
+    }, REFRESH_MS)
+    return () => window.clearInterval(timer)
+  }, [load])
+
   const loadOrders = useCallback(async () => {
     if (!sessionId) return
     try {
@@ -261,7 +270,7 @@ export default function QuetQR({ token }) {
       localStorage.removeItem(cartKey(token))
       resetPendingRequest()
       setMessage(
-        `Order #${result.dot_id} đã được ghi nhận. ` +
+        `Đơn hàng #${result.dot_id} đã được ghi nhận. ` +
         `${result.lines.length} dòng món đang chờ bếp.`,
       )
       await loadOrders()
@@ -271,8 +280,8 @@ export default function QuetQR({ token }) {
 
       if (networkFailure) {
         setError(
-          'Mất kết nối khi gửi order. Giỏ món vẫn được giữ nguyên. ' +
-          'Khi có mạng, bấm “Gửi lại order”.',
+          'Mất kết nối khi gửi đơn hàng. Giỏ món vẫn được giữ nguyên. ' +
+          'Khi có mạng, bấm “Gửi lại đơn hàng”.',
         )
       } else {
         setError(
@@ -571,7 +580,7 @@ export default function QuetQR({ token }) {
                     loading={submitting}
                     onClick={submitOrder}
                   >
-                    {pendingRequestId ? 'Gửi lại order' : 'Gửi order cho bếp'}
+                    {pendingRequestId ? 'Gửi lại đơn hàng' : 'Gửi order cho bếp'}
                   </Button>
 
                   {pendingRequestId && (

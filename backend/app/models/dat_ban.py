@@ -154,6 +154,26 @@ class DatBan(Base):
         item = self._notification("HUY_DAT_BAN")
         return item.loi_cuoi if item else None
 
+    @property
+    def email_nhac_trang_thai(self) -> str | None:
+        item = self._notification("NHAC_DAT_BAN")
+        return item.trang_thai if item else None
+
+    @property
+    def email_nhac_so_lan_thu(self) -> int:
+        item = self._notification("NHAC_DAT_BAN")
+        return item.so_lan_thu if item else 0
+
+    @property
+    def email_nhac_gui_luc(self) -> datetime | None:
+        item = self._notification("NHAC_DAT_BAN")
+        return item.da_gui_at if item else None
+
+    @property
+    def email_nhac_loi_cuoi(self) -> str | None:
+        item = self._notification("NHAC_DAT_BAN")
+        return item.loi_cuoi if item else None
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

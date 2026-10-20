@@ -49,6 +49,7 @@ class BanResponse(BaseModel):
     qr_token: str
     created_at: datetime
     updated_at: datetime
+    trang_thai_changed_at: datetime | None = None
 
 
 class SeatedGuestResponse(BaseModel):

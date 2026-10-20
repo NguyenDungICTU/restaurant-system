@@ -427,6 +427,16 @@ export async function getPublicTimeSlots(params) {
   return response.data
 }
 
+export async function requestPublicBookingEmailOtp(email) {
+  const response = await api.post('/api/dat-ban/cong-khai/email/send-otp', { email })
+  return response.data
+}
+
+export async function verifyPublicBookingEmailOtp(email, otp) {
+  const response = await api.post('/api/dat-ban/cong-khai/email/verify-otp', { email, otp })
+  return response.data
+}
+
 export async function createPublicBooking(payload) {
   const response = await api.post('/api/dat-ban/cong-khai', payload)
   return response.data
@@ -454,6 +464,11 @@ export async function getRestaurantTables() {
 
 export async function createRestaurantTable(payload) {
   const response = await api.post('/api/ban', payload)
+  return response.data
+}
+
+export async function reportTableCleaned(tableId) {
+  const response = await api.post(`/api/ban/${tableId}/don-xong`)
   return response.data
 }
 
@@ -679,7 +694,7 @@ export function createTableMapEventStream(onEvent, onStatus) {
         ) {
           retryDelay = 1000
         }
-      } catch (error) {
+      } catch {
         if (controller.signal.aborted) return
         onStatus?.('disconnected')
         await waitBeforeRetry(retryDelay)
@@ -829,5 +844,84 @@ export async function cancelOrderLine(lineId, lyDoHuy) {
     `/api/order-ops/lines/${lineId}/cancel`,
     { ly_do_huy: lyDoHuy },
   )
+  return response.data
+}
+
+// S4 - Hoá đơn tạm tính (chỉ đọc, không đóng phiên phục vụ).
+export async function getProvisionalBill(tableId) {
+  const response = await api.get(
+    `/api/order-ops/tables/${tableId}/provisional-bill`,
+  )
+  return response.data
+}
+
+// S4 checkout / invoices
+export async function getOpenBillingSessions() {
+  const response = await api.get('/api/billing/open-sessions')
+  return response.data
+}
+export async function checkoutSession(payload) {
+  const response = await api.post('/api/billing/checkout', payload)
+  return response.data
+}
+export async function getInvoices() {
+  const response = await api.get('/api/billing/invoices')
+  return response.data
+}
+export async function cancelInvoice(invoiceId, reason) {
+  const response = await api.post(`/api/billing/invoices/${invoiceId}/cancel`, { ly_do: reason })
+  return response.data
+}
+
+export async function getInvoiceDetail(invoiceId) {
+  const response = await api.get(`/api/billing/invoices/${invoiceId}`)
+  return response.data
+}
+
+
+/* S4-04 — Chốt ca làm việc */
+export async function getCurrentShift() {
+  const response = await api.get('/api/billing/shift/current')
+  return response.data
+}
+export async function getShiftHistory() {
+  const response = await api.get('/api/billing/shift/history')
+  return response.data
+}
+export async function closeCurrentShift(payload) {
+  const response = await api.post('/api/billing/shift/close', payload)
+  return response.data
+}
+export async function reopenShift(shiftId, ly_do) {
+  const response = await api.post(`/api/billing/shift/${shiftId}/reopen`, { ly_do })
+  return response.data
+}
+
+
+// ─────────────────────────────────────────────
+// Báo cáo doanh thu (chỉ quản lý)
+// ─────────────────────────────────────────────
+export async function getRevenueReport(from, to) {
+  const response = await api.get('/api/reports/revenue', {
+    params: { from, to },
+  })
+  return response.data
+}
+
+
+/** Merge two active table sessions into one billable session. */
+export async function mergeTables(banIds) {
+  const response = await api.post('/api/gop-ban', { ban_ids: banIds })
+  return response.data
+}
+
+/** Undo an unpaid table merge and restore order batches to their source sessions. */
+export async function unmergeTables(mainSessionId) {
+  const response = await api.post(`/api/gop-ban/${mainSessionId}/huy`)
+  return response.data
+}
+
+export async function getMergeGroups() {
+  const response = await api.get('/api/gop-ban/groups')
   return response.data
 }

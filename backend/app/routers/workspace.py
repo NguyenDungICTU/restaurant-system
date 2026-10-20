@@ -25,6 +25,7 @@ PERMISSIONS = {
         "audit",
         "opening-hours",
         "reports",
+        "revenue-report",
         "settings",
         "table-map",
         "order-entry",
@@ -34,6 +35,7 @@ PERMISSIONS = {
         "checkout",
         "invoices",
         "shift-close",
+        "permission-matrix",
     },
     "PHUC_VU": {
         "table-map",
@@ -64,7 +66,8 @@ RESOURCE_LABELS = {
     "tables": "Quản lý bàn",
     "audit": "Nhật ký hệ thống",
     "opening-hours": "Giờ mở cửa",
-    "reports": "Báo cáo",
+    "reports": "Báo cáo món ăn",
+    "revenue-report": "Báo cáo doanh thu",
     "settings": "Cài đặt",
     "table-map": "Sơ đồ bàn",
     "order-entry": "Màn hình gọi món",
@@ -74,6 +77,7 @@ RESOURCE_LABELS = {
     "checkout": "Thanh toán",
     "invoices": "Hóa đơn",
     "shift-close": "Chốt ca",
+    "permission-matrix": "Ma trận phân quyền",
 }
 
 

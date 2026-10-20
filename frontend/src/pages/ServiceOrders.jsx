@@ -6,14 +6,16 @@ import {
 } from 'antd'
 import {
   BellOutlined, CheckCircleOutlined, ClockCircleOutlined,
-  ReloadOutlined, ShoppingCartOutlined,
+  ReloadOutlined, ShoppingCartOutlined, PrinterOutlined,
 } from '@ant-design/icons'
 import {
   cancelOrderLine,
   closeServiceSession,
   getServiceOrders,
+  getProvisionalBill,
   updateOrderLineStatus,
 } from '../services/api'
+import { escapeHtml } from '../utils/provisionalBill'
 import './OrderOperations.css'
 
 const CANCEL_REASONS = [
@@ -82,6 +84,61 @@ function completedAtLabel(line) {
     minute: '2-digit',
     second: '2-digit',
   })
+}
+
+
+function formatDateTime(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('vi-VN')
+}
+
+function provisionalBillHtml(bill) {
+  const rows = bill.items.map((item) => `
+    <tr>
+      <td class="dish">
+        <b>${escapeHtml(item.ten_mon)}</b>
+        ${item.nhan ? `<small class="charge">${escapeHtml(item.nhan)}</small>` : ''}
+        ${item.ghi_chu ? `<small>Ghi chú: ${escapeHtml(item.ghi_chu)}</small>` : ''}
+      </td>
+      <td class="num">${item.so_luong}</td>
+      <td class="num">${Number(item.don_gia).toLocaleString('vi-VN')}</td>
+      <td class="num">${Number(item.thanh_tien).toLocaleString('vi-VN')}</td>
+    </tr>`).join('')
+  return `<!doctype html><html lang="vi"><head><meta charset="utf-8">
+    <title>Tạm tính - ${escapeHtml(bill.ma_ban)}</title>
+    <style>
+      @page { size: 80mm auto; margin: 4mm; }
+      * { box-sizing: border-box; }
+      body { width: 72mm; margin: 0 auto; color: #111; font: 11px/1.35 Arial, sans-serif; }
+      h1 { font-size: 16px; text-align: center; margin: 0 0 4px; }
+      .center { text-align: center; margin: 2px 0; }
+      .meta { margin: 8px 0; border-top: 1px dashed #333; border-bottom: 1px dashed #333; padding: 6px 0; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      th, td { padding: 4px 1px; border-bottom: 1px dotted #aaa; vertical-align: top; overflow-wrap: anywhere; }
+      th { text-align: left; font-size: 9px; }
+      .dish { width: 40%; } .num { text-align: right; }
+      small { display: block; font-size: 9px; margin-top: 2px; }
+      .charge { font-weight: bold; }
+      .total { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 10px; }
+      .note { text-align: center; margin-top: 14px; }
+      @media screen { body { padding: 5mm 0; } }
+    </style></head><body>
+    <h1>${escapeHtml(bill.ten_quan || 'Nhà hàng')}</h1>
+    <p class="center"><b>HOÁ ĐƠN TẠM TÍNH</b></p>
+    <div class="meta">
+      <div>Bàn: <b>${escapeHtml(bill.ma_ban)}</b></div>
+      <div>Bắt đầu phục vụ: ${escapeHtml(formatDateTime(bill.bat_dau_phuc_vu_at))}</div>
+      <div>Thời điểm in: ${escapeHtml(formatDateTime(bill.thoi_diem_in_at))}</div>
+      <div>Người in: ${escapeHtml(bill.nguoi_in)}</div>
+    </div>
+    <table><thead><tr><th>Món</th><th class="num">SL</th><th class="num">Đơn giá</th><th class="num">Thành tiền</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="4">Chưa có món tính tiền.</td></tr>'}</tbody></table>
+    <div class="total"><span>TỔNG CỘNG</span><span>${Number(bill.tong_cong).toLocaleString('vi-VN')} đ</span></div>
+    <p class="center">Đây là hoá đơn tạm tính, chưa phải hoá đơn thanh toán.</p>
+    <p class="note">Cảm ơn quý khách!</p>
+    <script>window.onload = () => { window.focus(); window.print(); };</script>
+    </body></html>`
 }
 
 export default function ServiceOrders({ user }) {
@@ -278,17 +335,42 @@ export default function ServiceOrders({ user }) {
     }
   }
 
+
+  async function printProvisionalBill(lines) {
+    const tableId = lines?.[0]?.ban_id
+    if (!tableId) {
+      message.error('Không xác định được bàn để in tạm tính.')
+      return
+    }
+    // Open synchronously in the click handler to avoid popup blockers.
+    const printWindow = window.open('', '_blank', 'width=420,height=720')
+    if (!printWindow) {
+      message.error('Trình duyệt đã chặn cửa sổ in. Hãy cho phép pop-up rồi thử lại.')
+      return
+    }
+    printWindow.document.write('<p style="font:14px Arial;padding:16px">Đang tải hoá đơn tạm tính…</p>')
+    try {
+      const bill = await getProvisionalBill(tableId)
+      printWindow.document.open()
+      printWindow.document.write(provisionalBillHtml(bill))
+      printWindow.document.close()
+    } catch (error) {
+      printWindow.close()
+      message.error(error?.response?.data?.detail || 'Không thể tải hoá đơn tạm tính.')
+    }
+  }
+
   async function closeSession(sessionId) {
     setClosing(sessionId)
 
     try {
       await closeServiceSession(sessionId)
-      message.success('Đã kết thúc phiên phục vụ.')
+      message.success('Đã chuyển phiên sang chờ thanh toán. Bàn sẽ chuyển sang đang dọn sau khi thu ngân chốt hóa đơn.')
       await load()
     } catch (error) {
       message.error(
         error?.response?.data?.detail ||
-          'Không thể kết thúc phiên phục vụ.',
+          'Không thể chuyển phiên sang chờ thanh toán.',
       )
     } finally {
       setClosing(null)
@@ -320,7 +402,7 @@ export default function ServiceOrders({ user }) {
         </Button>
       </div>
 
-      <section className="ready-orders-panel">
+      <section data-tour="service-ready" className="ready-orders-panel">
         <div className="ready-orders-heading">
           <div>
             <p className="eyebrow">
@@ -402,7 +484,7 @@ export default function ServiceOrders({ user }) {
         )}
       </section>
 
-      <div className="order-history-heading">
+      <div data-tour="service-history" className="order-history-heading">
         <div>
           <p className="eyebrow">TOÀN BỘ PHIÊN PHỤC VỤ</p>
           <h2>Trạng thái món theo bàn</h2>
@@ -448,11 +530,18 @@ export default function ServiceOrders({ user }) {
 
                     <Button
                       size="small"
+                      icon={<PrinterOutlined />}
+                      onClick={() => printProvisionalBill(lines)}
+                    >
+                      In / Xuất PDF tạm tính
+                    </Button>
+                    <Button
+                      size="small"
                       disabled={!canClose}
                       loading={closing === sessionId}
                       onClick={() => closeSession(sessionId)}
                     >
-                      Kết thúc phiên
+                      Chuyển sang chờ thanh toán
                     </Button>
                   </div>
                 </header>

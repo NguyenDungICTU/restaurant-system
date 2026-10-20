@@ -27,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.routers.audit import router as audit_router
+from app.routers.assistant import router as assistant_router
 from app.routers.auth import router as auth_router
 from app.routers.ban import router as ban_router
 from app.routers.table_map_events import router as table_map_events_router
@@ -48,6 +49,10 @@ from app.routers.nhom_mon import (
 from app.routers.public_menu import router as public_menu_router
 from app.routers.customer_order import router as customer_order_router
 from app.routers.order_ops import router as order_ops_router
+from app.routers.billing import router as billing_router
+from app.routers.reports import router as reports_router
+from app.routers.table_merge import router as table_merge_router
+from app.routers.permissions import router as permissions_router
 
 
 logger = logging.getLogger(__name__)
@@ -176,11 +181,17 @@ app.include_router(nhom_mon_router)
 app.include_router(public_menu_router)
 app.include_router(customer_order_router)
 app.include_router(order_ops_router)
+app.include_router(reports_router)
+app.include_router(billing_router)
+
+app.include_router(table_merge_router)
+app.include_router(permissions_router)
 app.include_router(mon_an_router)
 app.include_router(dat_ban_router)
 app.include_router(lich_hoat_dong_router)
 app.include_router(workspace_router)
 app.include_router(audit_router)
+app.include_router(assistant_router)
 
 
 @app.get("/")

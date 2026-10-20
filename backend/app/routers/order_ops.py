@@ -6,6 +6,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
+from app.core.config import settings
 from app.dependencies.roles import require_roles
 from app.models.ban import Ban
 from app.models.dat_ban import DatBan
@@ -22,6 +23,7 @@ from app.schemas.customer_order import (
     StaffOrderLineResponse,
     StaffOrderStatusUpdate,
 )
+from app.services.provisional_bill import is_billable_line, line_amount
 
 router = APIRouter(
     prefix="/api/order-ops",
@@ -263,6 +265,26 @@ def create_staff_order(
         .limit(1)
         .with_for_update()
     )
+    # A merged member's session is DA_GOP. Resolve the primary session to
+    # validate the group, but keep new order batches attached to the original
+    # member session so unmerge preserves each table's own bill.
+    source_session_id = None
+    if session is None:
+        member_session = db.scalar(
+            select(PhienBan)
+            .where(PhienBan.ban_id == table.id, PhienBan.trang_thai == "DA_GOP")
+            .order_by(PhienBan.bat_dau_at.desc(), PhienBan.id.desc())
+            .limit(1)
+            .with_for_update()
+        )
+        if member_session is not None and member_session.phien_chinh_id is not None:
+            source_session_id = member_session.id
+            session = db.scalar(
+                select(PhienBan).where(
+                    PhienBan.id == member_session.phien_chinh_id,
+                    PhienBan.trang_thai == "DANG_PHUC_VU",
+                ).with_for_update()
+            )
 
     if session is None:
         raise HTTPException(
@@ -315,6 +337,7 @@ def create_staff_order(
     batch = DotGoiMon(
         phien_ban_id=session.id,
         so_dot=max_batch + 1,
+        phien_ban_goc_id=source_session_id or session.id,
         gui_at=now,
         created_by=current_user.id,
     )
@@ -819,15 +842,24 @@ def create_additional_order(
             ),
         )
 
-    table = db.scalar(
-        select(Ban).where(Ban.id == session.ban_id)
-    )
-
+    table_id = payload.ban_id or session.ban_id
+    table = db.scalar(select(Ban).where(Ban.id == table_id))
     if table is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Không tìm thấy bàn.",
-        )
+        raise HTTPException(status_code=404, detail="Không tìm thấy bàn.")
+
+    source_session_id = None
+    if table.id != session.ban_id:
+        member_session = db.scalar(select(PhienBan).where(
+            PhienBan.ban_id == table.id,
+            PhienBan.phien_chinh_id == session.id,
+            PhienBan.trang_thai == "DA_GOP",
+        ).with_for_update())
+        if member_session is None:
+            raise HTTPException(
+                status_code=409,
+                detail="Bàn được chọn không thuộc nhóm gộp của phiên này.",
+            )
+        source_session_id = member_session.id
 
     if not payload.items:
         raise HTTPException(
@@ -873,6 +905,7 @@ def create_additional_order(
     batch = DotGoiMon(
         phien_ban_id=session.id,
         so_dot=next_batch_number,
+        phien_ban_goc_id=source_session_id or session.id,
         gui_at=now,
         created_by=staff.id,
     )
@@ -908,6 +941,86 @@ def create_additional_order(
         "so_dot": batch.so_dot,
         "gui_at": batch.gui_at,
         "trang_thai": "CHO_BEP",
+    }
+
+
+
+
+@router.get(
+    "/tables/{table_id}/provisional-bill",
+)
+def get_provisional_bill(
+    table_id: int,
+    db: Session = Depends(get_db),
+    current_user: NhanVien = Depends(
+        require_roles("PHUC_VU", "QUAN_LY")
+    ),
+):
+    """Read-only bill preview for the currently serving table."""
+    table = db.scalar(select(Ban).where(Ban.id == table_id))
+    if table is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy bàn.")
+
+    session = db.scalar(
+        select(PhienBan)
+        .where(
+            PhienBan.ban_id == table.id,
+            PhienBan.trang_thai.in_({"DANG_PHUC_VU", "CHO_THANH_TOAN"}),
+        )
+        .order_by(PhienBan.bat_dau_at.desc(), PhienBan.id.desc())
+        .limit(1)
+    )
+    if session is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Bàn chưa có phiên phục vụ đang mở để in tạm tính.",
+        )
+
+    rows = db.execute(
+        select(DongGoiMon, MonAn)
+        .join(DotGoiMon, DotGoiMon.id == DongGoiMon.dot_goi_mon_id)
+        .join(MonAn, MonAn.id == DongGoiMon.mon_an_id)
+        .where(DotGoiMon.phien_ban_id == session.id)
+        .order_by(DongGoiMon.thoi_diem_tiep_nhan, DongGoiMon.id)
+    ).all()
+
+    items = []
+    total = 0
+    for line, dish in rows:
+        # Cancelled before kitchen preparation is excluded. Cancelled after
+        # preparation remains visible only when the business rule flags it billable.
+        if not is_billable_line(line.trang_thai, bool(line.tinh_tien)):
+            continue
+
+        unit_price = int(line.don_gia)
+        line_total = line_amount(unit_price, line.so_luong)
+        total += line_total
+        items.append({
+            "dong_mon_id": line.id,
+            "ten_mon": dish.ten_mon,
+            "so_luong": line.so_luong,
+            "don_gia": unit_price,
+            "thanh_tien": line_total,
+            "ghi_chu": line.ghi_chu or "",
+            "da_huy": line.trang_thai == "DA_HUY",
+            "tinh_tien": bool(line.tinh_tien),
+            "nhan": "ĐÃ HUỶ SAU KHI CHẾ BIẾN — CÓ TÍNH TIỀN"
+                if line.trang_thai == "DA_HUY" and line.tinh_tien else "",
+        })
+
+    now = datetime.now(VIETNAM_TZ)
+    return {
+        "ten_quan": settings.restaurant_name,
+        "ban_id": table.id,
+        "ma_ban": table.ma_ban,
+        "phien_ban_id": session.id,
+        "bat_dau_phuc_vu_at": session.bat_dau_at,
+        "thoi_diem_in_at": now,
+        "nguoi_in": current_user.ho_ten,
+        "items": items,
+        "tong_cong": total,
+        "don_vi_tien": "VND",
+        "loai": "TAM_TINH",
     }
 
 
@@ -977,29 +1090,12 @@ def close_service_session(
             ),
         )
 
+    # Closing the service-order screen is NOT checkout. Keep the table occupied
+    # until the cashier finalizes the invoice; checkout then moves it to DANG_DON.
     now = datetime.now(VIETNAM_TZ)
-
-    session.trang_thai = "DA_DONG"
-    session.dong_at = now
-
-    upcoming = db.scalar(
-        select(DatBan.id)
-        .where(
-            DatBan.ban_id == table.id,
-            DatBan.trang_thai == "DA_XAC_NHAN",
-            DatBan.khach_toi_at.is_(None),
-            DatBan.ngay_dat >= now.date(),
-        )
-        .limit(1)
-    )
-
-    table.trang_thai = (
-        "DA_DAT"
-        if upcoming is not None
-        else "TRONG"
-    )
-    table.trang_thai_changed_at = now
-
+    session.trang_thai = "CHO_THANH_TOAN"
+    session.cho_thanh_toan_at = now
+    # Deliberately leave table.trang_thai as DANG_SU_DUNG.
     db.commit()
 
     return {
@@ -1008,4 +1104,5 @@ def close_service_session(
         "ma_ban": table.ma_ban,
         "trang_thai_phien": session.trang_thai,
         "trang_thai_ban": table.trang_thai,
+        "message": "Phiên đã chuyển sang chờ thanh toán; bàn chỉ chuyển sang đang dọn sau khi thu ngân chốt hóa đơn.",
     }

@@ -26,10 +26,22 @@ export default function App() {
 }
 
 function AuthenticatedApp() {
+  const bookingLookupCode =
+    new URLSearchParams(window.location.search)
+      .get('booking')
+      ?.trim()
+      .toUpperCase() || ''
+
   const [screen, setScreen] = useState(() =>
-    getSessionToken() ? 'loading' : 'home'
+    bookingLookupCode
+      ? 'public-booking'
+      : getSessionToken()
+        ? 'loading'
+        : 'home'
   )
-  const [publicBookingMode, setPublicBookingMode] = useState('create')
+  const [publicBookingMode, setPublicBookingMode] = useState(
+    bookingLookupCode ? 'lookup' : 'create'
+  )
   const [user, setUser] = useState(null)
   const [loginNotice, setLoginNotice] = useState('')
 
@@ -99,7 +111,16 @@ function AuthenticatedApp() {
     }}
     onSuccess={openAuthenticatedScreen}
   />
-  if (screen === 'public-booking') return <PublicBooking initialMode={publicBookingMode} onBack={() => setScreen('home')} />
+  if (screen === 'public-booking') return (
+    <PublicBooking
+      initialMode={publicBookingMode}
+      initialLookupCode={bookingLookupCode}
+      onBack={() => {
+        window.history.replaceState({}, '', '/')
+        setScreen('home')
+      }}
+    />
+  )
   if (screen === 'login') return <Login onBack={() => setScreen('home')} onSuccess={openAuthenticatedScreen} />
   if (screen === 'change-password') return <ChangePassword user={user} forced={mustChangePassword(user)} onLogout={signOut} onSuccess={async () => { setSessionToken(null); setUser(null); setScreen('login') }} />
 

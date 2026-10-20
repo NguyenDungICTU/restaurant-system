@@ -282,7 +282,7 @@ export default function TodayBookings() {
       title: 'Trạng thái',
       dataIndex: 'trang_thai',
       key: 'trang_thai',
-      render: (value) => {
+      render: (value, row) => {
         const meta = STATUS_META[value] || { text: value, color: 'default' }
         return (
           <Space wrap>
@@ -290,6 +290,16 @@ export default function TodayBookings() {
             {row.qua_gio_hen && value === 'DA_XAC_NHAN' && <Tag color="red">Cần xử lý</Tag>}
           </Space>
         )
+      },
+    },
+    {
+      title: 'Nhắc lịch',
+      dataIndex: 'email_nhac_trang_thai',
+      key: 'email_nhac_trang_thai',
+      width: 115,
+      render: (value) => {
+        const meta = emailStatusMeta(value)
+        return <Tag color={meta.color}>{meta.text}</Tag>
       },
     },
     {
@@ -370,7 +380,7 @@ export default function TodayBookings() {
       <div className="today-bookings-heading">
         <div>
           <p className="today-bookings-eyebrow">
-            <CalendarOutlined /> S2-05 / S2-06 · PHỤC VỤ
+            <CalendarOutlined /> S2-05 / S2-06 / S4-08 · PHỤC VỤ
           </p>
           <h1>Danh sách đặt bàn hôm nay</h1>
           <p>{todayLabel} · Xác nhận, từ chối và phân bàn cho khách.</p>
@@ -521,6 +531,23 @@ export default function TodayBookings() {
             )}
             {detailRow?.email_xac_nhan_loi_cuoi && (
               <div style={{ color: '#b42318' }}>Lỗi cuối: {detailRow.email_xac_nhan_loi_cuoi}</div>
+            )}
+          </div>
+
+          <div>
+            <strong>Email nhắc lịch trước giờ hẹn</strong>
+            <div>
+              {(() => {
+                const meta = emailStatusMeta(detailRow?.email_nhac_trang_thai)
+                return <Tag color={meta.color}>{meta.text}</Tag>
+              })()}
+              <span> · Lần thử: {detailRow?.email_nhac_so_lan_thu || 0}/3</span>
+            </div>
+            {detailRow?.email_nhac_gui_luc && (
+              <div>Gửi thành công lúc: {new Date(detailRow.email_nhac_gui_luc).toLocaleString('vi-VN')}</div>
+            )}
+            {detailRow?.email_nhac_loi_cuoi && (
+              <div style={{ color: '#b42318' }}>Trạng thái / lỗi cuối: {detailRow.email_nhac_loi_cuoi}</div>
             )}
           </div>
 
